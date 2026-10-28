@@ -1,0 +1,992 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>가족 전용 보안 관리 - 우리 가족 이야기</title>
+    <!-- [오직 index.html을 통해서만 입장 가능하도록 직접 호출 시 리다이렉트 & 주소 가림] -->
+    <script>
+        (function() {
+            var REQUIRED_TARGET = 'index1.html';
+            var isAllowed = false;
+            try {
+                if (!window.location || window.location.protocol === 'blob:' || !window.location.href) return;
+                // 1. 1회용 통행증을 읽자마자 0.001초 즉시 소각(삭제)하여 재사용 및 주소창 직접 입력 원천 차단
+                var passRaw = sessionStorage.getItem('family_entry_pass');
+                sessionStorage.removeItem('family_entry_pass');
+                sessionStorage.removeItem('family_authorized_session');
+
+                if (passRaw) {
+                    var pass = JSON.parse(passRaw);
+                    var elapsed = Date.now() - (pass.issuedAt || 0);
+                    // 목적지(target)가 정확히 일치하고, 발급 후 5초(5000ms) 이내인 유효한 1회용 토큰만 허용
+                    if (pass && pass.target === REQUIRED_TARGET && pass.token && elapsed >= 0 && elapsed < 5000) {
+                        isAllowed = true;
+                        window.__FAMILY_VERIFIED_PASS__ = pass;
+                    }
+                }
+            } catch (e) {
+                isAllowed = false;
+            }
+
+            if (!isAllowed) {
+                // 비정상 직접 링크 입력 시 화면이 0.1초도 노출되지 않도록 즉시 숨김 후 index.html로 강제 이동
+                try { document.documentElement.style.display = 'none'; } catch (e) {}
+                try {
+                    window.location.replace('index.html');
+                } catch (e) {
+                    window.location.href = 'index.html';
+                }
+                return;
+            }
+
+            // 2. 정상 진입 시 브라우저 주소창에서 index1.html / index2.html 파일명 및 파라미터 즉시 가림
+            try {
+                if (window.history && typeof window.history.replaceState === 'function') {
+                    var cleanPath = window.location.pathname.replace(/\/?(index1|index2|index)\.html.*$/i, '/');
+                    if (!cleanPath.startsWith('/')) cleanPath = '/' + cleanPath;
+                    window.history.replaceState(null, document.title, cleanPath);
+                }
+            } catch (e) {}
+
+            // 3. 브라우저 뒤로가기/앞으로가기 캐시(bfcache) 우회 진입 방지
+            window.addEventListener('pageshow', function(evt) {
+                if (evt.persisted) {
+                    try { document.documentElement.style.display = 'none'; } catch (e) {}
+                    window.location.replace('index.html');
+                }
+            });
+        })();
+    </script>
+    <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="dns-prefetch" href="https://firestore.googleapis.com">
+    <link rel="icon" type="image/png" href="logo30.png">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="theme-color" content="#3B5D50">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard-dynamic-subset.css">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        *, *::before, *::after { box-sizing: border-box; }
+        html, body {
+            width: 100%; height: 100%; max-width: 100vw; overflow-x: hidden; overflow-y: hidden;
+            font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
+            background-color: #F1F5F9; color: #1E293B;
+            -webkit-tap-highlight-color: transparent;
+            -webkit-text-size-adjust: 100% !important;
+            touch-action: pan-y;
+            padding-bottom: env(safe-area-inset-bottom, 0px);
+        }
+        header { padding-top: max(env(safe-area-inset-top, 0px), 0px); }
+        .church-primary { background-color: #3B5D50; }
+        .church-primary-text { color: #3B5D50; }
+        .church-accent { background-color: #E8F0EC; }
+        .church-border { border-color: #E2E8F0; }
+        .dashed-input {
+            background-color: #ffffff !important;
+            color: #0F172A !important;
+            border: 1px dashed #94A3B8 !important;
+            outline: none !important;
+            box-sizing: border-box !important;
+            font-size: 16px !important;
+            line-height: 1.25 !important;
+            -webkit-text-size-adjust: 100% !important;
+        }
+        .dashed-input:focus { border: 1px dashed #3B5D50 !important; background-color: #F8FAFC !important; }
+        .dashed-input::placeholder { font-size: 12px; color: #94A3B8; font-weight: 500; }
+        @keyframes shakeError {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            75% { transform: translateX(5px); }
+        }
+        .animate-shake { animation: shakeError 0.25s ease-in-out 2; }
+        @keyframes fadeSlideDown {
+            from { opacity: 0; transform: translateY(-6px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-reveal { animation: fadeSlideDown 0.28s cubic-bezier(0.2, 0.8, 0.2, 1) forwards; }
+    </style>
+</head>
+<body class="flex flex-col h-full w-full max-w-full overflow-hidden bg-[#F1F5F9]">
+
+    <!-- [상단 헤더: logo30.png 적용 및 보안 관리 타이틀] -->
+    <header class="h-[54px] shrink-0 bg-white border-b church-border shadow-2xs px-4 flex items-center justify-center w-full z-30 relative max-w-md mx-auto">
+        <div class="flex flex-col items-center justify-center text-center pointer-events-auto max-w-[88vw]">
+            <div class="flex items-center space-x-1.5 justify-center">
+                <img src="logo30.png" alt="우리 가족 로고" onerror="this.style.display='none'" class="w-[21px] h-[21px] object-contain shrink-0 select-none">
+                <h1 class="text-[18.5px] font-black tracking-tight leading-tight truncate whitespace-nowrap text-slate-800" id="admin-header-title">
+                    우리 가족 이야기 <span id="admin-header-mokjang" class="text-[#3B5D50]"></span>
+                </h1>
+            </div>
+            <p class="text-[10px] text-slate-500 font-semibold truncate whitespace-nowrap leading-none mt-0.5 select-none flex items-center space-x-1">
+                <i class="fa-solid fa-shield-halved text-[#3B5D50] text-[9.5px]"></i>
+                <span>가족 전용 보안 관리 시스템</span>
+            </p>
+        </div>
+    </header>
+
+    <!-- [메인 컨테이너: 상부(패스·조회 기본 컨트롤) / 하부(보안 데이터 영역)] -->
+    <main class="w-full max-w-md mx-auto flex-1 overflow-y-auto overflow-x-hidden px-3 py-3 space-y-3">
+
+        <!-- ========================================================= -->
+        <!-- [상부 영역] 기본 보안 패스코드 인증 · 조회 · 빠른 이동 컨트롤 -->
+        <!-- ========================================================= -->
+        <section class="w-full bg-white rounded-2xl border border-slate-200/90 p-3.5 shadow-xs space-y-3 overflow-hidden">
+            <div class="flex items-center justify-between gap-2 border-b border-slate-100 pb-2">
+                <div class="flex items-center space-x-2 min-w-0 text-left">
+                    <div id="security-gate-icon-box" class="w-7 h-7 rounded-xl bg-slate-100 text-slate-700 flex items-center justify-center shrink-0 text-xs">
+                        <i id="security-gate-icon" class="fa-solid fa-lock"></i>
+                    </div>
+                    <div class="min-w-0">
+                        <h2 class="text-xs font-extrabold text-slate-800 truncate">관리자 보안 패스코드</h2>
+                        <p class="text-[10px] text-slate-400 truncate mt-0.5" id="security-gate-desc">승인된 4자리 패스코드 입력 시 조회가 활성화됩니다</p>
+                    </div>
+                </div>
+                <span id="security-gate-badge" class="shrink-0 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-600 border border-slate-200 whitespace-nowrap">
+                    🔒 보안 잠금
+                </span>
+            </div>
+
+            <!-- 패스코드 입력창 & 조건부 생성되는 [조회] 버튼 -->
+            <div class="flex items-center gap-2 w-full">
+                <div class="relative flex-1 min-w-0">
+                    <input type="password" id="admin-passcode-gate-input" maxlength="4" inputmode="numeric" pattern="[0-9]*"
+                           oninput="handleGatePasscodeInput(this)"
+                           onkeydown="if(event.key==='Enter'){event.preventDefault();triggerDataLookup();}"
+                           placeholder="패스코드 4자리 입력"
+                           class="w-full px-3 py-2 rounded-xl font-mono font-black text-center tracking-[0.35em] dashed-input">
+                </div>
+                <!-- 패스코드 4자리 일치 시에만 나타나는 [조회] 버튼 -->
+                <button type="button" id="admin-lookup-btn" onclick="triggerDataLookup()"
+                        class="hidden shrink-0 px-4 py-2.5 church-primary hover:opacity-95 active:scale-95 text-white rounded-xl text-xs font-extrabold shadow-xs transition-all flex items-center space-x-1.5 whitespace-nowrap">
+                    <i class="fa-solid fa-magnifying-glass text-[11px]"></i>
+                    <span>조회</span>
+                </button>
+            </div>
+
+            <!-- 상단 빠른 이동 버튼 (초기화면 / 피드 바로가기) -->
+            <div class="grid grid-cols-2 gap-2 pt-1 border-t border-slate-100">
+                <button type="button" onclick="goToInitialGatePage()" class="py-2 px-2 bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200/80 rounded-xl text-[11px] font-bold active:scale-95 transition-all flex items-center justify-center space-x-1.5 min-w-0">
+                    <i class="fa-solid fa-door-open text-slate-500 text-[10px] shrink-0"></i>
+                    <span class="truncate">초기화면 (index)</span>
+                </button>
+                <button type="button" onclick="goToMainFeedPageAsAdmin()" class="py-2 px-2 bg-emerald-50/80 hover:bg-emerald-100/80 text-emerald-900 border border-emerald-200/80 rounded-xl text-[11px] font-bold active:scale-95 transition-all flex items-center justify-center space-x-1.5 min-w-0">
+                    <i class="fa-solid fa-comments text-emerald-700 text-[10px] shrink-0"></i>
+                    <span class="truncate">가족 피드 이동</span>
+                </button>
+            </div>
+        </section>
+
+        <!-- ========================================================= -->
+        <!-- [하부 영역 1] 조회 전 보안 잠금 안내 홀더                 -->
+        <!-- ========================================================= -->
+        <section id="security-locked-placeholder" class="w-full bg-white/80 rounded-2xl border border-dashed border-slate-300 p-8 text-center space-y-2.5 select-none">
+            <div class="w-11 h-11 rounded-2xl bg-slate-100 text-slate-400 flex items-center justify-center mx-auto text-base border border-slate-200/70">
+                <i class="fa-solid fa-user-shield"></i>
+            </div>
+            <div class="space-y-1">
+                <h3 class="text-xs font-extrabold text-slate-700">보안 보호 중인 데이터 영역</h3>
+                <p class="text-[11px] text-slate-400 leading-relaxed">
+                    가족 입장 코드 및 가족 명단 데이터는 보호되어 있습니다.<br>
+                    상단에서 패스코드 입력 후 생성되는 <strong>[조회]</strong> 버튼을 눌러주세요.
+                </p>
+            </div>
+        </section>
+
+        <!-- ========================================================= -->
+        <!-- [하부 영역 2] [조회] 클릭 시 열리는 실제 보안 데이터 영역 -->
+        <!-- ========================================================= -->
+        <div id="security-unlocked-data-container" class="hidden space-y-3">
+
+            <!-- 데이터 1: 아빠(관리자) 단독 계정 인증 카드 (구글 / 카카오 / 네이버) -->
+            <section id="admin-auth-card" class="w-full bg-white rounded-2xl border church-border p-3.5 shadow-xs space-y-2.5 overflow-hidden">
+                <div class="flex items-center justify-between gap-2 border-b border-slate-100 pb-2">
+                    <div class="min-w-0 text-left">
+                        <h2 class="text-xs font-bold text-slate-800 truncate flex items-center space-x-1.5">
+                            <i class="fa-solid fa-id-badge church-primary-text"></i>
+                            <span>아빠(관리자) 계정 인증</span>
+                        </h2>
+                        <p class="text-[10px] text-slate-400 truncate mt-0.5">데이터 수정 및 저장을 위해 관리자 계정을 인증합니다</p>
+                    </div>
+                    <span id="admin-auth-badge" class="shrink-0 px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-500 whitespace-nowrap">미인증</span>
+                </div>
+
+                <div id="social-login-panel" class="space-y-2 pt-0.5">
+                    <div class="grid grid-cols-3 gap-1.5 pt-0.5">
+                        <button type="button" onclick="handleSocialAuth('google')" class="py-2 px-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 active:scale-95 transition-all flex items-center justify-center space-x-1 shadow-2xs text-[11px] font-bold text-slate-700">
+                            <i class="fa-brands fa-google text-rose-500 text-xs shrink-0"></i>
+                            <span class="truncate">Google</span>
+                        </button>
+                        <button type="button" onclick="handleSocialAuth('kakao')" class="py-2 px-2 rounded-xl bg-[#FEE500] hover:opacity-95 active:scale-95 transition-all flex items-center justify-center space-x-1 shadow-2xs text-[11px] font-bold text-[#191919]">
+                            <i class="fa-solid fa-comment text-[#191919] text-xs shrink-0"></i>
+                            <span class="truncate">카카오</span>
+                        </button>
+                        <button type="button" onclick="handleSocialAuth('naver')" class="py-2 px-2 rounded-xl bg-[#03C75A] hover:opacity-95 active:scale-95 transition-all flex items-center justify-center space-x-1 shadow-2xs text-[11px] font-bold text-white">
+                            <span class="font-black text-[11px] leading-none shrink-0">N</span>
+                            <span class="truncate">네이버</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div id="authenticated-leader-panel" class="hidden bg-emerald-50/70 border border-emerald-200/80 rounded-xl p-2.5 text-left space-y-1">
+                    <div class="flex items-center justify-between gap-2">
+                        <div class="flex items-center space-x-1.5 min-w-0">
+                            <span class="w-2 h-2 rounded-full bg-emerald-500 shrink-0"></span>
+                            <span class="text-xs font-bold text-emerald-900 truncate" id="auth-leader-info">아빠 인증 완료</span>
+                        </div>
+                        <button type="button" onclick="handleAdminLogout()" class="shrink-0 px-2 py-0.5 rounded-lg bg-white border border-slate-200 text-[10px] font-semibold text-slate-600 hover:bg-slate-100 whitespace-nowrap">
+                            로그아웃
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 데이터 2: 가족 기본 정보 · 입장 코드 · 관리자 패스코드 설정 섹션 -->
+            <section id="mokjang-config-section" class="w-full bg-white rounded-2xl border church-border p-3.5 shadow-xs space-y-2.5 transition-opacity duration-200 overflow-hidden">
+                <div class="flex items-center justify-between gap-1.5 border-b border-slate-100 pb-2">
+                    <h3 class="text-xs font-bold text-slate-800 flex items-center space-x-1.5 min-w-0 truncate">
+                        <i class="fa-solid fa-key church-primary-text shrink-0"></i>
+                        <span class="truncate">가족 코드 및 보안 패스코드 설정</span>
+                    </h3>
+                    <span class="shrink-0 text-[10px] text-emerald-700 font-semibold whitespace-nowrap">실시간 동기화</span>
+                </div>
+
+                <div class="grid grid-cols-2 gap-2 text-left w-full">
+                    <div class="min-w-0 w-full">
+                        <label class="block text-[10.5px] font-bold text-slate-600 mb-1 truncate">가족 별칭 (타이틀)</label>
+                        <input type="text" id="admin-mokjang-name-input" maxlength="10" value="" placeholder="예: 행복한집" class="w-full min-w-0 px-2.5 py-1.5 rounded-xl font-bold dashed-input">
+                    </div>
+                    <div class="min-w-0 w-full">
+                        <label class="block text-[10.5px] font-bold text-slate-600 mb-1 truncate">가족 입장 코드 (4자리)</label>
+                        <input type="text" id="admin-mokjang-code-input" maxlength="4" value="1111" inputmode="numeric" placeholder="4자리 숫자" class="w-full min-w-0 px-2.5 py-1.5 rounded-xl font-mono font-bold text-center dashed-input">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-3 gap-1.5 text-left w-full">
+                    <div class="min-w-0 w-full">
+                        <div class="flex items-center justify-between mb-1">
+                            <label class="block text-[10px] font-bold text-slate-600 truncate">아빠 호칭/성함</label>
+                            <span class="px-1 py-0.2 rounded bg-amber-100 text-amber-800 text-[8.5px] font-bold shrink-0">아빠</span>
+                        </div>
+                        <input type="text" id="admin-leader-name-input" maxlength="4" value="아빠" placeholder="이름(최대4자)" class="w-full min-w-0 px-2 py-1.5 rounded-xl font-bold dashed-input">
+                    </div>
+                    <div class="min-w-0 w-full">
+                        <div class="flex items-center justify-between mb-1">
+                            <label class="block text-[10px] font-bold text-slate-600 truncate">엄마 호칭/성함</label>
+                            <span class="px-1 py-0.2 rounded bg-sky-100 text-sky-800 text-[8.5px] font-bold shrink-0">엄마</span>
+                        </div>
+                        <input type="text" id="admin-subleader-name-input" maxlength="4" value="엄마" placeholder="이름(최대4자)" class="w-full min-w-0 px-2 py-1.5 rounded-xl font-bold dashed-input">
+                    </div>
+                    <div class="min-w-0 w-full">
+                        <div class="flex items-center justify-between mb-1">
+                            <label class="block text-[10px] font-bold text-slate-600 truncate">패스코드</label>
+                            <span class="px-1 py-0.2 rounded bg-slate-100 text-slate-700 text-[8.5px] font-bold shrink-0">조회용</span>
+                        </div>
+                        <input type="text" id="admin-passcode-setting-input" maxlength="4" value="0000" inputmode="numeric" oninput="this.value=this.value.replace(/[^0-9]/g,'').slice(0,4)" placeholder="4자리 숫자" class="w-full min-w-0 px-2 py-1.5 rounded-xl font-mono font-bold text-center dashed-input">
+                    </div>
+                </div>
+
+                <button type="button" onclick="saveMokjangConfigToFirestore()" class="w-full py-2.5 church-primary hover:opacity-95 active:scale-98 text-white rounded-xl text-xs font-bold shadow-xs transition-all flex items-center justify-center space-x-1.5">
+                    <i class="fa-solid fa-floppy-disk text-xs shrink-0"></i>
+                    <span class="truncate">가족 설정 및 보안 패스코드 일괄 저장</span>
+                </button>
+            </section>
+
+            <!-- 데이터 3: 이용자(아빠 / 엄마 / 가족) 명단 등록 및 권한 분류 섹션 -->
+            <section id="mokjang-members-section" class="w-full bg-white rounded-2xl border church-border p-3.5 shadow-xs space-y-2.5 transition-opacity duration-200 overflow-hidden">
+                <div class="flex items-center justify-between gap-1.5 border-b border-slate-100 pb-2">
+                    <h3 class="text-xs font-bold text-slate-800 flex items-center space-x-1.5 min-w-0 truncate">
+                        <i class="fa-solid fa-users church-primary-text shrink-0"></i>
+                        <span class="truncate">가족 구성원 분류 및 명단 (<span id="member-count-text" class="text-emerald-700">0</span>명)</span>
+                    </h3>
+                    <span class="shrink-0 text-[9.5px] text-slate-400 font-medium whitespace-nowrap">아빠·엄마(전체) / 가족(본인글)</span>
+                </div>
+
+                <div class="flex items-center gap-1.5 w-full">
+                    <select id="new-member-role-select" class="shrink-0 px-2 py-1.5 rounded-xl font-bold text-xs dashed-input bg-slate-50 text-slate-700 cursor-pointer">
+                        <option value="member">가족</option>
+                        <option value="subleader">엄마</option>
+                    </select>
+                    <input type="text" id="new-member-name-input" maxlength="4" placeholder="추가할 가족 이름 (2~4자)" onkeydown="if(event.key==='Enter'){event.preventDefault();addMokjangMember();}" class="flex-1 min-w-0 w-auto px-2.5 py-1.5 rounded-xl font-semibold dashed-input">
+                    <button type="button" onclick="addMokjangMember()" class="shrink-0 px-3 py-2 church-primary hover:opacity-95 active:scale-95 text-white rounded-xl text-xs font-bold whitespace-nowrap shadow-2xs flex items-center justify-center">
+                        <i class="fa-solid fa-plus mr-1 text-[10px]"></i><span>추가</span>
+                    </button>
+                </div>
+
+                <div id="admin-member-list" class="grid grid-cols-2 gap-1.5 max-h-52 overflow-y-auto pt-1 w-full"></div>
+            </section>
+
+            <!-- 데이터 4: 가족 안내문 복사 카드 -->
+            <section class="w-full bg-emerald-50/80 rounded-2xl border border-emerald-200/80 p-3.5 space-y-2 text-left overflow-hidden">
+                <div class="flex items-center justify-between gap-2">
+                    <h4 class="text-xs font-bold text-emerald-950 flex items-center space-x-1.5 min-w-0 truncate">
+                        <i class="fa-solid fa-bullhorn text-emerald-700 shrink-0"></i>
+                        <span class="truncate">가족 초대용 안내 요약 카드</span>
+                    </h4>
+                    <button type="button" onclick="copyOfflineInviteGuide()" class="shrink-0 px-2.5 py-1 rounded-lg bg-white border border-emerald-200 text-[10.5px] font-bold text-emerald-800 hover:bg-emerald-100 active:scale-95 transition-all whitespace-nowrap">
+                        <i class="fa-regular fa-copy mr-1"></i>안내문 복사
+                    </button>
+                </div>
+                <div id="offline-invite-preview" class="bg-white/90 rounded-xl p-2.5 border border-emerald-100 text-[11px] text-slate-700 space-y-1 leading-relaxed break-keep">
+                    <p>🏡 <strong>우리 가족 이야기 <span id="guide-mokjang-title"></span> 웹북 입장 방법</strong></p>
+                    <p>1. 첫 표지 화면을 <strong>연속 5번 터치</strong>합니다.</p>
+                    <p>2. 나타나는 둥근 입력창 왼쪽에 가족코드 <strong>[<span id="guide-mokjang-code" class="text-emerald-700 font-mono">1111</span>]</strong>, 오른쪽에 <strong>[본인 이름]</strong>을 입력하면 바로 입장됩니다!</p>
+                </div>
+            </section>
+
+        </div>
+    </main>
+
+    <!-- [소셜 계정 아빠(관리자) 인증 모달] -->
+    <div id="social-auth-modal" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center px-4 py-3 hidden" style="touch-action: none;">
+        <div class="bg-white rounded-2xl w-full max-w-[310px] p-4 shadow-2xl border church-border text-center space-y-3 overflow-hidden box-border">
+            <div id="social-modal-icon" class="w-11 h-11 rounded-full flex items-center justify-center mx-auto text-lg shadow-2xs"></div>
+            <div class="space-y-1">
+                <h4 class="text-sm font-bold text-slate-800 truncate" id="social-modal-title">소셜 계정 관리자 인증</h4>
+                <p class="text-[11px] text-slate-500 leading-snug break-keep">관리자 본인 확인을 위해 계정 이메일(또는 이름)을 입력해 주세요.</p>
+            </div>
+            <input type="text" id="social-auth-identifier" maxlength="40" placeholder="이메일 또는 이름 입력" onkeydown="if(event.key==='Enter'){event.preventDefault();confirmSocialAuthLogin();}" class="w-full min-w-0 px-3 py-2 rounded-xl font-bold text-center dashed-input">
+            <div class="grid grid-cols-2 gap-2 pt-1">
+                <button type="button" onclick="closeSocialAuthModal()" class="py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-semibold active:scale-95 transition-all">취소</button>
+                <button type="button" onclick="confirmSocialAuthLogin()" class="py-2 church-primary text-white rounded-xl text-xs font-bold active:scale-95 transition-all">인증 완료</button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, GoogleAuthProvider, signInWithPopup } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyD4b9FkK9AFUMud7YeBQ1Wy_wM-FhPN16w",
+            authDomain: "fam-data-ebef1.firebaseapp.com",
+            projectId: "fam-data-ebef1",
+            storageBucket: "fam-data-ebef1.firebasestorage.app",
+            messagingSenderId: "371365661563",
+            appId: "1:371365661563:web:157650158d88c80c468bde"
+        };
+
+        let app, auth, db;
+        try {
+            app = initializeApp(firebaseConfig);
+            auth = getAuth(app);
+            db = getFirestore(app);
+        } catch (e) {
+            console.error("Firebase init error:", e);
+        }
+
+        let mokjangConfig = {
+            mokjangName: "",
+            mokjangCode: "1111",
+            adminPasscode: "0000", // 초기 기본 패스코드 0000
+            leaderName: "아빠",
+            subLeaderName: "엄마",
+            subLeaders: ["엄마"],
+            adminProvider: "",
+            adminIdentifier: "",
+            adminUid: "",
+            members: ["아빠", "엄마"]
+        };
+
+        let currentPendingProvider = "google";
+        let isLeaderAuthenticated = false;
+        let isPasscodeVerified = false;
+        let isDataUnlocked = false;
+
+        function getDeviceReactionUid() {
+            let uid = '';
+            try {
+                uid = localStorage.getItem('family_reaction_uid') || '';
+                if (!uid) {
+                    uid = 'usr_' + Date.now().toString(36) + '_' + Math.random().toString(36).substring(2, 9);
+                    localStorage.setItem('family_reaction_uid', uid);
+                }
+            } catch(e) {
+                uid = 'usr_admin_' + Date.now();
+            }
+            return uid;
+        }
+        const myDeviceUid = getDeviceReactionUid();
+
+        function showToast(msg) {
+            const existing = document.getElementById('admin-toast');
+            if (existing) existing.remove();
+            const t = document.createElement('div');
+            t.id = 'admin-toast';
+            t.className = 'fixed bottom-6 left-1/2 -translate-x-1/2 bg-slate-900/95 text-white text-xs px-3.5 py-2 rounded-xl shadow-xl z-50 flex items-center space-x-1.5 transition-opacity duration-300 max-w-[90vw] truncate';
+            t.innerHTML = `<i class="fa-solid fa-circle-check text-emerald-400 shrink-0"></i><span class="truncate">${msg}</span>`;
+            document.body.appendChild(t);
+            setTimeout(() => {
+                t.style.opacity = '0';
+                setTimeout(() => t.remove(), 300);
+            }, 2400);
+        }
+        window.showToast = showToast;
+
+        // [상부 패스코드 4자리 입력 감지 ➔ 일치 시 [조회] 버튼 생성]
+        window.handleGatePasscodeInput = function(input) {
+            let clean = input.value.replace(/[^0-9]/g, '').slice(0, 4);
+            if (input.value !== clean) input.value = clean;
+
+            const savedPasscode = String(mokjangConfig.adminPasscode || '0000').trim();
+            const lookupBtn = document.getElementById('admin-lookup-btn');
+            const badge = document.getElementById('security-gate-badge');
+            const desc = document.getElementById('security-gate-desc');
+
+            if (clean.length === 4) {
+                if (clean === savedPasscode) {
+                    isPasscodeVerified = true;
+                    if (navigator.vibrate) {
+                        try { navigator.vibrate(40); } catch(e) {}
+                    }
+                    if (lookupBtn) {
+                        lookupBtn.classList.remove('hidden');
+                        lookupBtn.classList.add('animate-reveal');
+                    }
+                    if (badge && !isDataUnlocked) {
+                        badge.textContent = '✅ 패스코드 확인됨';
+                        badge.className = 'shrink-0 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200 whitespace-nowrap';
+                    }
+                    if (desc && !isDataUnlocked) {
+                        desc.textContent = '우측 [조회] 버튼을 눌러 데이터를 확인하세요';
+                    }
+                    showToast('패스코드가 확인되었습니다. [조회] 버튼을 눌러주세요.');
+                } else {
+                    isPasscodeVerified = false;
+                    if (lookupBtn) lookupBtn.classList.add('hidden');
+                    input.classList.add('animate-shake');
+                    setTimeout(() => {
+                        input.classList.remove('animate-shake');
+                        input.value = '';
+                    }, 320);
+                    showToast('보안 패스코드가 일치하지 않습니다.');
+                }
+            } else {
+                isPasscodeVerified = false;
+                if (!isDataUnlocked && lookupBtn) {
+                    lookupBtn.classList.add('hidden');
+                }
+            }
+        };
+
+        // [[조회] 버튼 클릭 시 ➔ 하부 보안 데이터 영역(코드, 가족명단 등) 오픈]
+        window.triggerDataLookup = function() {
+            const gateInput = document.getElementById('admin-passcode-gate-input');
+            const savedPasscode = String(mokjangConfig.adminPasscode || '0000').trim();
+            const currentVal = gateInput ? gateInput.value.trim() : '';
+
+            if (!isPasscodeVerified && currentVal !== savedPasscode) {
+                showToast('먼저 올바른 4자리 패스코드를 입력해 주세요.');
+                if (gateInput) gateInput.focus();
+                return;
+            }
+
+            isDataUnlocked = true;
+            if (gateInput) gateInput.blur();
+
+            const placeholder = document.getElementById('security-locked-placeholder');
+            const dataContainer = document.getElementById('security-unlocked-data-container');
+            const badge = document.getElementById('security-gate-badge');
+            const iconBox = document.getElementById('security-gate-icon-box');
+            const icon = document.getElementById('security-gate-icon');
+            const desc = document.getElementById('security-gate-desc');
+
+            if (placeholder) placeholder.classList.add('hidden');
+            if (dataContainer) {
+                dataContainer.classList.remove('hidden');
+                dataContainer.classList.add('animate-reveal');
+            }
+            if (badge) {
+                badge.textContent = '🔓 열람 승인';
+                badge.className = 'shrink-0 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-900 border border-emerald-300 whitespace-nowrap';
+            }
+            if (iconBox) {
+                iconBox.className = 'w-7 h-7 rounded-xl bg-emerald-100 text-emerald-800 flex items-center justify-center shrink-0 text-xs';
+            }
+            if (icon) {
+                icon.className = 'fa-solid fa-lock-open';
+            }
+            if (desc) {
+                desc.textContent = '보안 데이터 조회가 승인되었습니다';
+            }
+
+            renderAdminUI();
+            showToast('가족 설정 및 구성원 명단 데이터를 불러왔습니다.');
+        };
+
+        async function initAdminPage() {
+            try {
+                const localCfg = localStorage.getItem('family_config_backup');
+                if (localCfg) {
+                    const parsed = JSON.parse(localCfg);
+                    mokjangConfig = {
+                        ...mokjangConfig,
+                        ...parsed,
+                        adminPasscode: parsed.adminPasscode || "0000"
+                    };
+                }
+                const savedAuth = localStorage.getItem('family_admin_authenticated');
+                if (savedAuth === 'true') {
+                    isLeaderAuthenticated = true;
+                }
+            } catch(e) {}
+
+            renderAdminUI();
+
+            if (!auth || !db) return;
+            try {
+                await signInAnonymously(auth);
+                const cfgRef = doc(db, 'family_config', 'main');
+                onSnapshot(cfgRef, (snap) => {
+                    if (snap.exists()) {
+                        const data = snap.data();
+                        mokjangConfig = {
+                            ...mokjangConfig,
+                            ...data,
+                            adminPasscode: data.adminPasscode || mokjangConfig.adminPasscode || "0000",
+                            subLeaderName: data.subLeaderName !== undefined ? data.subLeaderName : (mokjangConfig.subLeaderName || "엄마"),
+                            subLeaders: Array.isArray(data.subLeaders) ? data.subLeaders : (mokjangConfig.subLeaders || ["엄마"]),
+                            members: Array.isArray(data.members) ? data.members : mokjangConfig.members
+                        };
+                        try {
+                            localStorage.setItem('family_config_backup', JSON.stringify(mokjangConfig));
+                        } catch(e) {}
+                        renderAdminUI();
+                    }
+                });
+            } catch(e) {
+                console.warn("Firestore config listener warning:", e);
+            }
+        }
+
+        function renderAdminUI() {
+            const headerMokjang = document.getElementById('admin-header-mokjang');
+            if (headerMokjang) {
+                headerMokjang.textContent = isDataUnlocked ? (mokjangConfig.mokjangName || '') : '';
+            }
+
+            if (!isDataUnlocked) return;
+
+            const nameInput = document.getElementById('admin-mokjang-name-input');
+            const codeInput = document.getElementById('admin-mokjang-code-input');
+            const leaderInput = document.getElementById('admin-leader-name-input');
+            const subLeaderInput = document.getElementById('admin-subleader-name-input');
+            const passcodeSettingInput = document.getElementById('admin-passcode-setting-input');
+
+            if (nameInput && document.activeElement !== nameInput) nameInput.value = mokjangConfig.mokjangName || '';
+            if (codeInput && document.activeElement !== codeInput) codeInput.value = mokjangConfig.mokjangCode || '1111';
+            if (leaderInput && document.activeElement !== leaderInput) leaderInput.value = mokjangConfig.leaderName || '아빠';
+            if (subLeaderInput && document.activeElement !== subLeaderInput) subLeaderInput.value = mokjangConfig.subLeaderName || '';
+            if (passcodeSettingInput && document.activeElement !== passcodeSettingInput) passcodeSettingInput.value = mokjangConfig.adminPasscode || '0000';
+
+            const guideTitle = document.getElementById('guide-mokjang-title');
+            const guideCode = document.getElementById('guide-mokjang-code');
+            if (guideTitle) guideTitle.textContent = mokjangConfig.mokjangName || '';
+            if (guideCode) guideCode.textContent = mokjangConfig.mokjangCode || '1111';
+
+            const badge = document.getElementById('admin-auth-badge');
+            const loginPanel = document.getElementById('social-login-panel');
+            const authedPanel = document.getElementById('authenticated-leader-panel');
+            const leaderInfo = document.getElementById('auth-leader-info');
+
+            if (isLeaderAuthenticated) {
+                if (badge) {
+                    badge.textContent = '아빠 인증됨';
+                    badge.className = 'shrink-0 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 whitespace-nowrap';
+                }
+                if (loginPanel) loginPanel.classList.add('hidden');
+                if (authedPanel) authedPanel.classList.remove('hidden');
+                if (leaderInfo) {
+                    const provLabel = (mokjangConfig.adminProvider || '소셜').toUpperCase();
+                    leaderInfo.textContent = `${mokjangConfig.leaderName || '아빠'}님 (${provLabel} 단독 인증됨)`;
+                }
+            } else {
+                if (badge) {
+                    badge.textContent = '미인증';
+                    badge.className = 'shrink-0 px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-500 whitespace-nowrap';
+                }
+                if (loginPanel) loginPanel.classList.remove('hidden');
+                if (authedPanel) authedPanel.classList.add('hidden');
+            }
+
+            renderMembersList();
+        }
+
+        function renderMembersList() {
+            const listEl = document.getElementById('admin-member-list');
+            const countEl = document.getElementById('member-count-text');
+            if (!listEl) return;
+            const leaderName = (mokjangConfig.leaderName || '아빠').trim();
+            const subLeaderPrimary = (mokjangConfig.subLeaderName || '').trim();
+            const rawSubLeaders = Array.isArray(mokjangConfig.subLeaders) ? mokjangConfig.subLeaders : [];
+            const subLeaderSet = new Set([...rawSubLeaders.filter(Boolean), ...(subLeaderPrimary ? [subLeaderPrimary] : [])]);
+            const rawMembers = Array.isArray(mokjangConfig.members) ? mokjangConfig.members : [];
+            const allMembers = [...new Set([leaderName, ...subLeaderSet, ...rawMembers.filter(m => m && m !== '1111')])];
+            if (countEl) countEl.textContent = String(allMembers.length);
+
+            if (allMembers.length === 0) {
+                listEl.innerHTML = `<div class="col-span-2 py-4 text-center text-xs text-slate-400">등록된 가족이 없습니다. 위 입력창에서 추가해 주세요.</div>`;
+                return;
+            }
+
+            listEl.innerHTML = allMembers.map((m) => {
+                const isLeader = (m === leaderName);
+                const isSubLeader = (!isLeader && subLeaderSet.has(m));
+                const roleBadge = isLeader
+                    ? `<span class="px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 text-[9px] font-extrabold shrink-0">아빠</span>`
+                    : (isSubLeader
+                        ? `<span class="px-1.5 py-0.5 rounded bg-sky-100 text-sky-800 text-[9px] font-extrabold shrink-0">엄마</span>`
+                        : `<span class="px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700 text-[9px] font-bold shrink-0">가족</span>`);
+
+                const cardStyle = isLeader
+                    ? 'bg-amber-50/60 border border-amber-200/90'
+                    : (isSubLeader
+                        ? 'bg-sky-50/60 border border-sky-200/90'
+                        : 'bg-slate-50 border border-slate-200/80');
+
+                return `
+                    <div class="flex items-center justify-between px-2.5 py-1.5 rounded-xl ${cardStyle} text-xs min-w-0">
+                        <div class="flex items-center space-x-1.5 min-w-0 truncate mr-1">
+                            ${roleBadge}
+                            <span class="font-bold text-slate-800 truncate">${m}</span>
+                        </div>
+                        ${!isLeader ? `
+                            <button type="button" onclick="removeMokjangMemberByName('${m}')" class="shrink-0 w-5 h-5 rounded-full hover:bg-rose-100 text-slate-400 hover:text-rose-600 flex items-center justify-center transition-all" title="명단에서 삭제">
+                                <i class="fa-solid fa-xmark text-[11px]"></i>
+                            </button>
+                        ` : ''}
+                    </div>
+                `;
+            }).join('');
+        }
+
+        window.handleSocialAuth = async function(provider) {
+            currentPendingProvider = provider;
+            if (provider === 'google' && auth) {
+                try {
+                    const googleProvider = new GoogleAuthProvider();
+                    const result = await signInWithPopup(auth, googleProvider);
+                    if (result && result.user) {
+                        const emailOrName = result.user.email || result.user.displayName || result.user.uid;
+                        verifyAndCompleteSingleLeaderAuth('google', emailOrName);
+                        return;
+                    }
+                } catch (popupErr) {}
+            }
+
+            const modal = document.getElementById('social-auth-modal');
+            const iconEl = document.getElementById('social-modal-icon');
+            const titleEl = document.getElementById('social-modal-title');
+            const inputEl = document.getElementById('social-auth-identifier');
+            if (!modal || !iconEl || !titleEl || !inputEl) return;
+
+            if (provider === 'google') {
+                iconEl.className = 'w-11 h-11 rounded-full flex items-center justify-center mx-auto text-lg bg-rose-50 text-rose-500 border border-rose-100';
+                iconEl.innerHTML = '<i class="fa-brands fa-google"></i>';
+                titleEl.textContent = 'Google 계정 아빠(관리자) 인증';
+            } else if (provider === 'kakao') {
+                iconEl.className = 'w-11 h-11 rounded-full flex items-center justify-center mx-auto text-lg bg-[#FEE500] text-[#191919]';
+                iconEl.innerHTML = '<i class="fa-solid fa-comment"></i>';
+                titleEl.textContent = '카카오 계정 아빠(관리자) 인증';
+            } else {
+                iconEl.className = 'w-11 h-11 rounded-full flex items-center justify-center mx-auto text-sm font-black bg-[#03C75A] text-white';
+                iconEl.innerHTML = 'N';
+                titleEl.textContent = '네이버 계정 아빠(관리자) 인증';
+            }
+
+            inputEl.value = mokjangConfig.adminIdentifier || '';
+            modal.classList.remove('hidden');
+            setTimeout(() => {
+                try { inputEl.focus({ preventScroll: true }); } catch(e) { inputEl.focus(); }
+            }, 60);
+        };
+
+        window.closeSocialAuthModal = function() {
+            const inputEl = document.getElementById('social-auth-identifier');
+            if (inputEl) inputEl.blur();
+            const modal = document.getElementById('social-auth-modal');
+            if (modal) modal.classList.add('hidden');
+            window.scrollTo(0, 0);
+        };
+
+        window.confirmSocialAuthLogin = function() {
+            const inputEl = document.getElementById('social-auth-identifier');
+            const val = inputEl ? inputEl.value.trim() : '';
+            if (!val) {
+                showToast('인증할 이메일 또는 이름을 입력해 주세요.');
+                return;
+            }
+            if (inputEl) inputEl.blur();
+            closeSocialAuthModal();
+            verifyAndCompleteSingleLeaderAuth(currentPendingProvider, val);
+        };
+
+        async function verifyAndCompleteSingleLeaderAuth(provider, identifier) {
+            if (mokjangConfig.adminIdentifier && mokjangConfig.adminIdentifier !== identifier) {
+                showToast('이미 등록된 관리자 계정만 접근할 수 있습니다.');
+                return;
+            }
+
+            mokjangConfig.adminProvider = provider;
+            mokjangConfig.adminIdentifier = identifier;
+            mokjangConfig.adminUid = myDeviceUid;
+            isLeaderAuthenticated = true;
+
+            try {
+                localStorage.setItem('family_admin_authenticated', 'true');
+                localStorage.setItem('family_is_admin', 'true');
+                localStorage.setItem('family_user_role', 'leader');
+                localStorage.setItem('family_user_name', mokjangConfig.leaderName || '아빠');
+            } catch(e) {}
+
+            await persistConfigToFirestore();
+            renderAdminUI();
+            showToast('아빠(관리자) 단독 인증이 완료되었습니다.');
+        }
+
+        window.handleAdminLogout = function() {
+            isLeaderAuthenticated = false;
+            try {
+                localStorage.setItem('family_admin_authenticated', 'false');
+                localStorage.setItem('family_is_admin', 'false');
+                localStorage.setItem('family_user_role', 'member');
+            } catch(e) {}
+            renderAdminUI();
+            showToast('로그아웃 되었습니다.');
+        };
+
+        async function persistConfigToFirestore() {
+            mokjangConfig.updatedAt = Date.now();
+            try {
+                localStorage.setItem('family_config_backup', JSON.stringify(mokjangConfig));
+                localStorage.setItem('family_short_name', mokjangConfig.mokjangName || '');
+                localStorage.setItem('family_name', mokjangConfig.mokjangName ? `우리 가족 이야기 ${mokjangConfig.mokjangName}` : '우리 가족 이야기');
+            } catch(e) {}
+
+            if (!db) return;
+            try {
+                await setDoc(doc(db, 'family_config', 'main'), {
+                    ...mokjangConfig
+                }, { merge: true });
+            } catch(e) {
+                console.warn("Firestore save warning:", e);
+            }
+        }
+
+        window.saveMokjangConfigToFirestore = async function() {
+            if (!isDataUnlocked) {
+                showToast('먼저 상단에서 패스코드 인증 및 조회를 진행해 주세요.');
+                return;
+            }
+            const nameInput = document.getElementById('admin-mokjang-name-input');
+            const codeInput = document.getElementById('admin-mokjang-code-input');
+            const leaderInput = document.getElementById('admin-leader-name-input');
+            const subLeaderInput = document.getElementById('admin-subleader-name-input');
+            const passcodeSettingInput = document.getElementById('admin-passcode-setting-input');
+
+            const newMokjangName = (nameInput ? nameInput.value.trim() : '').replace(/^우리\s*가족\s*이야기\s*/, '');
+            const newCode = (codeInput ? codeInput.value.trim() : '1111') || '1111';
+            const newLeader = (leaderInput ? leaderInput.value.trim() : '아빠') || '아빠';
+            const prevSubLeader = (mokjangConfig.subLeaderName || '').trim();
+            const newSubLeader = (subLeaderInput ? subLeaderInput.value.trim() : '');
+            const newAdminPasscode = (passcodeSettingInput ? passcodeSettingInput.value.trim() : '0000') || '0000';
+
+            if (!/^[0-9]{4}$/.test(newCode)) {
+                showToast('가족 입장 코드는 숫자 4자리로 입력해 주세요.');
+                return;
+            }
+            if (!/^[0-9]{4}$/.test(newAdminPasscode)) {
+                showToast('관리자 보안 패스코드는 숫자 4자리로 입력해 주세요.');
+                return;
+            }
+
+            mokjangConfig.mokjangName = newMokjangName;
+            mokjangConfig.mokjangCode = newCode;
+            mokjangConfig.leaderName = newLeader;
+            mokjangConfig.subLeaderName = newSubLeader;
+            mokjangConfig.adminPasscode = newAdminPasscode;
+
+            if (!Array.isArray(mokjangConfig.subLeaders)) mokjangConfig.subLeaders = [];
+            if (prevSubLeader && prevSubLeader !== newSubLeader) {
+                mokjangConfig.subLeaders = mokjangConfig.subLeaders.filter(s => s !== prevSubLeader);
+            }
+            if (newSubLeader && !mokjangConfig.subLeaders.includes(newSubLeader)) {
+                mokjangConfig.subLeaders.unshift(newSubLeader);
+            }
+
+            if (!Array.isArray(mokjangConfig.members)) mokjangConfig.members = [];
+            if (!mokjangConfig.members.includes(newLeader)) {
+                mokjangConfig.members.unshift(newLeader);
+            }
+            if (newSubLeader && !mokjangConfig.members.includes(newSubLeader)) {
+                mokjangConfig.members.push(newSubLeader);
+            }
+
+            try {
+                localStorage.setItem('family_user_name', newLeader);
+                localStorage.setItem('family_user_role', 'leader');
+                localStorage.setItem('family_is_admin', 'true');
+            } catch(e) {}
+
+            await persistConfigToFirestore();
+            renderAdminUI();
+            showToast(`가족 설정 및 보안 패스코드(${newAdminPasscode})가 저장되었습니다.`);
+        };
+
+        window.addMokjangMember = async function() {
+            if (!isDataUnlocked) {
+                showToast('먼저 상단에서 패스코드 조회를 진행해 주세요.');
+                return;
+            }
+            const input = document.getElementById('new-member-name-input');
+            const roleSelect = document.getElementById('new-member-role-select');
+            if (!input) return;
+            const selectedRole = roleSelect ? roleSelect.value : 'member';
+            const name = input.value.replace(/[^ㄱ-ㅎㅏ-ㅣ가-힣0-9]/g, '').trim().slice(0, 4);
+            if (!name || name.length < 2) {
+                showToast('이름은 2~4글자로 입력해 주세요.');
+                return;
+            }
+            if (!Array.isArray(mokjangConfig.members)) mokjangConfig.members = [];
+            if (!Array.isArray(mokjangConfig.subLeaders)) mokjangConfig.subLeaders = [];
+
+            const isAlreadyIn = mokjangConfig.members.includes(name) || mokjangConfig.subLeaders.includes(name) || mokjangConfig.subLeaderName === name;
+            if (isAlreadyIn) {
+                showToast('이미 등록된 이름입니다. 변경 시 삭제 후 다시 등록해 주세요.');
+                return;
+            }
+
+            mokjangConfig.members.push(name);
+            if (selectedRole === 'subleader') {
+                if (!mokjangConfig.subLeaders.includes(name)) {
+                    mokjangConfig.subLeaders.push(name);
+                }
+                if (!mokjangConfig.subLeaderName) {
+                    mokjangConfig.subLeaderName = name;
+                }
+            }
+
+            input.value = '';
+            input.blur();
+            window.scrollTo(0, 0);
+            await persistConfigToFirestore();
+            renderAdminUI();
+            showToast(`${selectedRole === 'subleader' ? '엄마' : '가족'} '${name}'님이 등록되었습니다.`);
+        };
+
+        window.removeMokjangMemberByName = async function(targetName) {
+            if (!isDataUnlocked) return;
+            if (Array.isArray(mokjangConfig.members)) {
+                mokjangConfig.members = mokjangConfig.members.filter(m => m !== targetName);
+            }
+            if (Array.isArray(mokjangConfig.subLeaders)) {
+                mokjangConfig.subLeaders = mokjangConfig.subLeaders.filter(s => s !== targetName);
+            }
+            if (mokjangConfig.subLeaderName === targetName) {
+                mokjangConfig.subLeaderName = mokjangConfig.subLeaders[0] || '';
+            }
+            await persistConfigToFirestore();
+            renderAdminUI();
+            showToast(`'${targetName}'님이 명단에서 제외되었습니다.`);
+        };
+
+        window.copyOfflineInviteGuide = function() {
+            const titleStr = mokjangConfig.mokjangName ? `우리 가족 이야기 ${mokjangConfig.mokjangName}` : '우리 가족 이야기';
+            const text = `[${titleStr} 웹북 안내]\n1. 첫 표지 화면을 5번 터치하세요.\n2. 코드 칸에 [${mokjangConfig.mokjangCode}], 이름 칸에 [본인 이름]을 입력하시면 바로 입장됩니다!`;
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(text).then(() => showToast('가족 초대 안내문이 복사되었습니다.'));
+            } else {
+                const ta = document.createElement('textarea');
+                ta.value = text;
+                document.body.appendChild(ta);
+                ta.select();
+                document.execCommand('copy');
+                ta.remove();
+                showToast('가족 초대 안내문이 복사되었습니다.');
+            }
+        };
+
+        window.goToInitialGatePage = async function() {
+            if (isDataUnlocked) {
+                const nameInput = document.getElementById('admin-mokjang-name-input');
+                if (nameInput) {
+                    const cleanM = nameInput.value.trim().replace(/^우리\s*가족\s*이야기\s*/, '');
+                    if (cleanM !== mokjangConfig.mokjangName) {
+                        mokjangConfig.mokjangName = cleanM;
+                        await persistConfigToFirestore();
+                    }
+                }
+            }
+            showToast('초기 로그인 화면으로 이동합니다...');
+            setTimeout(() => {
+                try {
+                    window.location.replace('index.html');
+                } catch(e) {
+                    window.location.href = 'index.html';
+                }
+            }, 220);
+        };
+
+        window.goToMainFeedPageAsAdmin = async function() {
+            if (isDataUnlocked) {
+                const nameInput = document.getElementById('admin-mokjang-name-input');
+                if (nameInput) {
+                    const cleanM = nameInput.value.trim().replace(/^우리\s*가족\s*이야기\s*/, '');
+                    if (cleanM !== mokjangConfig.mokjangName) {
+                        mokjangConfig.mokjangName = cleanM;
+                        await persistConfigToFirestore();
+                    }
+                }
+            }
+            const leaderName = mokjangConfig.leaderName || '아빠';
+            const familyShort = mokjangConfig.mokjangName || '';
+            const isAdminBool = isDataUnlocked || isLeaderAuthenticated;
+            try {
+                localStorage.setItem('family_user_name', leaderName);
+                localStorage.setItem('family_user_role', isAdminBool ? 'leader' : 'member');
+                localStorage.setItem('family_short_name', familyShort);
+                localStorage.setItem('family_name', familyShort ? `우리 가족 이야기 ${familyShort}` : '우리 가족 이야기');
+                localStorage.setItem('family_is_admin', isAdminBool ? 'true' : 'false');
+            } catch(e) {}
+            showToast(`${leaderName}(아빠) 권한으로 가족 피드로 이동합니다...`);
+            setTimeout(() => {
+                try {
+                    sessionStorage.setItem('family_entry_pass', JSON.stringify({
+                        target: 'index2.html',
+                        authorizedFromIndex: true,
+                        token: 'tk_' + Date.now() + '_' + Math.random().toString(36).slice(2),
+                        userName: leaderName,
+                        mokjangShort: familyShort,
+                        role: isAdminBool ? 'leader' : 'member',
+                        isAdmin: isAdminBool,
+                        issuedAt: Date.now()
+                    }));
+                    sessionStorage.removeItem('family_authorized_session');
+                } catch(e) {}
+                try {
+                    window.location.replace('index2.html');
+                } catch(e) {
+                    window.location.href = 'index2.html';
+                }
+            }, 220);
+        };
+
+        document.addEventListener('focusout', (e) => {
+            if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA')) {
+                setTimeout(() => {
+                    window.scrollTo(0, 0);
+                    document.body.scrollTop = 0;
+                    document.documentElement.scrollTop = 0;
+                }, 60);
+            }
+        });
+
+        initAdminPage();
+    </script>
+</body>
+</html>

@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>우리 가족 이야기</title>
-    <!-- [외부 리소스 사전 연결] -->
+    <!-- [외부 리소스 연결] -->
     <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
     <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -15,10 +15,10 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
     
-    <!-- [핵심 해결책: 사파리 순백색 버그를 깨부수는 #FFFFFE 테마 컬러] -->
-    <meta name="theme-color" content="#FFFFFE">
-    <meta name="theme-color" media="(prefers-color-scheme: light)" content="#FFFFFE">
-    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#FFFFFE">
+    <!-- [사파리/크롬 상하단 바 흰색 고정] -->
+    <meta name="theme-color" content="#FFFFFF">
+    <meta name="theme-color" media="(prefers-color-scheme: light)" content="#FFFFFF">
+    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#FFFFFF">
 
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard-dynamic-subset.css">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;700&family=Nanum+Myeongjo:wght@400;700&display=swap">
@@ -30,11 +30,10 @@
             --auth-box-top: 70%;
         }
 
-        /* html과 body의 최외곽 픽셀을 #FFFFFE로 강제 고정하여 사파리의 색조화를 원천 차단 */
         html, body {
             width: 100%; height: 100%; max-width: 100vw; overflow: hidden;
             font-family: 'Pretendard', sans-serif; 
-            background-color: #FFFFFE !important; 
+            background-color: #FFFFFF !important; 
             color: #222222;
             -webkit-tap-highlight-color: transparent; 
             touch-action: manipulation;
@@ -43,66 +42,39 @@
             margin: 0; padding: 0;
         }
 
-        /* [핵심] 사파리가 상/하단 바를 갈색으로 채우지 못하도록 상하단에 설치하는 순백색 방어막 */
-        #ios-safari-top-shield {
+        /* [핵심] 사파리가 화면 맨 위/아래의 갈색을 훔쳐가지 못하도록 덮어버리는 순백색 픽셀 보호막 */
+        .safari-edge-guard-top {
             position: fixed; top: 0; left: 0; right: 0;
-            height: max(env(safe-area-inset-top), 20px);
-            background-color: #FFFFFE !important;
-            z-index: 100000;
+            height: 12px;
+            background-color: #FFFFFF !important;
+            z-index: 10000;
             pointer-events: none;
         }
-        #ios-safari-bottom-shield {
+        .safari-edge-guard-bottom {
             position: fixed; bottom: 0; left: 0; right: 0;
-            height: max(env(safe-area-inset-bottom), 20px);
-            background-color: #FFFFFE !important;
-            z-index: 100000;
+            height: 12px;
+            background-color: #FFFFFF !important;
+            z-index: 10000;
             pointer-events: none;
         }
 
         /* 일체형 상승 모션 */
-        @keyframes dipAndSlideUpSeamless {
-            0% { transform: translateY(0%); }
-            22% { transform: translateY(32px); }
-            100% { transform: translateY(-100%); }
-        }
-        @keyframes dipAndFollowUpStage {
-            0% { transform: translateY(100%); }
-            22% { transform: translateY(calc(100% + 32px)); }
-            100% { transform: translateY(0%); }
+        @keyframes slideUpFadeOut {
+            0% { transform: translateY(0); opacity: 1; }
+            20% { transform: translateY(24px); opacity: 1; }
+            100% { transform: translateY(-100%); opacity: 0; }
         }
 
-        .gate-open-active {
-            animation: dipAndSlideUpSeamless 3.0s cubic-bezier(0.25, 1, 0.5, 1) forwards;
-        }
-        .stage-follow-active {
-            animation: dipAndFollowUpStage 3.0s cubic-bezier(0.25, 1, 0.5, 1) forwards;
-        }
-
-        #seamless-index2-stage {
-            position: fixed;
-            inset: 0;
-            width: 100%;
-            height: 100%;
-            z-index: 990;
-            background-color: #FFFFFE !important;
-            transform: translateY(100%);
-            will-change: transform;
-            overflow: hidden;
-        }
-        #seamless-index2-frame {
-            width: 100%;
-            height: 100%;
-            border: 0;
-            display: block;
-            background-color: #FFFFFE !important;
+        .gate-exit-active {
+            animation: slideUpFadeOut 1.2s cubic-bezier(0.25, 1, 0.5, 1) forwards;
         }
 
         #auth-gate {
             position: fixed; inset: 0; z-index: 995;
-            background-color: #FFFFFE;
+            background-color: #FFFFFF;
             display: flex; align-items: center; justify-content: center;
             overflow: hidden; touch-action: manipulation;
-            will-change: transform;
+            will-change: transform, opacity;
             cursor: pointer;
             margin: 0; padding: 0;
         }
@@ -116,6 +88,7 @@
             pointer-events: none; user-select: none;
             -webkit-user-select: none;
             overflow: hidden;
+            background-color: #FFFFFF;
         }
 
         #monthly-svg-stage svg.full-bleed-svg {
@@ -162,27 +135,22 @@
         }
     </style>
 </head>
-<body class="flex flex-col h-full w-full max-w-full overflow-hidden bg-[#FFFFFE]">
+<body class="flex flex-col h-full w-full max-w-full overflow-hidden bg-[#FFFFFF]">
 
-    <!-- [사파리 상·하단 바 갈색 침범을 물리적으로 막는 최상위 흰색 쉴드] -->
-    <div id="ios-safari-top-shield"></div>
-    <div id="ios-safari-bottom-shield"></div>
-
-    <!-- index2.html 스테이지 -->
-    <div id="seamless-index2-stage">
-        <iframe id="seamless-index2-frame" title="우리 가족 이야기 피드"></iframe>
-    </div>
+    <!-- [사파리 상단/하단 갈색 틴트 차단용 순백색 픽셀 가드] -->
+    <div class="safari-edge-guard-top"></div>
+    <div class="safari-edge-guard-bottom"></div>
 
     <!-- 인증 게이트 -->
     <div id="auth-gate">
         <div id="monthly-svg-stage"></div>
 
-        <!-- 관리자 진입 버튼 (우측 상단 10회 터치) -->
+        <!-- 관리자 진입 (우측 상단 10회 터치) -->
         <div id="admin-secret-zone" class="absolute top-0 right-0 w-20 h-20 z-40">
             <button type="button" onclick="goToAdminPage(event)" aria-label="관리자 페이지" class="w-full h-full bg-transparent border-0 focus:outline-none"></button>
         </div>
 
-        <!-- 5회 터치 시 나타나는 로그인 창 -->
+        <!-- 로그인 캡슐 창 -->
         <div id="code-auth-box" onclick="handleAuthBoxClick(event)" onpointerdown="event.stopPropagation();">
             <input type="text" id="input-mokjang-code" oninput="handleCodeInput(this)" placeholder="코드" maxlength="4" inputmode="numeric" pattern="[0-9]*" class="w-[55px] bg-transparent text-center text-gray-900 focus:outline-none font-bold">
             <div class="w-px h-3.5 bg-gray-400 mx-1"></div>
@@ -191,7 +159,7 @@
     </div>
 
     <script>
-        // 주소창 깔끔히 유지
+        // 주소창 정리
         try {
             if (window.history && typeof window.history.replaceState === 'function') {
                 const cleanBase = window.location.pathname.replace(/\/?index\.html.*$/i, '/');
@@ -203,21 +171,19 @@
 
         const authGate = document.getElementById('auth-gate');
         const codeAuthBox = document.getElementById('code-auth-box');
-        const seamlessStage = document.getElementById('seamless-index2-stage');
-        const seamlessFrame = document.getElementById('seamless-index2-frame');
         const svgStage = document.getElementById('monthly-svg-stage');
 
-        // [사파리 상하단 바 흰색 강제 주입 함수]
-        function lockSafariWhiteTheme() {
+        // 사파리 상하단 바 흰색 강제 주입
+        function forceWhiteBar() {
             document.querySelectorAll('meta[name="theme-color"]').forEach(el => el.remove());
             const meta = document.createElement('meta');
             meta.name = 'theme-color';
-            meta.content = '#FFFFFE';
+            meta.content = '#FFFFFF';
             document.head.appendChild(meta);
-            document.documentElement.style.backgroundColor = '#FFFFFE';
-            document.body.style.backgroundColor = '#FFFFFE';
+            document.documentElement.style.backgroundColor = '#FFFFFF';
+            document.body.style.backgroundColor = '#FFFFFF';
         }
-        lockSafariWhiteTheme();
+        forceWhiteBar();
 
         const MONTHLY_DESIGN_DATA = {
             1: {
@@ -304,8 +270,10 @@
             const d = MONTHLY_DESIGN_DATA[month] || MONTHLY_DESIGN_DATA[5];
             const activeBg = isOddDay ? d.oddOuterBg : d.evenBg;
 
+            // [핵심 해결] SVG가 화면 맨 끝 픽셀(노치, 홈바)을 침범하지 않도록 여백을 두고 순백색 배경 위에 안착
+            svgStage.style.backgroundColor = "#FFFFFF";
+
             if (isOddDay) {
-                svgStage.style.backgroundColor = activeBg;
                 svgStage.innerHTML = `
                     <svg class="full-bleed-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 270" preserveAspectRatio="xMidYMid meet" role="img">
                         <title>${month}월 · ${d.title}</title>
@@ -314,7 +282,7 @@
                                 <path d="M25 167 V99 A75 75 0 0 1 175 99 V167Z"/>
                             </clipPath>
                         </defs>
-                        <rect x="-500" y="-500" width="1200" height="1270" fill="${d.oddOuterBg}"/>
+                        <rect x="0" y="0" width="200" height="270" fill="${d.oddOuterBg}"/>
                         <rect x="6" y="6" width="188" height="258" rx="12" fill="none" stroke="${d.oddStroke}" stroke-width="1" opacity="0.8"/>
                         <path d="M25 167 V99 A75 75 0 0 1 175 99 V167Z" fill="${d.oddArchBg}"/>
                         <g clip-path="url(#w${month})">
@@ -333,11 +301,10 @@
                     </svg>
                 `;
             } else {
-                svgStage.style.backgroundColor = activeBg;
                 svgStage.innerHTML = `
-                    <svg class="full-bleed-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 270" preserveAspectRatio="xMidYMid slice" role="img">
+                    <svg class="full-bleed-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 270" preserveAspectRatio="xMidYMid meet" role="img">
                         <title>${month}월 · ${d.title}</title>
-                        <rect x="-500" y="-500" width="1200" height="1270" fill="${d.evenBg}"/>
+                        <rect x="0" y="0" width="200" height="270" fill="${d.evenBg}"/>
                         ${d.art}
                         <g font-family="'Noto Serif KR','Nanum Myeongjo','Apple SD Gothic Neo',serif" text-anchor="middle" fill="${d.evenText}">
                             <text x="100" y="26" font-size="11" opacity="0.75">${month}월</text>
@@ -530,74 +497,29 @@
             const finalName = userName || document.getElementById('input-member-name').value.trim() || '우리가족';
             const finalFamily = familyShort || '';
 
-            const issuePassToken = () => {
-                try {
-                    sessionStorage.setItem('family_entry_pass', JSON.stringify({
-                        target: 'index2.html',
-                        authorizedFromIndex: true,
-                        token: 'tk_' + Date.now() + '_' + Math.random().toString(36).slice(2),
-                        userName: finalName,
-                        mokjangShort: finalFamily,
-                        role: userRole,
-                        isAdmin: isAdminFlag === '1',
-                        issuedAt: Date.now()
-                    }));
-                    sessionStorage.removeItem('family_authorized_session');
-                } catch (e) {}
-            };
+            try {
+                sessionStorage.setItem('family_entry_pass', JSON.stringify({
+                    target: 'index2.html',
+                    authorizedFromIndex: true,
+                    token: 'tk_' + Date.now() + '_' + Math.random().toString(36).slice(2),
+                    userName: finalName,
+                    mokjangShort: finalFamily,
+                    role: userRole,
+                    isAdmin: isAdminFlag === '1',
+                    issuedAt: Date.now()
+                }));
+                sessionStorage.removeItem('family_authorized_session');
+            } catch (e) {}
 
-            issuePassToken();
+            forceWhiteBar();
+            createHearts();
 
-            let animationStarted = false;
-            const startSeamlessClimb = () => {
-                if (animationStarted) return;
-                animationStarted = true;
+            // 게이트를 위로 올리며 순수 흰색 index2.html로 실제 페이지 이동(사파리 완전 초기화)
+            authGate.classList.add('gate-exit-active');
 
-                // [핵심] 로그인 슬라이드 시작 즉시 사파리 색상을 #FFFFFE로 락다운
-                lockSafariWhiteTheme();
-                if (seamlessStage) seamlessStage.style.backgroundColor = '#FFFFFE';
-                if (seamlessFrame) seamlessFrame.style.backgroundColor = '#FFFFFE';
-                if (authGate) authGate.style.backgroundColor = '#FFFFFE';
-
-                authGate.classList.add('gate-open-active');
-                if (seamlessStage) seamlessStage.classList.add('stage-follow-active');
-                createHearts();
-
-                setTimeout(() => {
-                    try {
-                        const frameDoc = seamlessFrame && (seamlessFrame.contentDocument || seamlessFrame.contentWindow?.document);
-                        if (!frameDoc || !frameDoc.body || frameDoc.body.children.length === 0) {
-                            issuePassToken();
-                            window.location.replace('index2.html');
-                            return;
-                        }
-                    } catch (err) {}
-
-                    // 전환 완료 후 갈색 흔적 완전 파괴
-                    lockSafariWhiteTheme();
-                    if (svgStage) { 
-                        svgStage.style.backgroundColor = '#FFFFFE'; 
-                        svgStage.innerHTML = ''; 
-                    }
-                    if (authGate) {
-                        authGate.style.display = 'none';
-                        authGate.remove();
-                    }
-                    if (seamlessFrame && seamlessFrame.contentWindow) {
-                        try { seamlessFrame.contentWindow.focus(); } catch (e) {}
-                    }
-                }, 3000);
-            };
-
-            if (seamlessFrame) {
-                seamlessFrame.onload = () => {
-                    startSeamlessClimb();
-                };
-                seamlessFrame.src = 'index2.html';
-                setTimeout(startSeamlessClimb, 120);
-            } else {
-                startSeamlessClimb();
-            }
+            setTimeout(() => {
+                window.location.replace('index2.html');
+            }, 800);
         }
 
         let adminTapCount = 0;
@@ -618,15 +540,7 @@
                     }));
                     sessionStorage.removeItem('family_authorized_session');
                 } catch (e) {}
-                try {
-                    if (window.location && typeof window.location.replace === 'function') {
-                        window.location.replace('index1.html');
-                    } else {
-                        window.location.href = 'index1.html';
-                    }
-                } catch(navErr) {
-                    window.location.href = 'index1.html';
-                }
+                window.location.replace('index1.html');
                 return;
             }
             clearTimeout(adminTapResetTimer);
@@ -640,21 +554,15 @@
             for (let i = 0; i < heartCount; i++) {
                 const heart = document.createElement('i');
                 heart.className = 'fa-solid fa-heart floating-heart';
-                
                 const left = Math.random() * 100;
                 const size = Math.random() * 16 + 12;
-                const duration = Math.random() * 1.2 + 2.8;
-                const delay = Math.random() * 0.8;
-                
+                const duration = Math.random() * 1.2 + 2.0;
+                const delay = Math.random() * 0.4;
                 heart.style.left = `${left}vw`;
                 heart.style.fontSize = `${size}px`;
                 heart.style.animation = `floatHeart ${duration}s ease-out ${delay}s forwards`;
-                
                 document.body.appendChild(heart);
-                
-                setTimeout(() => {
-                    heart.remove();
-                }, (duration + delay) * 1000 + 100);
+                setTimeout(() => { heart.remove(); }, (duration + delay) * 1000 + 100);
             }
         }
     </script>

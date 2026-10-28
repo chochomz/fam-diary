@@ -477,8 +477,8 @@
 
         <!-- 중앙 메인 타이틀 ('세' 자와 하단 환영 문구 좌측 수직 라인 일치) -->
         <div class="absolute left-1/2 -translate-x-1/2 top-1/2 -translate-y-1/2 flex items-center justify-center pointer-events-auto max-w-[76vw]">
-            <div class="relative flex items-start space-x-1.5" id="header-mokjang-title-container">
-                <img src="flogo.png" alt="우리 가족 로고" onerror="this.style.display='none'" class="w-[21px] h-[21px] object-contain shrink-0 select-none mt-0.5" id="header-church-logo">
+            <div class="relative flex items-center space-x-2" id="header-mokjang-title-container">
+                <img src="flogo.png" alt="우리 가족 로고" onerror="this.style.display='none'" class="w-[34px] h-[34px] object-contain shrink-0 select-none" id="header-church-logo">
                 <div class="flex flex-col items-start text-left min-w-0">
                     <h1 class="header-main-title-text font-black tracking-tight leading-tight whitespace-nowrap select-none relative" id="header-mokjang-title">
                         <span id="title-church-prefix"><span id="title-char-se">우</span>리 가족 이야기</span>
@@ -816,10 +816,10 @@
 
             <div id="comments-modal-list" class="flex-1 overflow-y-auto p-3 space-y-2.5 text-xs"></div>
 
-            <div class="p-2 border-t church-border bg-gray-50/70 shrink-0 flex items-center justify-between gap-1.5">
-                <textarea id="comments-modal-input" rows="2" maxlength="300" placeholder="댓글 입력..." oninput="autoExpandCommentTextarea(this)" class="flex-1 min-w-0 px-2.5 py-1.5 rounded-lg text-xs border border-dashed border-gray-300 bg-white text-gray-800 resize-none leading-snug"></textarea>
-                <button type="button" onclick="addCommentFromModal()" class="py-1 px-2.5 church-primary text-white rounded-lg text-xs font-semibold active:scale-95 transition-all">등록</button>
-                <button type="button" onclick="closeCommentsModal()" class="py-1 px-3 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-xs font-medium active:scale-95 transition-all">
+            <div class="p-2 border-t church-border bg-gray-50/70 shrink-0 flex items-stretch justify-between gap-1.5">
+                <textarea id="comments-modal-input" rows="2" maxlength="300" placeholder="댓글 입력..." oninput="autoExpandCommentTextarea(this)" class="flex-1 min-w-0 min-h-[44px] px-2.5 py-1.5 rounded-lg text-xs border border-dashed border-gray-300 bg-white text-gray-800 resize-none leading-snug"></textarea>
+                <button type="button" onclick="addCommentFromModal()" class="self-stretch px-3 church-primary hover:opacity-90 text-white rounded-lg text-xs font-semibold active:scale-95 transition-all flex items-center justify-center">등록</button>
+                <button type="button" onclick="closeCommentsModal()" class="self-stretch px-3 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-xs font-medium active:scale-95 transition-all flex items-center justify-center">
                     닫기
                 </button>
             </div>
@@ -5027,7 +5027,7 @@
             if (mode === 'expanded') {
                 expandedPhotoPosts.add(postId);
                 container.setAttribute('data-view-mode', 'expanded');
-                container.className = "flex flex-col space-y-2.5 w-full mt-0.5 mb-1 transition-all duration-300";
+                container.className = "flex flex-col space-y-1 w-full mt-0.5 mb-0.5 transition-all duration-300";
 
                 for (let i = 0; i < count; i++) {
                     const block = document.getElementById(`photo-block-${postId}-${i}`);
@@ -5055,7 +5055,7 @@
             } else {
                 expandedPhotoPosts.delete(postId);
                 container.setAttribute('data-view-mode', 'grid');
-                container.className = `grid gap-1.5 w-full ${count === 1 ? 'grid-cols-1' : 'grid-cols-2'} mt-0.5 mb-1 transition-all duration-300`;
+                container.className = `grid gap-0.5 w-full ${count === 1 ? 'grid-cols-1' : 'grid-cols-2'} mt-0.5 mb-0.5 transition-all duration-300`;
 
                 for (let i = 0; i < count; i++) {
                     const block = document.getElementById(`photo-block-${postId}-${i}`);
@@ -6667,7 +6667,7 @@
             const hasPrayed = Array.isArray(post.prayedUsers) && post.prayedUsers.includes(reactionUserId);
 
             const card = document.createElement('article');
-            card.className = "w-full px-2 pt-0.5 pb-1 box-border";
+            card.className = "w-full px-1 py-0.5 box-border";
             card.setAttribute('data-post-id', post.id);
             const sigImgs = Array.isArray(post.images) ? post.images.filter(Boolean) : (post.imageUrl ? [post.imageUrl] : []);
             card.setAttribute('data-post-sig', `${post.id}|${sigImgs.length}|${sigImgs.join(',')}|${post.content || ''}|${post.fontFamily || ''}|${post.fileName || ''}`);
@@ -6684,7 +6684,7 @@
             let mediaSectionHtml = '';
             if (imgArray.length > 0) {
                 const count = imgArray.length;
-                let gridClass = 'grid gap-1.5 w-full';
+                let gridClass = 'grid gap-0.5 w-full';
                 if (count === 1) {
                     gridClass += ' grid-cols-1';
                 } else {
@@ -6796,7 +6796,7 @@
                 : '';
 
             card.innerHTML = `
-                <div id="post-card-${post.id}" class="w-full bg-white rounded-2xl border church-border shadow-xs flex flex-col p-2 box-border relative text-left">
+                <div id="post-card-${post.id}" class="w-full bg-white rounded-2xl border church-border shadow-xs flex flex-col p-1.5 box-border relative text-left">
                     <div class="flex items-center justify-between pb-0.5 relative">
                         <div class="flex items-center space-x-1.5">
                             <div class="w-6 h-6 rounded-full church-accent church-primary-text flex items-center justify-center font-bold text-xs shrink-0 shadow-2xs">
@@ -6907,12 +6907,12 @@
                     </div>
 
                     <!-- [작업 4-마: 인라인 댓글 작성 시 현재 작성자 이름 표시] -->
-                    <div id="inline-comment-row-${post.id}" class="no-export mt-1.5 pt-1 border-t border-gray-100 hidden w-full max-w-full box-border overflow-hidden">
-                        <div class="flex items-end gap-1.5 w-full max-w-full box-border">
+                    <div id="inline-comment-row-${post.id}" class="no-export mt-1 pt-1 border-t border-gray-100 hidden w-full max-w-full box-border overflow-hidden">
+                        <div class="flex items-stretch gap-1.5 w-full max-w-full box-border">
                             <textarea id="inline-comment-input-${post.id}" rows="2" maxlength="300" placeholder="따뜻한 댓글을 남겨보세요..." 
                                       oninput="handleDraftInput('${post.id}', this.value); autoExpandCommentTextarea(this);"
-                                      class="flex-1 min-w-0 w-full min-h-[46px] px-2.5 py-1.5 border border-dashed border-gray-300 rounded-lg text-xs bg-white text-gray-900 placeholder-gray-400 outline-none focus:outline-none focus:border-dashed focus:border-emerald-600 resize-none shadow-2xs box-border leading-snug"></textarea>
-                            <button type="button" onpointerdown="event.preventDefault();" onmousedown="event.preventDefault();" onclick="event.stopPropagation(); addCommentInline('${post.id}', event)" class="shrink-0 h-[46px] px-3 church-primary hover:opacity-90 active:scale-95 text-white rounded-lg text-xs font-semibold whitespace-nowrap shadow-2xs transition-all flex items-center justify-center" title="댓글 등록">
+                                      class="flex-1 min-w-0 w-full min-h-[44px] px-2.5 py-1.5 border border-dashed border-gray-300 rounded-lg text-xs bg-white text-gray-900 placeholder-gray-400 outline-none focus:outline-none focus:border-dashed focus:border-emerald-600 resize-none shadow-2xs box-border leading-snug"></textarea>
+                            <button type="button" onpointerdown="event.preventDefault();" onmousedown="event.preventDefault();" onclick="event.stopPropagation(); addCommentInline('${post.id}', event)" class="shrink-0 self-stretch px-3 church-primary hover:opacity-90 active:scale-95 text-white rounded-lg text-xs font-semibold whitespace-nowrap shadow-2xs transition-all flex items-center justify-center" title="댓글 등록">
                                 <span>등록</span>
                             </button>
                         </div>

@@ -349,8 +349,9 @@
             max-height: 600px;
             display: block;
             cursor: pointer;
-            transition: opacity 0.2s;
+            transition: max-height 0.38s cubic-bezier(0.25, 1, 0.5, 1), transform 0.25s ease, opacity 0.2s ease;
             object-fit: cover;
+            will-change: max-height;
         }
         .continuous-photo-item:active {
             opacity: 0.92;
@@ -973,6 +974,32 @@
         </div>
     </div>
 
+    
+    <!-- [카톡방 공유 확인 모달] -->
+    <div id="kakao-share-confirm-modal" class="fixed inset-0 z-[70] bg-black/60 backdrop-blur-xs flex items-center justify-center p-3 hidden" style="touch-action: none;">
+        <div class="bg-white rounded-2xl w-full max-w-xs p-4 shadow-2xl border church-border text-center space-y-3">
+            <div class="w-11 h-11 bg-yellow-100 text-yellow-800 rounded-full flex items-center justify-center mx-auto text-xl shadow-2xs border border-yellow-200">
+                <i class="fa-solid fa-comment"></i>
+            </div>
+            <div>
+                <h4 class="text-sm font-bold text-gray-800">가족 이야기 카톡 공유</h4>
+                <p class="text-[12.5px] text-gray-800 font-semibold mt-1">올린글을 카톡방에 공유할까요.?</p>
+                <div class="mt-2 p-2 bg-yellow-50/80 rounded-xl border border-yellow-200/80 text-[11px] text-gray-700 text-left font-medium leading-relaxed">
+                    <span id="kakao-share-preview-text"></span>
+                </div>
+            </div>
+            <div class="grid grid-cols-2 gap-2 pt-1">
+                <button type="button" onclick="closeKakaoShareModal()" class="py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl text-xs font-semibold active:scale-95 transition-all">
+                    아니요
+                </button>
+                <button type="button" onclick="executeKakaoShare()" class="py-2.5 bg-[#FEE500] hover:bg-[#FDD800] text-[#3C1E1E] font-bold rounded-xl text-xs shadow-xs active:scale-95 transition-all flex items-center justify-center space-x-1.5">
+                    <i class="fa-solid fa-share-nodes text-xs"></i>
+                    <span>예 (공유하기)</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- [저장 확인 모달] -->
     <div id="save-confirm-modal" class="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-3 hidden">
         <div class="bg-white rounded-xl w-full max-w-xs p-3.5 shadow-2xl border church-border text-center space-y-2.5">
@@ -1302,6 +1329,72 @@
         import { getStorage, ref as storageRef, uploadString, getDownloadURL } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-storage.js";
 
         // [작업 4-가, 나, 다, 라: 로그인 세션 기반 사용자 이름 및 목자/부목자/일반목원 권한 체계 초기화]
+        
+        // [카톡방 공유 팝업 및 클립보드 복사 시스템]
+        let pendingKakaoShareText = "";
+
+        window.openKakaoShareModal = function(authorName, postIndex) {
+            const author = authorName || currentUser || '우리가족';
+            const countText = `${postIndex}번째`;
+            pendingKakaoShareText = `${author} 님이 ❤️가족 웹북에 새로운 글을 (${countText}) 올렸습니다.`;
+            
+            const previewEl = document.getElementById('kakao-share-preview-text');
+            if (previewEl) {
+                previewEl.textContent = pendingKakaoShareText;
+            }
+            const modal = document.getElementById('kakao-share-confirm-modal');
+            if (modal) {
+                modal.classList.remove('hidden');
+            }
+        };
+
+        window.closeKakaoShareModal = function() {
+            pendingKakaoShareText = "";
+            const modal = document.getElementById('kakao-share-confirm-modal');
+            if (modal) {
+                modal.classList.add('hidden');
+            }
+        };
+
+        window.executeKakaoShare = async function() {
+            if (!pendingKakaoShareText) return;
+            const textToShare = pendingKakaoShareText;
+            closeKakaoShareModal();
+
+            // 1. 클립보드에 복사
+            try {
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    await navigator.clipboard.writeText(textToShare);
+                } else {
+                    const ta = document.createElement('textarea');
+                    ta.value = textToShare;
+                    ta.style.position = 'fixed';
+                    ta.style.left = '-9999px';
+                    document.body.appendChild(ta);
+                    ta.select();
+                    document.execCommand('copy');
+                    document.body.removeChild(ta);
+                }
+            } catch (err) {}
+
+            // 2. 모바일 공유창 (카카오톡 채팅방 선택)
+            if (navigator.share) {
+                try {
+                    await navigator.share({
+                        title: '우리 가족 이야기',
+                        text: textToShare
+                    });
+                    showNotification("카톡방 공유를 진행합니다.");
+                } catch (err) {
+                    if (err.name !== 'AbortError') {
+                        showNotification("내용이 복사되었습니다. 카톡방을 열어 붙여넣기 하세요!");
+                    }
+                }
+            } else {
+                showNotification("내용이 복사되었습니다. 카톡방을 열어 붙여넣기 하세요!");
+            }
+        };
+
         let currentUser = "우리가족";
         let currentUserRole = "member"; // 'leader' (목자) | 'subleader' (부목자) | 'member' (일반 목원)
         let currentMokjangShort = "";
@@ -4003,6 +4096,12 @@
                 closeWriteModal();
                 showNotification(COMPLETED_STAGE_5_TEXT);
                 scrollToPost(targetScrollId, true);
+                if (!postId) {
+                    setTimeout(() => {
+                        const currentCount = (cachedPosts && cachedPosts.length > 0) ? cachedPosts.length : 1;
+                        openKakaoShareModal(currentUser, currentCount);
+                    }, 650);
+                }
             } catch (err) {
                 console.error("게시글 저장 오류:", err);
                 const descEl = document.getElementById('upload-stage-status-desc');
@@ -5068,7 +5167,7 @@
                     if (img) {
                         img.classList.remove('h-auto', 'max-h-[650px]', 'object-contain', 'bg-black/5');
                         const origHeight = img.getAttribute('data-grid-height') || 'h-36 sm:h-40';
-                        img.className = `w-full ${origHeight} object-cover select-none continuous-photo-item block transition-all duration-200`;
+                        img.className = `w-full ${origHeight} object-cover select-none continuous-photo-item block transition-all duration-300`;
                         img.style.objectPosition = 'center 20%';
                     }
                 }

@@ -14,28 +14,35 @@
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='15' fill='%233B5D50'/%3E%3Cpath d='M16 23s-7-4.35-7-9.5A4.25 4.25 0 0 1 16 10a4.25 4.25 0 0 1 7 3.5C23 18.65 16 23 16 23z' fill='%23ffffff'/%3E%3C/svg%3E">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
-    <!-- [중요: index2로 넘어갔을 때 모바일 상하단 바에 갈색 등 표지 색이 남지 않도록 순백색(#FFFFFF)으로 고정] -->
-    <meta name="theme-color" id="meta-theme-color" content="#FFFFFF">
+    
+    <!-- [중요: 모바일 상·하단 바가 갈색으로 물들지 않도록 순백색(#FFFFFF) 다중 고정] -->
+    <meta name="theme-color" content="#FFFFFF">
+    <meta name="theme-color" media="(prefers-color-scheme: light)" content="#FFFFFF">
+    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#FFFFFF">
+
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard-dynamic-subset.css">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;700&family=Nanum+Myeongjo:wght@400;700&display=swap">
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         :root {
-            /* [추후 캡슐 로그인 창 배치 위치 조정용 변수] */
             --auth-box-left: 50%;
             --auth-box-top: 70%;
         }
 
         html, body {
             width: 100%; height: 100%; max-width: 100vw; overflow: hidden;
-            font-family: 'Pretendard', sans-serif; background-color: #FFFFFF; color: #222222;
-            -webkit-tap-highlight-color: transparent; touch-action: manipulation;
+            font-family: 'Pretendard', sans-serif; 
+            background-color: #FFFFFF !important; 
+            color: #222222;
+            -webkit-tap-highlight-color: transparent; 
+            touch-action: manipulation;
             -webkit-text-size-adjust: 100% !important;
+            overscroll-behavior-y: none; /* 아이폰 사파리 상·하단 바운스 시 갈색 배경 노출 차단 */
             margin: 0; padding: 0;
         }
 
-        /* [게이트와 index2 스테이지가 한 몸처럼 맞닿아 함께 올라가는 일체형 심리스 모션] */
+        /* [게이트와 index2 스테이지 일체형 심리스 상승 모션] */
         @keyframes dipAndSlideUpSeamless {
             0% { transform: translateY(0%); }
             22% { transform: translateY(32px); }
@@ -54,14 +61,14 @@
             animation: dipAndFollowUpStage 3.0s cubic-bezier(0.25, 1, 0.5, 1) forwards;
         }
 
-        /* 게이트 바로 아래에서 뒤따라 올라오는 실제 index2.html 무리프레시 스테이지 */
+        /* index2.html 무리프레시 스테이지 */
         #seamless-index2-stage {
             position: fixed;
             inset: 0;
             width: 100%;
             height: 100%;
             z-index: 990;
-            background-color: #FFFFFF;
+            background-color: #FFFFFF !important;
             transform: translateY(100%);
             will-change: transform;
             overflow: hidden;
@@ -71,10 +78,10 @@
             height: 100%;
             border: 0;
             display: block;
-            background-color: #FFFFFF;
+            background-color: #FFFFFF !important;
         }
 
-        /* [2-1 스타일: 여백 제로 풀스크린 밀착형 게이트] */
+        /* 풀스크린 밀착형 제스처 게이트 */
         #auth-gate {
             position: fixed; inset: 0; z-index: 999;
             background-color: #FFFFFF;
@@ -100,7 +107,6 @@
             overflow: hidden;
         }
 
-        /* 배경 레이어는 화면 끝까지 빈틈없이 100% 채우고, 메인 아트워크는 비율 왜곡 없이 꽉 차게 정렬 */
         #monthly-svg-stage svg.full-bleed-svg {
             width: 100%;
             height: 100%;
@@ -131,7 +137,6 @@
             caret-color: #6b7280 !important;
         }
 
-        /* 코드 Pass 전 이름 입력창 잠금 스타일 */
         #input-member-name:disabled {
             opacity: 0.38;
             cursor: not-allowed;
@@ -152,32 +157,30 @@
 </head>
 <body class="flex flex-col h-full w-full max-w-full overflow-hidden bg-[#FFFFFF]">
 
-    <!-- [게이트 바로 뒤를 따라 올라오는 실제 index2.html 스테이지 (리프레시 끊김 0%)] -->
+    <!-- index2.html 스테이지 -->
     <div id="seamless-index2-stage">
         <iframe id="seamless-index2-frame" title="우리 가족 이야기 피드"></iframe>
     </div>
 
-    <!-- [제스처 인증 게이트: 2-1 풀스크린 밀착형] -->
+    <!-- 인증 게이트 -->
     <div id="auth-gate">
         <div id="monthly-svg-stage"></div>
 
-        <!-- 우측 상단 10회 터치 시 관리자(index1.html) 진입 -->
+        <!-- 우측 상단 10회 터치 관리자 진입 -->
         <div id="admin-secret-zone" class="absolute top-0 right-0 w-20 h-20 z-40">
             <button type="button" onclick="goToAdminPage(event)" aria-label="관리자 페이지" class="w-full h-full bg-transparent border-0 focus:outline-none"></button>
         </div>
 
-        <!-- 5회 터치 시 나타나는 둥근 캡슐형 로그인 창 -->
+        <!-- 둥근 캡슐형 로그인 창 -->
         <div id="code-auth-box" onclick="handleAuthBoxClick(event)" onpointerdown="event.stopPropagation();">
-            <!-- 코드는 숫자 최대 4자리 -->
             <input type="text" id="input-mokjang-code" oninput="handleCodeInput(this)" placeholder="코드" maxlength="4" inputmode="numeric" pattern="[0-9]*" class="w-[55px] bg-transparent text-center text-gray-900 focus:outline-none font-bold">
             <div class="w-px h-3.5 bg-gray-400 mx-1"></div>
-            <!-- 이름은 코드가 Pass되어야만 활성화됨 (초기 잠금 상태) -->
             <input type="text" id="input-member-name" oninput="handleNameInput(this)" onfocus="guardNameInputFocus(this)" placeholder="이름" maxlength="4" disabled readonly tabindex="-1" class="w-[55px] bg-transparent text-center text-gray-900 focus:outline-none font-bold transition-opacity duration-200">
         </div>
     </div>
 
     <script>
-        // 주소창을 깔끔하게 유지 (index.html 노출 제거)
+        // 주소창 깔끔하게 유지
         try {
             if (window.history && typeof window.history.replaceState === 'function') {
                 const cleanBase = window.location.pathname.replace(/\/?index\.html.*$/i, '/');
@@ -193,97 +196,92 @@
         const seamlessFrame = document.getElementById('seamless-index2-frame');
         const svgStage = document.getElementById('monthly-svg-stage');
 
-        // =====================================================================
-        // [1월 ~ 12월 통합 SVG 디자인 데이터]
-        // =====================================================================
+        // 상단/하단 메타 컬러 순백색 강제 리셋 함수
+        function forceWhiteThemeColor() {
+            document.querySelectorAll('meta[name="theme-color"]').forEach(meta => {
+                meta.setAttribute('content', '#FFFFFF');
+            });
+            document.documentElement.style.backgroundColor = '#FFFFFF';
+            document.body.style.backgroundColor = '#FFFFFF';
+        }
+        forceWhiteThemeColor();
+
+        // [1월 ~ 12월 통합 디자인 데이터]
         const MONTHLY_DESIGN_DATA = {
             1: {
-                title: "축복된 새 해",
-                sub: "사랑의 시작",
+                title: "축복된 새 해", sub: "사랑의 시작",
                 oddOuterBg: "#23364A", oddArchBg: "#DCE8F4", oddStroke: "#F4D58A", oddText: "#DCE8F4",
                 evenBg: "#DCE8F4", evenText: "#23364A",
                 art: `<g opacity="0.7"><line x1="140.0" y1="176.0" x2="164.0" y2="176.0" stroke="#F4D58A" stroke-width="3" stroke-linecap="round"/><line x1="136.0" y1="193.4" x2="157.7" y2="203.8" stroke="#F4D58A" stroke-width="3" stroke-linecap="round"/><line x1="124.9" y1="207.3" x2="139.9" y2="226.0" stroke="#F4D58A" stroke-width="3" stroke-linecap="round"/><line x1="108.9" y1="215.0" x2="114.2" y2="238.4" stroke="#F4D58A" stroke-width="3" stroke-linecap="round"/><line x1="91.1" y1="215.0" x2="85.8" y2="238.4" stroke="#F4D58A" stroke-width="3" stroke-linecap="round"/><line x1="75.1" y1="207.3" x2="60.1" y2="226.0" stroke="#F4D58A" stroke-width="3" stroke-linecap="round"/><line x1="64.0" y1="193.4" x2="42.3" y2="203.8" stroke="#F4D58A" stroke-width="3" stroke-linecap="round"/><line x1="60.0" y1="176.0" x2="36.0" y2="176.0" stroke="#F4D58A" stroke-width="3" stroke-linecap="round"/><line x1="64.0" y1="158.6" x2="42.3" y2="148.2" stroke="#F4D58A" stroke-width="3" stroke-linecap="round"/><line x1="75.1" y1="144.7" x2="60.1" y2="126.0" stroke="#F4D58A" stroke-width="3" stroke-linecap="round"/><line x1="91.1" y1="137.0" x2="85.8" y2="113.6" stroke="#F4D58A" stroke-width="3" stroke-linecap="round"/><line x1="108.9" y1="137.0" x2="114.2" y2="113.6" stroke="#F4D58A" stroke-width="3" stroke-linecap="round"/><line x1="124.9" y1="144.7" x2="139.9" y2="126.0" stroke="#F4D58A" stroke-width="3" stroke-linecap="round"/><line x1="136.0" y1="158.6" x2="157.7" y2="148.2" stroke="#F4D58A" stroke-width="3" stroke-linecap="round"/></g><circle cx="100" cy="176" r="34" fill="#F4D58A"/><path d="M0 200 Q70 174 140 196 T200 190 V270 H0Z" fill="#FFFFFF"/><path d="M0 234 Q80 214 200 232 V270 H0Z" fill="#B7CBE3"/><rect x="122" y="176" width="28" height="22" fill="#6F8CB3"/><polygon points="118,178 136,160 154,178" fill="#23364A"/><rect x="131" y="184" width="9" height="9" fill="#F9D56E"/><polygon points="56,200 66,176 76,200" fill="#6F8CB3"/><polygon points="58,188 66,168 74,188" fill="#6F8CB3"/><rect x="64" y="200" width="4" height="8" fill="#8A6A4B"/><g fill="#fff" opacity="0.88"><circle cx="22" cy="86" r="1.5"/><circle cx="75" cy="123" r="1.9"/><circle cx="128" cy="160" r="2.3"/><circle cx="181" cy="197" r="1.5"/><circle cx="44" cy="234" r="1.9"/><circle cx="97" cy="121" r="2.3"/><circle cx="150" cy="158" r="1.5"/><circle cx="13" cy="195" r="1.9"/><circle cx="66" cy="232" r="2.3"/><circle cx="119" cy="119" r="1.5"/><circle cx="172" cy="156" r="1.9"/><circle cx="35" cy="193" r="2.3"/><circle cx="88" cy="230" r="1.5"/><circle cx="141" cy="117" r="1.9"/></g>`
             },
             2: {
-                title: "소망을 향해",
-                sub: "기도 감사 찬양",
+                title: "소망을 향해", sub: "기도 감사 찬양",
                 oddOuterBg: "#5A2F3E", oddArchBg: "#F3E1E4", oddStroke: "#F4B2A0", oddText: "#F3E1E4",
                 evenBg: "#F3E1E4", evenText: "#5A2F3E",
                 art: `<polygon points="0,254 66,160 132,254" fill="#D9B8C6"/><polygon points="70,254 140,146 214,254" fill="#BE95AB"/><polygon points="140,146 128,166 140,160 152,168" fill="#fff"/><polygon points="66,160 58,174 66,170 74,176" fill="#fff"/><path d="M0 250 Q100 232 200 252 V270 H0Z" fill="#8E6580"/><path d="M100 262 Q150 238 112 214 Q72 190 130 172 Q150 164 140 152" fill="none" stroke="#fff" stroke-width="4" stroke-dasharray="1 8" stroke-linecap="round"/><circle cx="140" cy="122" r="18" fill="#F4B2A0" opacity="0.35"/><polygon points="140.0,110.0 142.9,118.0 151.4,118.3 144.8,123.5 147.1,131.7 140.0,127.0 132.9,131.7 135.2,123.5 128.6,118.3 137.1,118.0" fill="#F4B2A0"/>`
             },
             3: {
-                title: "새싹을 보다",
-                sub: "봄을 마중하다",
+                title: "새싹을 보다", sub: "봄을 마중하다",
                 oddOuterBg: "#4A4A2A", oddArchBg: "#F3F1E0", oddStroke: "#F5D56B", oddText: "#F3F1E0",
                 evenBg: "#F3F1E0", evenText: "#4A4A2A",
                 art: `<circle cx="158" cy="118" r="16" fill="#F5D56B"/><g opacity="0.7"><line x1="178.0" y1="118.0" x2="186.0" y2="118.0" stroke="#F5D56B" stroke-width="2.5" stroke-linecap="round"/><line x1="174.2" y1="129.8" x2="180.7" y2="134.5" stroke="#F5D56B" stroke-width="2.5" stroke-linecap="round"/><line x1="164.2" y1="137.0" x2="166.7" y2="144.6" stroke="#F5D56B" stroke-width="2.5" stroke-linecap="round"/><line x1="151.8" y1="137.0" x2="149.3" y2="144.6" stroke="#F5D56B" stroke-width="2.5" stroke-linecap="round"/><line x1="141.8" y1="129.8" x2="135.3" y2="134.5" stroke="#F5D56B" stroke-width="2.5" stroke-linecap="round"/><line x1="138.0" y1="118.0" x2="130.0" y2="118.0" stroke="#F5D56B" stroke-width="2.5" stroke-linecap="round"/><line x1="141.8" y1="106.2" x2="135.3" y2="101.5" stroke="#F5D56B" stroke-width="2.5" stroke-linecap="round"/><line x1="151.8" y1="99.0" x2="149.3" y2="91.4" stroke="#F5D56B" stroke-width="2.5" stroke-linecap="round"/><line x1="164.2" y1="99.0" x2="166.7" y2="91.4" stroke="#F5D56B" stroke-width="2.5" stroke-linecap="round"/><line x1="174.2" y1="106.2" x2="180.7" y2="101.5" stroke="#F5D56B" stroke-width="2.5" stroke-linecap="round"/></g><ellipse cx="36" cy="130" rx="1.6" ry="4" fill="#8CC3E8"/><ellipse cx="60" cy="150" rx="1.6" ry="4" fill="#8CC3E8"/><ellipse cx="46" cy="176" rx="1.6" ry="4" fill="#8CC3E8"/><path d="M0 236 Q100 222 200 238 V270 H0Z" fill="#D4E3B0"/><path d="M24 270 Q100 206 176 270Z" fill="#9B6B4F"/><path d="M100 240 Q96 208 100 180" fill="none" stroke="#6FA84F" stroke-width="5" stroke-linecap="round"/><path d="M100 196 Q68 174 60 192 Q80 206 100 196Z" fill="#A8CC7C"/><path d="M100 184 Q134 152 148 170 Q126 192 100 184Z" fill="#7DB86A"/><path d="M148 252 Q146 238 150 224" fill="none" stroke="#6FA84F" stroke-width="4" stroke-linecap="round"/><path d="M149 236 Q134 224 130 234 Q140 242 149 236Z" fill="#A8CC7C"/><path d="M150 228 Q166 216 172 224 Q164 234 150 228Z" fill="#7DB86A"/>`
             },
             4: {
-                title: "내 마음의 초록",
-                sub: "그리스도의 푸른계절",
+                title: "내 마음의 초록", sub: "그리스도의 푸른계절",
                 oddOuterBg: "#6B3040", oddArchBg: "#FDEFF2", oddStroke: "#F7D26A", oddText: "#FDEFF2",
                 evenBg: "#FDEFF2", evenText: "#6B3040",
                 art: `<circle cx="160" cy="118" r="16" fill="#F7D26A"/><path d="M0 216 Q100 170 200 210 V270 H0Z" fill="#BFE0A0"/><rect x="96" y="152" width="8" height="50" fill="#8A6A4B"/><rect x="84" y="164" width="32" height="8" fill="#8A6A4B"/><rect x="40" y="172" width="7" height="46" fill="#8A6A4B"/><circle cx="44" cy="160" r="20" fill="#F4A8BE"/><circle cx="30" cy="172" r="14" fill="#F6C3CF"/><circle cx="58" cy="172" r="14" fill="#F6C3CF"/><circle cx="44" cy="148" r="12" fill="#F6C3CF"/><circle cx="164" cy="196" r="14" fill="#7DB86A"/><rect x="162" y="206" width="4" height="14" fill="#8A6A4B"/><ellipse cx="134" cy="140" rx="5" ry="3" fill="#F7D26A" transform="rotate(-30 134 140)"/><ellipse cx="142" cy="140" rx="5" ry="3" fill="#C2506B" transform="rotate(30 142 140)"/><circle cx="70" cy="190" r="2" fill="#F4A8BE"/><circle cx="150" cy="160" r="2" fill="#F4A8BE"/><circle cx="24" cy="210" r="2" fill="#F6C3CF"/>`
             },
             5: {
-                title: "가정의 이야기",
-                sub: "사랑을 그리다",
+                title: "가정의 이야기", sub: "사랑을 그리다",
                 oddOuterBg: "#2F4F2F", oddArchBg: "#EAF5E4", oddStroke: "#F6D365", oddText: "#EAF5E4",
                 evenBg: "#EAF5E4", evenText: "#2F4F2F",
                 art: `<path d="M0 200 Q100 188 200 200 V270 H0Z" fill="#BFE0A0"/><rect x="72" y="150" width="56" height="46" fill="#F9D8C0"/><polygon points="64,152 100,120 136,152" fill="#D2604C"/><rect x="94" y="172" width="12" height="24" fill="#8A4B38"/><circle cx="94" cy="98" r="6" fill="#D9534F"/><circle cx="106" cy="98" r="6" fill="#D9534F"/><polygon points="88,101 112,101 100,114" fill="#D9534F"/><circle cx="66" cy="223.1" r="5.1" fill="#4A6FA5"/><rect x="61.2" y="229.2" width="9.5" height="23.1" fill="#4A6FA5" rx="3.4"/><circle cx="88" cy="224.8" r="4.8" fill="#D2604C"/><rect x="83.5" y="230.6" width="9.0" height="21.8" fill="#D2604C" rx="3.2"/><circle cx="108" cy="233.3" r="3.3" fill="#F29E4C"/><rect x="104.9" y="237.3" width="6.2" height="15.0" fill="#F29E4C" rx="2.2"/><circle cx="126" cy="235.0" r="3.0" fill="#6FBF73"/><rect x="123.2" y="238.6" width="5.6" height="13.6" fill="#6FBF73" rx="2.0"/><line x1="30" y1="262" x2="30" y2="240" stroke="#4E8F3A" stroke-width="2" stroke-linecap="round"/><circle cx="30" cy="238" r="5" fill="#D2604C"/><line x1="168" y1="262" x2="168" y2="242" stroke="#4E8F3A" stroke-width="2" stroke-linecap="round"/><circle cx="168" cy="240" r="5" fill="#F6D365"/><line x1="152" y1="262" x2="152" y2="246" stroke="#4E8F3A" stroke-width="2" stroke-linecap="round"/><circle cx="152" cy="244" r="4" fill="#D2604C"/>`
             },
             6: {
-                title: "따스함을 나눔",
-                sub: "창조의 아름다움",
+                title: "따스함을 나눔", sub: "창조의 아름다움",
                 oddOuterBg: "#1E4A55", oddArchBg: "#D9EEF2", oddStroke: "#9ED3E0", oddText: "#D9EEF2",
                 evenBg: "#D9EEF2", evenText: "#1E4A55",
                 art: `<path d="M16 214 A84 84 0 0 1 184 214" fill="none" stroke="#E57373" stroke-width="8"/><path d="M24 214 A76 76 0 0 1 176 214" fill="none" stroke="#F6B26B" stroke-width="8"/><path d="M32 214 A68 68 0 0 1 168 214" fill="none" stroke="#F6D58E" stroke-width="8"/><path d="M40 214 A60 60 0 0 1 160 214" fill="none" stroke="#8BC48A" stroke-width="8"/><path d="M48 214 A52 52 0 0 1 152 214" fill="none" stroke="#7FB5E0" stroke-width="8"/><path d="M56 214 A44 44 0 0 1 144 214" fill="none" stroke="#9C8FD6" stroke-width="8"/><ellipse cx="34" cy="208" rx="22" ry="10" fill="#fff" opacity="0.95"/><ellipse cx="52" cy="202" rx="16" ry="8" fill="#fff" opacity="0.95"/><ellipse cx="166" cy="208" rx="22" ry="10" fill="#fff" opacity="0.95"/><ellipse cx="150" cy="202" rx="16" ry="8" fill="#fff" opacity="0.95"/><path d="M0 220 Q100 196 200 220 V270 H0Z" fill="#5FAE8A"/><circle cx="30" cy="244" r="5" fill="#F2A5A5"/><circle cx="30" cy="244" r="2" fill="#fff"/><circle cx="62" cy="256" r="5" fill="#F6D58E"/><circle cx="62" cy="256" r="2" fill="#fff"/><circle cx="100" cy="240" r="5" fill="#F2A5A5"/><circle cx="100" cy="240" r="2" fill="#fff"/><circle cx="140" cy="254" r="5" fill="#F6D58E"/><circle cx="140" cy="254" r="2" fill="#fff"/><circle cx="170" cy="242" r="5" fill="#F2A5A5"/><circle cx="170" cy="242" r="2" fill="#fff"/>`
             },
             7: {
-                title: "사랑의 열매들",
-                sub: "땀의 소중함을 알다",
+                title: "사랑의 열매들", sub: "땀의 소중함을 알다",
                 oddOuterBg: "#12425E", oddArchBg: "#CFE9F7", oddStroke: "#6EC1E8", oddText: "#CFE9F7",
                 evenBg: "#CFE9F7", evenText: "#12425E",
                 art: `<path d="M0 246 Q100 234 200 246 V270 H0Z" fill="#7FCB9A"/><rect x="94" y="170" width="12" height="74" fill="#8A6A4B"/><circle cx="100" cy="142" r="40" fill="#4DB6A0"/><circle cx="66" cy="162" r="26" fill="#4DB6A0"/><circle cx="134" cy="162" r="26" fill="#4DB6A0"/><circle cx="100" cy="114" r="24" fill="#4DB6A0"/><circle cx="84" cy="130" r="6" fill="#FF8F7A"/><circle cx="112" cy="120" r="6" fill="#FFD36E"/><circle cx="124" cy="150" r="6" fill="#FF8F7A"/><circle cx="70" cy="160" r="6" fill="#FFD36E"/><circle cx="96" cy="160" r="6" fill="#FF8F7A"/><circle cx="140" cy="168" r="6" fill="#FFD36E"/><circle cx="56" cy="172" r="6" fill="#FF8F7A"/><circle cx="100" cy="104" r="6" fill="#FFD36E"/><rect x="138" y="232" width="46" height="26" fill="#C99A5B" rx="4"/><circle cx="150" cy="230" r="7" fill="#FF8F7A"/><circle cx="162" cy="228" r="7" fill="#FFD36E"/><circle cx="174" cy="230" r="7" fill="#FF8F7A"/>`
             },
             8: {
-                title: "더위는 나의친구",
-                sub: "뜨거움을 맛보다",
+                title: "더위는 나의친구", sub: "뜨거움을 맛보다",
                 oddOuterBg: "#7A3A12", oddArchBg: "#FFE9B8", oddStroke: "#FFC24D", oddText: "#FFE9B8",
                 evenBg: "#FFE9B8", evenText: "#7A3A12",
                 art: `<g opacity="0.8"><line x1="182.0" y1="116.0" x2="194.0" y2="116.0" stroke="#FFC24D" stroke-width="3" stroke-linecap="round"/><line x1="177.7" y1="132.0" x2="188.1" y2="138.0" stroke="#FFC24D" stroke-width="3" stroke-linecap="round"/><line x1="166.0" y1="143.7" x2="172.0" y2="154.1" stroke="#FFC24D" stroke-width="3" stroke-linecap="round"/><line x1="150.0" y1="148.0" x2="150.0" y2="160.0" stroke="#FFC24D" stroke-width="3" stroke-linecap="round"/><line x1="134.0" y1="143.7" x2="128.0" y2="154.1" stroke="#FFC24D" stroke-width="3" stroke-linecap="round"/><line x1="122.3" y1="132.0" x2="111.9" y2="138.0" stroke="#FFC24D" stroke-width="3" stroke-linecap="round"/><line x1="118.0" y1="116.0" x2="106.0" y2="116.0" stroke="#FFC24D" stroke-width="3" stroke-linecap="round"/><line x1="122.3" y1="100.0" x2="111.9" y2="94.0" stroke="#FFC24D" stroke-width="3" stroke-linecap="round"/><line x1="134.0" y1="88.3" x2="128.0" y2="77.9" stroke="#FFC24D" stroke-width="3" stroke-linecap="round"/><line x1="150.0" y1="84.0" x2="150.0" y2="72.0" stroke="#FFC24D" stroke-width="3" stroke-linecap="round"/><line x1="166.0" y1="88.3" x2="172.0" y2="77.9" stroke="#FFC24D" stroke-width="3" stroke-linecap="round"/><line x1="177.7" y1="100.0" x2="188.1" y2="94.0" stroke="#FFC24D" stroke-width="3" stroke-linecap="round"/></g><circle cx="150" cy="116" r="26" fill="#FFC24D"/><path d="M0 238 Q100 222 200 240 V270 H0Z" fill="#6BAF5E"/><line x1="48" y1="168" x2="48" y2="268" stroke="#4E8F3A" stroke-width="4" stroke-linecap="round"/><ellipse cx="36" cy="208" rx="12" ry="5" fill="#5FA84A" transform="rotate(-30 36 208)"/><ellipse cx="60" cy="224" rx="12" ry="5" fill="#5FA84A" transform="rotate(30 60 224)"/><ellipse cx="66.7" cy="168.0" rx="10.1" ry="4.4" fill="#F7B731"/><ellipse cx="64.2" cy="177.3" rx="10.1" ry="4.4" fill="#F7B731" transform="rotate(30 64.2 177.3)"/><ellipse cx="57.4" cy="184.2" rx="10.1" ry="4.4" fill="#F7B731" transform="rotate(60 57.4 184.2)"/><ellipse cx="48.0" cy="186.7" rx="10.1" ry="4.4" fill="#F7B731" transform="rotate(90 48.0 186.7)"/><ellipse cx="38.7" cy="184.2" rx="10.1" ry="4.4" fill="#F7B731" transform="rotate(120 38.7 184.2)"/><ellipse cx="31.8" cy="177.3" rx="10.1" ry="4.4" fill="#F7B731" transform="rotate(150 31.8 177.3)"/><ellipse cx="29.3" cy="168.0" rx="10.1" ry="4.4" fill="#F7B731" transform="rotate(180 29.3 168.0)"/><ellipse cx="31.8" cy="158.7" rx="10.1" ry="4.4" fill="#F7B731" transform="rotate(210 31.8 158.7)"/><ellipse cx="38.6" cy="151.8" rx="10.1" ry="4.4" fill="#F7B731" transform="rotate(240 38.6 151.8)"/><ellipse cx="48.0" cy="149.3" rx="10.1" ry="4.4" fill="#F7B731" transform="rotate(270 48.0 149.3)"/><ellipse cx="57.4" cy="151.8" rx="10.1" ry="4.4" fill="#F7B731" transform="rotate(300 57.4 151.8)"/><ellipse cx="64.2" cy="158.6" rx="10.1" ry="4.4" fill="#F7B731" transform="rotate(330 64.2 158.6)"/><circle cx="48" cy="168" r="12.1" fill="#7A4A1E"/><line x1="100" y1="150" x2="100" y2="268" stroke="#4E8F3A" stroke-width="4" stroke-linecap="round"/><ellipse cx="88" cy="190" rx="12" ry="5" fill="#5FA84A" transform="rotate(-30 88 190)"/><ellipse cx="112" cy="206" rx="12" ry="5" fill="#5FA84A" transform="rotate(30 112 206)"/><ellipse cx="122.1" cy="150.0" rx="12.0" ry="5.2" fill="#F7B731"/><ellipse cx="119.1" cy="161.1" rx="12.0" ry="5.2" fill="#F7B731" transform="rotate(30 119.1 161.1)"/><ellipse cx="111.0" cy="169.1" rx="12.0" ry="5.2" fill="#F7B731" transform="rotate(60 111.0 169.1)"/><ellipse cx="100.0" cy="172.1" rx="12.0" ry="5.2" fill="#F7B731" transform="rotate(90 100.0 172.1)"/><ellipse cx="89.0" cy="169.1" rx="12.0" ry="5.2" fill="#F7B731" transform="rotate(120 89.0 169.1)"/><ellipse cx="80.9" cy="161.1" rx="12.0" ry="5.2" fill="#F7B731" transform="rotate(150 80.9 161.1)"/><ellipse cx="77.9" cy="150.0" rx="12.0" ry="5.2" fill="#F7B731" transform="rotate(180 77.9 150.0)"/><ellipse cx="80.9" cy="138.9" rx="12.0" ry="5.2" fill="#F7B731" transform="rotate(210 80.9 138.9)"/><ellipse cx="88.9" cy="130.9" rx="12.0" ry="5.2" fill="#F7B731" transform="rotate(240 88.9 130.9)"/><ellipse cx="100.0" cy="127.9" rx="12.0" ry="5.2" fill="#F7B731" transform="rotate(270 100.0 127.9)"/><ellipse cx="111.0" cy="130.9" rx="12.0" ry="5.2" fill="#F7B731" transform="rotate(300 111.0 130.9)"/><ellipse cx="119.1" cy="138.9" rx="12.0" ry="5.2" fill="#F7B731" transform="rotate(330 119.1 138.9)"/><circle cx="100" cy="150" r="14.3" fill="#7A4A1E"/><line x1="154" y1="176" x2="154" y2="268" stroke="#4E8F3A" stroke-width="4" stroke-linecap="round"/><ellipse cx="142" cy="216" rx="12" ry="5" fill="#5FA84A" transform="rotate(-30 142 216)"/><ellipse cx="166" cy="232" rx="12" ry="5" fill="#5FA84A" transform="rotate(30 166 232)"/><ellipse cx="171.0" cy="176.0" rx="9.2" ry="4.0" fill="#F7B731"/><ellipse cx="168.7" cy="184.5" rx="9.2" ry="4.0" fill="#F7B731" transform="rotate(30 168.7 184.5)"/><ellipse cx="162.5" cy="190.7" rx="9.2" ry="4.0" fill="#F7B731" transform="rotate(60 162.5 190.7)"/><ellipse cx="154.0" cy="193.0" rx="9.2" ry="4.0" fill="#F7B731" transform="rotate(90 154.0 193.0)"/><ellipse cx="145.5" cy="190.7" rx="9.2" ry="4.0" fill="#F7B731" transform="rotate(120 145.5 190.7)"/><ellipse cx="139.3" cy="184.5" rx="9.2" ry="4.0" fill="#F7B731" transform="rotate(150 139.3 184.5)"/><ellipse cx="137.0" cy="176.0" rx="9.2" ry="4.0" fill="#F7B731" transform="rotate(180 137.0 176.0)"/><ellipse cx="139.3" cy="167.5" rx="9.2" ry="4.0" fill="#F7B731" transform="rotate(210 139.3 167.5)"/><ellipse cx="145.5" cy="161.3" rx="9.2" ry="4.0" fill="#F7B731" transform="rotate(240 145.5 161.3)"/><ellipse cx="154.0" cy="159.0" rx="9.2" ry="4.0" fill="#F7B731" transform="rotate(270 154.0 159.0)"/><ellipse cx="162.5" cy="161.3" rx="9.2" ry="4.0" fill="#F7B731" transform="rotate(300 162.5 161.3)"/><ellipse cx="168.7" cy="167.5" rx="9.2" ry="4.0" fill="#F7B731" transform="rotate(330 168.7 167.5)"/><circle cx="154" cy="176" r="11.0" fill="#7A4A1E"/><path d="M64 244 A36 36 0 0 0 136 244Z" fill="#6BAF5E"/><path d="M69 244 A31 31 0 0 0 131 244Z" fill="#F3F7D8"/><path d="M72 244 A28 28 0 0 0 128 244Z" fill="#F27B5C"/><ellipse cx="90" cy="252" rx="1.8" ry="3" fill="#2B1B12"/><ellipse cx="104" cy="256" rx="1.8" ry="3" fill="#2B1B12"/><ellipse cx="116" cy="250" rx="1.8" ry="3" fill="#2B1B12"/>`
             },
             9: {
-                title: "풍성한 은혜",
-                sub: "열매를 보다",
+                title: "풍성한 은혜", sub: "열매를 보다",
                 oddOuterBg: "#F6EBD6", oddArchBg: "#3E5A3A", oddStroke: "#C9A47A", oddText: "#3E5A3A",
                 evenBg: "#3E5A3A", evenText: "#F6EBD6",
                 art: `<circle cx="150" cy="120" r="20" fill="#F6E3B0"/><rect x="0" y="236" width="200" height="34" fill="#2F4630"/><line x1="18" y1="252" x2="18" y2="156" stroke="#C9A47A" stroke-width="2.2" stroke-linecap="round"/><ellipse cx="14" cy="150" rx="2.2" ry="5" fill="#E8B04B" transform="rotate(-25 14 150)"/><ellipse cx="22" cy="150" rx="2.2" ry="5" fill="#E8B04B" transform="rotate(25 22 150)"/><ellipse cx="14" cy="157" rx="2.2" ry="5" fill="#E8B04B" transform="rotate(-25 14 157)"/><ellipse cx="22" cy="157" rx="2.2" ry="5" fill="#E8B04B" transform="rotate(25 22 157)"/><ellipse cx="14" cy="164" rx="2.2" ry="5" fill="#E8B04B" transform="rotate(-25 14 164)"/><ellipse cx="22" cy="164" rx="2.2" ry="5" fill="#E8B04B" transform="rotate(25 22 164)"/><ellipse cx="14" cy="171" rx="2.2" ry="5" fill="#E8B04B" transform="rotate(-25 14 171)"/><ellipse cx="22" cy="171" rx="2.2" ry="5" fill="#E8B04B" transform="rotate(25 22 171)"/><ellipse cx="14" cy="178" rx="2.2" ry="5" fill="#E8B04B" transform="rotate(-25 14 178)"/><ellipse cx="22" cy="178" rx="2.2" ry="5" fill="#E8B04B" transform="rotate(25 22 178)"/><ellipse cx="18" cy="146" rx="2.2" ry="5" fill="#E8B04B"/><line x1="38" y1="252" x2="38" y2="176" stroke="#C9A47A" stroke-width="2.2" stroke-linecap="round"/><ellipse cx="34" cy="170" rx="2.2" ry="5" fill="#E8B04B" transform="rotate(-25 34 170)"/><ellipse cx="42" cy="170" rx="2.2" ry="5" fill="#E8B04B" transform="rotate(25 42 170)"/><ellipse cx="34" cy="177" rx="2.2" ry="5" fill="#E8B04B" transform="rotate(-25 34 177)"/><ellipse cx="42" cy="177" rx="2.2" ry="5" fill="#E8B04B" transform="rotate(25 42 177)"/><ellipse cx="34" cy="184" rx="2.2" ry="5" fill="#E8B04B" transform="rotate(-25 34 184)"/><ellipse cx="42" cy="184" rx="2.2" ry="5" fill="#E8B04B" transform="rotate(25 42 184)"/><ellipse cx="34" cy="191" rx="2.2" ry="5" fill="#E8B04B" transform="rotate(-25 34 191)"/><ellipse cx="42" cy="191" rx="2.2" ry="5" fill="#E8B04B" transform="rotate(25 42 191)"/><ellipse cx="34" cy="198" rx="2.2" ry="5" fill="#E8B04B" transform="rotate(-25 34 198)"/><ellipse cx="42" cy="198" rx="2.2" ry="5" fill="#E8B04B" transform="rotate(25 42 198)"/><ellipse cx="38" cy="166" rx="2.2" ry="5" fill="#E8B04B"/><line x1="58" y1="252" x2="58" y2="196" stroke="#C9A47A" stroke-width="2.2" stroke-linecap="round"/><ellipse cx="54" cy="190" rx="2.2" ry="5" fill="#E8B04B" transform="rotate(-25 54 190)"/><ellipse cx="62" cy="190" rx="2.2" ry="5" fill="#E8B04B" transform="rotate(25 62 190)"/><ellipse cx="54" cy="197" rx="2.2" ry="5" fill="#E8B04B" transform="rotate(-25 54 197)"/><ellipse cx="62" cy="197" rx="2.2" ry="5" fill="#E8B04B" transform="rotate(25 62 197)"/><ellipse cx="54" cy="204" rx="2.2" ry="5" fill="#E8B04B" transform="rotate(-25 54 204)"/><ellipse cx="62" cy="204" rx="2.2" ry="5" fill="#E8B04B" transform="rotate(25 62 204)"/><ellipse cx="54" cy="211" rx="2.2" ry="5" fill="#E8B04B" transform="rotate(-25 54 211)"/><ellipse cx="62" cy="211" rx="2.2" ry="5" fill="#E8B04B" transform="rotate(25 62 211)"/><ellipse cx="54" cy="218" rx="2.2" ry="5" fill="#E8B04B" transform="rotate(-25 54 218)"/><ellipse cx="62" cy="218" rx="2.2" ry="5" fill="#E8B04B" transform="rotate(25 62 218)"/><ellipse cx="58" cy="186" rx="2.2" ry="5" fill="#E8B04B"/><line x1="78" y1="252" x2="78" y2="166" stroke="#C9A47A" stroke-width="2.2" stroke-linecap="round"/><ellipse cx="74" cy="160" rx="2.2" ry="5" fill="#E8B04B" transform="rotate(-25 74 160)"/><ellipse cx="82" cy="160" rx="2.2" ry="5" fill="#E8B04B" transform="rotate(25 82 160)"/><ellipse cx="74" cy="167" rx="2.2" ry="5" fill="#E8B04B" transform="rotate(-25 74 167)"/><ellipse cx="82" cy="167" rx="2.2" ry="5" fill="#E8B04B" transform="rotate(25 82 167)"/><ellipse cx="74" cy="174" rx="2.2" ry="5" fill="#E8B04B" transform="rotate(-25 74 174)"/><ellipse cx="82" cy="174" rx="2.2" ry="5" fill="#E8B04B" transform="rotate(25 82 174)"/><ellipse cx="74" cy="181" rx="2.2" ry="5" fill="#E8B04B" transform="rotate(-25 74 181)"/><ellipse cx="82" cy="181" rx="2.2" ry="5" fill="#E8B04B" transform="rotate(25 82 181)"/><ellipse cx="74" cy="188" rx="2.2" ry="5" fill="#E8B04B" transform="rotate(-25 74 188)"/><ellipse cx="82" cy="188" rx="2.2" ry="5" fill="#E8B04B" transform="rotate(25 82 188)"/><ellipse cx="78" cy="156" rx="2.2" ry="5" fill="#E8B04B"/><line x1="98" y1="252" x2="98" y2="186" stroke="#C9A47A" stroke-width="2.2" stroke-linecap="round"/><ellipse cx="94" cy="180" rx="2.2" ry="5" fill="#E8B04B" transform="rotate(-25 94 180)"/><ellipse cx="102" cy="180" rx="2.2" ry="5" fill="#E8B04B" transform="rotate(25 102 180)"/><ellipse cx="94" cy="187" rx="2.2" ry="5" fill="#E8B04B" transform="rotate(-25 94 187)"/><ellipse cx="102" cy="187" rx="2.2" ry="5" fill="#E8B04B" transform="rotate(25 102 187)"/><ellipse cx="94" cy="194" rx="2.2" ry="5" fill="#E8B04B" transform="rotate(-25 94 194)"/><ellipse cx="102" cy="194" rx="2.2" ry="5" fill="#E8B04B" transform="rotate(25 102 194)"/><ellipse cx="94" cy="201" rx="2.2" ry="5" fill="#E8B04B" transform="rotate(-25 94 201)"/><ellipse cx="102" cy="201" rx="2.2" ry="5" fill="#E8B04B" transform="rotate(25 102 201)"/><ellipse cx="94" cy="208" rx="2.2" ry="5" fill="#E8B04B" transform="rotate(-25 94 208)"/><ellipse cx="102" cy="208" rx="2.2" ry="5" fill="#E8B04B" transform="rotate(25 102 208)"/><ellipse cx="98" cy="176" rx="2.2" ry="5" fill="#E8B04B"/><line x1="118" y1="252" x2="118" y2="156" stroke="#C9A47A" stroke-width="2.2" stroke-linecap="round"/><ellipse cx="114" cy="150" rx="2.2" ry="5" fill="#E8B04B" transform="rotate(-25 114 150)"/><ellipse cx="122" cy="150" rx="2.2" ry="5" fill="#E8B04B" transform="rotate(25 122 150)"/><ellipse cx="114" cy="157" rx="2.2" ry="5" fill="#E8B04B" transform="rotate(-25 114 157)"/><ellipse cx="122" cy="157" rx="2.2" ry="5" fill="#E8B04B" transform="rotate(25 122 157)"/><ellipse cx="114" cy="164" rx="2.2" ry="5" fill="#E8B04B" transform="rotate(-25 114 164)"/><ellipse cx="122" cy="164" rx="2.2" ry="5" fill="#E8B04B" transform="rotate(25 122 164)"/><ellipse cx="114" cy="171" rx="2.2" ry="5" fill="#E8B04B" transform="rotate(-25 114 171)"/><ellipse cx="122" cy="171" rx="2.2" ry="5" fill="#E8B04B" transform="rotate(25 122 171)"/><ellipse cx="114" cy="178" rx="2.2" ry="5" fill="#E8B04B" transform="rotate(-25 114 178)"/><ellipse cx="122" cy="178" rx="2.2" ry="5" fill="#E8B04B" transform="rotate(25 122 178)"/><ellipse cx="118" cy="146" rx="2.2" ry="5" fill="#E8B04B"/><line x1="138" y1="252" x2="138" y2="176" stroke="#C9A47A" stroke-width="2.2" stroke-linecap="round"/><ellipse cx="134" cy="170" rx="2.2" ry="5" fill="#E8B04B" transform="rotate(-25 134 170)"/><ellipse cx="142" cy="170" rx="2.2" ry="5" fill="#E8B04B" transform="rotate(25 142 170)"/><ellipse cx="134" cy="177" rx="2.2" ry="5" fill="#E8B04B" transform="rotate(-25 134 177)"/><ellipse cx="142" cy="177" rx="2.2" ry="5" fill="#E8B04B" transform="rotate(25 142 177)"/><ellipse cx="134" cy="184" rx="2.2" ry="5" fill="#E8B04B" transform="rotate(-25 134 184)"/><ellipse cx="142" cy="184" rx="2.2" ry="5" fill="#E8B04B" transform="rotate(25 142 184)"/><ellipse cx="134" cy="191" rx="2.2" ry="5" fill="#E8B04B" transform="rotate(-25 134 191)"/><ellipse cx="142" cy="191" rx="2.2" ry="5" fill="#E8B04B" transform="rotate(25 142 191)"/><ellipse cx="134" cy="198" rx="2.2" ry="5" fill="#E8B04B" transform="rotate(-25 134 198)"/><ellipse cx="142" cy="198" rx="2.2" ry="5" fill="#E8B04B" transform="rotate(25 142 198)"/><ellipse cx="138" cy="166" rx="2.2" ry="5" fill="#E8B04B"/><line x1="158" y1="252" x2="158" y2="196" stroke="#C9A47A" stroke-width="2.2" stroke-linecap="round"/><ellipse cx="154" cy="190" rx="2.2" ry="5" fill="#E8B04B" transform="rotate(-25 154 190)"/><ellipse cx="162" cy="190" rx="2.2" ry="5" fill="#E8B04B" transform="rotate(25 162 190)"/><ellipse cx="154" cy="197" rx="2.2" ry="5" fill="#E8B04B" transform="rotate(-25 154 197)"/><ellipse cx="162" cy="197" rx="2.2" ry="5" fill="#E8B04B" transform="rotate(25 162 197)"/><ellipse cx="154" cy="204" rx="2.2" ry="5" fill="#E8B04B" transform="rotate(-25 154 204)"/><ellipse cx="162" cy="204" rx="2.2" ry="5" fill="#E8B04B" transform="rotate(25 162 204)"/><ellipse cx="154" cy="211" rx="2.2" ry="5" fill="#E8B04B" transform="rotate(-25 154 211)"/><ellipse cx="162" cy="211" rx="2.2" ry="5" fill="#E8B04B" transform="rotate(25 162 211)"/><ellipse cx="154" cy="218" rx="2.2" ry="5" fill="#E8B04B" transform="rotate(-25 154 218)"/><ellipse cx="162" cy="218" rx="2.2" ry="5" fill="#E8B04B" transform="rotate(25 162 218)"/><ellipse cx="158" cy="186" rx="2.2" ry="5" fill="#E8B04B"/><line x1="178" y1="252" x2="178" y2="166" stroke="#C9A47A" stroke-width="2.2" stroke-linecap="round"/><ellipse cx="174" cy="160" rx="2.2" ry="5" fill="#E8B04B" transform="rotate(-25 174 160)"/><ellipse cx="182" cy="160" rx="2.2" ry="5" fill="#E8B04B" transform="rotate(25 182 160)"/><ellipse cx="174" cy="167" rx="2.2" ry="5" fill="#E8B04B" transform="rotate(-25 174 167)"/><ellipse cx="182" cy="167" rx="2.2" ry="5" fill="#E8B04B" transform="rotate(25 182 167)"/><ellipse cx="174" cy="174" rx="2.2" ry="5" fill="#E8B04B" transform="rotate(-25 174 174)"/><ellipse cx="182" cy="174" rx="2.2" ry="5" fill="#E8B04B" transform="rotate(25 182 174)"/><ellipse cx="174" cy="181" rx="2.2" ry="5" fill="#E8B04B" transform="rotate(-25 174 181)"/><ellipse cx="182" cy="181" rx="2.2" ry="5" fill="#E8B04B" transform="rotate(25 182 181)"/><ellipse cx="174" cy="188" rx="2.2" ry="5" fill="#E8B04B" transform="rotate(-25 174 188)"/><ellipse cx="182" cy="188" rx="2.2" ry="5" fill="#E8B04B" transform="rotate(25 182 188)"/><ellipse cx="178" cy="156" rx="2.2" ry="5" fill="#E8B04B"/><rect x="0" y="252" width="200" height="18" fill="#2F4630"/>`
             },
             10: {
-                title: "감사의 계절",
-                sub: "수확의 기쁨을 누리다",
+                title: "감사의 계절", sub: "수확의 기쁨을 누리다",
                 oddOuterBg: "#FBEBD0", oddArchBg: "#6B3A22", oddStroke: "#D2A87A", oddText: "#6B3A22",
                 evenBg: "#6B3A22", evenText: "#FBEBD0",
                 art: `<rect x="0" y="238" width="200" height="32" fill="#55301B"/><rect x="97" y="190" width="6" height="12" fill="#4E6B2E"/><ellipse cx="100" cy="224" rx="34" ry="26" fill="#E8913A"/><ellipse cx="100" cy="224" rx="22" ry="26" fill="none" stroke="#C96F1F" stroke-width="2"/><ellipse cx="100" cy="224" rx="9" ry="26" fill="none" stroke="#C96F1F" stroke-width="2"/><ellipse cx="52" cy="242" rx="22" ry="17" fill="#C9462E"/><ellipse cx="52" cy="242" rx="11" ry="17" fill="none" stroke="#8F2F1D" stroke-width="2"/><ellipse cx="150" cy="242" rx="22" ry="17" fill="#F2C14E"/><ellipse cx="150" cy="242" rx="11" ry="17" fill="none" stroke="#C99A1E" stroke-width="2"/><polygon points="30.0,104.0 32.4,108.8 37.6,109.5 33.8,113.2 34.7,118.5 30.0,116.0 25.3,118.5 26.2,113.2 22.4,109.5 27.6,108.8" fill="#C9462E"/><polygon points="168.0,119.0 170.1,123.2 174.7,123.8 171.3,127.1 172.1,131.7 168.0,129.5 163.9,131.7 164.7,127.1 161.3,123.8 165.9,123.2" fill="#E8913A"/><polygon points="62.0,155.0 64.1,159.2 68.7,159.8 65.3,163.1 66.1,167.7 62.0,165.5 57.9,167.7 58.7,163.1 55.3,159.8 59.9,159.2" fill="#F2C14E"/><polygon points="148.0,164.0 150.4,168.8 155.6,169.5 151.8,173.2 152.7,178.5 148.0,176.0 143.3,178.5 144.2,173.2 140.4,169.5 145.6,168.8" fill="#C9462E"/><polygon points="26.0,198.0 27.8,201.6 31.7,202.1 28.9,204.9 29.5,208.9 26.0,207.0 22.5,208.9 23.1,204.9 20.3,202.1 24.2,201.6" fill="#E8913A"/><polygon points="176.0,208.0 177.8,211.6 181.7,212.1 178.9,214.9 179.5,218.9 176.0,217.0 172.5,218.9 173.1,214.9 170.3,212.1 174.2,211.6" fill="#F2C14E"/>`
             },
             11: {
-                title: "인생의 기억",
-                sub: "서늘한 기운을 맛보다",
+                title: "인생의 기억", sub: "서늘한 기운을 맛보다",
                 oddOuterBg: "#F3E6D3", oddArchBg: "#4A3A33", oddStroke: "#BFA283", oddText: "#4A3A33",
                 evenBg: "#4A3A33", evenText: "#F3E6D3",
                 art: `<path d="M0 246 Q100 234 200 248 V270 H0Z" fill="#3A2D27"/><polygon points="92,254 108,254 104,176 96,176" fill="#BFA283"/><line x1="100" y1="180" x2="68" y2="140" stroke="#BFA283" stroke-width="4" stroke-linecap="round"/><line x1="100" y1="178" x2="132" y2="134" stroke="#BFA283" stroke-width="4" stroke-linecap="round"/><line x1="100" y1="176" x2="100" y2="118" stroke="#BFA283" stroke-width="4" stroke-linecap="round"/><line x1="68" y1="140" x2="52" y2="122" stroke="#BFA283" stroke-width="4" stroke-linecap="round"/><line x1="68" y1="140" x2="74" y2="116" stroke="#BFA283" stroke-width="4" stroke-linecap="round"/><line x1="132" y1="134" x2="150" y2="116" stroke="#BFA283" stroke-width="4" stroke-linecap="round"/><line x1="132" y1="134" x2="138" y2="110" stroke="#BFA283" stroke-width="4" stroke-linecap="round"/><circle cx="52" cy="122" r="4" fill="#A8573C"/><circle cx="74" cy="116" r="4" fill="#C98A4B"/><circle cx="150" cy="116" r="4" fill="#A8573C"/><circle cx="100" cy="118" r="4" fill="#D9B26F"/><rect x="128" y="224" width="42" height="5" fill="#C98A4B"/><rect x="128" y="212" width="42" height="4" fill="#C98A4B"/><rect x="132" y="229" width="4" height="14" fill="#C98A4B"/><rect x="162" y="229" width="4" height="14" fill="#C98A4B"/><rect x="38" y="192" width="3" height="58" fill="#BFA283"/><circle cx="39.5" cy="188" r="6" fill="#F6D58A"/><ellipse cx="30" cy="150" rx="4" ry="2.5" fill="#C98A4B" transform="rotate(30 30 150)"/><ellipse cx="160" cy="176" rx="4" ry="2.5" fill="#A8573C" transform="rotate(-30 160 176)"/><ellipse cx="84" cy="200" rx="4" ry="2.5" fill="#D9B26F" transform="rotate(20 84 200)"/><ellipse cx="56" cy="224" rx="4" ry="2.5" fill="#A8573C" transform="rotate(-20 56 224)"/><ellipse cx="120" cy="196" rx="4" ry="2.5" fill="#C98A4B" transform="rotate(40 120 196)"/>`
             },
             12: {
-                title: "하늘에서 씻김",
-                sub: "하늘에서 은혜가 내린다.",
+                title: "하늘에서 씻김", sub: "하늘에서 은혜가 내린다.",
                 oddOuterBg: "#F4EBD8", oddArchBg: "#2F3F63", oddStroke: "#F6D58A", oddText: "#2F3F63",
                 evenBg: "#2F3F63", evenText: "#F4EBD8",
                 art: `<polygon points="100,126 66,232 134,232" fill="#F6D58A" opacity="0.18"/><circle cx="100" cy="120" r="24" fill="#F6D58A" opacity="0.3"/><polygon points="100.0,104.0 103.5,115.1 115.2,115.1 105.7,121.9 109.4,132.9 100.0,126.0 90.6,132.9 94.3,121.9 84.8,115.1 96.5,115.1" fill="#F6D58A"/><path d="M0 232 Q70 214 130 230 T200 224 V270 H0Z" fill="#44547E"/><path d="M0 254 Q90 240 200 252 V270 H0Z" fill="#2C3A5C"/><polygon points="30,236 42,200 54,236" fill="#3F6B5F"/><polygon points="32,222 42,190 52,222" fill="#3F6B5F"/><polygon points="148,240 160,204 172,240" fill="#3F6B5F"/><polygon points="150,226 160,194 170,226" fill="#3F6B5F"/><rect x="82" y="206" width="36" height="28" fill="#F4EBD8"/><polygon points="78,208 100,184 122,208" fill="#2C3A5C"/><rect x="98" y="164" width="4" height="20" fill="#F6D58A"/><rect x="93" y="169" width="14" height="4" fill="#F6D58A"/><rect x="95" y="216" width="10" height="18" fill="#F6D58A"/><rect x="86" y="212" width="6" height="8" fill="#F6D58A"/><rect x="108" y="212" width="6" height="8" fill="#F6D58A"/><g fill="#fff" opacity="0.88"><circle cx="22" cy="84" r="1.5"/><circle cx="75" cy="121" r="1.9"/><circle cx="128" cy="158" r="2.3"/><circle cx="181" cy="195" r="1.5"/><circle cx="44" cy="232" r="1.9"/><circle cx="97" cy="109" r="2.3"/><circle cx="150" cy="146" r="1.5"/><circle cx="13" cy="183" r="1.9"/><circle cx="66" cy="220" r="2.3"/><circle cx="119" cy="97" r="1.5"/><circle cx="172" cy="134" r="1.9"/><circle cx="35" cy="171" r="2.3"/><circle cx="88" cy="208" r="1.5"/><circle cx="141" cy="85" r="1.9"/><circle cx="194" cy="122" r="2.3"/><circle cx="57" cy="159" r="1.5"/><circle cx="110" cy="196" r="1.9"/><circle cx="163" cy="233" r="2.3"/><circle cx="26" cy="110" r="1.5"/><circle cx="79" cy="147" r="1.9"/><circle cx="132" cy="184" r="2.3"/><circle cx="185" cy="221" r="1.5"/></g>`
             }
         };
 
-        // [2-1 스타일: 여백 제로 풀스크린 밀착형 SVG 렌더링 (배경은 화면 전체 확장 + 중앙 그래픽은 비율 유지)]
         function renderDailyMonthlySvgCover() {
             if (!svgStage) return;
             const now = new Date();
@@ -295,7 +293,6 @@
             const activeBg = isOddDay ? d.oddOuterBg : d.evenBg;
 
             if (isOddDay) {
-                // 홀수일 표지 (디자인 B): 바깥 여백 없이 화면 전체를 채우고 중앙에 아치형 표지 배치
                 svgStage.style.backgroundColor = activeBg;
                 svgStage.innerHTML = `
                     <svg class="full-bleed-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 270" preserveAspectRatio="xMidYMid meet" role="img">
@@ -324,7 +321,6 @@
                     </svg>
                 `;
             } else {
-                // 짝수일 표지 (디자인 A): 상하좌우 잘림/여백 없이 화면 100% 풀스크린 확장
                 svgStage.style.backgroundColor = activeBg;
                 svgStage.innerHTML = `
                     <svg class="full-bleed-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 270" preserveAspectRatio="xMidYMid slice" role="img">
@@ -545,11 +541,11 @@
                 if (animationStarted) return;
                 animationStarted = true;
 
-                document.documentElement.style.backgroundColor = '#FFFFFF';
-                document.body.style.backgroundColor = '#FFFFFF';
+                // [핵심] 로그인 진입 즉시 상하단 바 및 모든 뷰를 순백색(#FFFFFF)으로 강제 전환
+                forceWhiteThemeColor();
                 if (seamlessStage) seamlessStage.style.backgroundColor = '#FFFFFF';
                 if (seamlessFrame) seamlessFrame.style.backgroundColor = '#FFFFFF';
-                if (authGate) authGate.style.backgroundColor = 'transparent';
+                if (authGate) authGate.style.backgroundColor = '#FFFFFF';
 
                 authGate.classList.add('gate-open-active');
                 if (seamlessStage) seamlessStage.classList.add('stage-follow-active');
@@ -565,12 +561,16 @@
                         }
                     } catch (err) {}
 
-                    // [중요: 게이트가 완전히 올라간 뒤 배경 잔상이 남지 않도록 즉시 제거]
-                    authGate.style.display = 'none';
-                    if (typeof svgStage !== 'undefined' && svgStage) { svgStage.style.backgroundColor = '#FFFFFF'; svgStage.innerHTML = ''; }
-                    authGate.style.backgroundColor = '#FFFFFF';
-                    if (typeof svgStage !== 'undefined' && svgStage) { svgStage.style.backgroundColor = '#FFFFFF'; svgStage.innerHTML = ''; }
-                    if (svgStage) svgStage.innerHTML = '';
+                    // [중요: 전환 완료 후 갈색 잔상 0% 제거 및 메모리 클리어]
+                    forceWhiteThemeColor();
+                    if (svgStage) { 
+                        svgStage.style.backgroundColor = '#FFFFFF'; 
+                        svgStage.innerHTML = ''; 
+                    }
+                    if (authGate) {
+                        authGate.style.display = 'none';
+                        authGate.remove(); // DOM에서 완전 소멸
+                    }
                     if (seamlessFrame && seamlessFrame.contentWindow) {
                         try { seamlessFrame.contentWindow.focus(); } catch (e) {}
                     }
@@ -647,7 +647,7 @@
         }
     </script>
 
-    <!-- [파이어베이스 실시간 가족 설정(family_config/main) 동기화] -->
+    <!-- [파이어베이스 실시간 동기화] -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";

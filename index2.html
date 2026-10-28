@@ -349,9 +349,8 @@
             max-height: 600px;
             display: block;
             cursor: pointer;
-            transition: max-height 0.38s cubic-bezier(0.25, 1, 0.5, 1), transform 0.25s ease, opacity 0.2s ease;
+            transition: opacity 0.2s;
             object-fit: cover;
-            will-change: max-height;
         }
         .continuous-photo-item:active {
             opacity: 0.92;
@@ -478,7 +477,7 @@
 
         <!-- 중앙 메인 타이틀 ('세' 자와 하단 환영 문구 좌측 수직 라인 일치) -->
         <div class="absolute left-1/2 -translate-x-1/2 top-1/2 -translate-y-1/2 flex items-center justify-center pointer-events-auto max-w-[76vw]">
-            <div class="relative flex items-center justify-center"" id="header-mokjang-title-container">
+            <div class="relative flex items-center justify-center" id="header-mokjang-title-container">
                 <img src="flogo.png" alt="우리 가족 로고" onerror="this.style.display='none'" class="w-[34px] h-[34px] object-contain shrink-0 select-none absolute right-full mr-2 top-1/2 -translate-y-1/2" id="header-church-logo">
                 <div class="flex flex-col items-start text-left min-w-0">
                     <h1 class="header-main-title-text font-black tracking-tight leading-tight whitespace-nowrap select-none relative" id="header-mokjang-title">
@@ -818,9 +817,9 @@
             <div id="comments-modal-list" class="flex-1 overflow-y-auto p-3 space-y-2.5 text-xs"></div>
 
             <div class="p-2 border-t church-border bg-gray-50/70 shrink-0 flex items-stretch justify-between gap-1.5">
-                <textarea id="comments-modal-input" rows="2" maxlength="300" placeholder="댓글 입력..." oninput="autoExpandCommentTextarea(this)" class="flex-1 min-w-0 min-h-[44px] px-2.5 py-1.5 rounded-lg text-xs border border-dashed border-gray-300 bg-white text-gray-800 resize-none leading-snug"></textarea>
-                <button type="button" onclick="addCommentFromModal()" class="self-stretch px-3 church-primary hover:opacity-90 text-white rounded-lg text-xs font-semibold active:scale-95 transition-all flex items-center justify-center">등록</button>
-                <button type="button" onclick="closeCommentsModal()" class="self-stretch px-3 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-xs font-medium active:scale-95 transition-all flex items-center justify-center">
+                <textarea id="comments-modal-input" rows="2" maxlength="300" placeholder="댓글 입력..." oninput="autoExpandCommentTextarea(this)" class="flex-1 min-w-0 px-2.5 py-1.5 rounded-lg text-xs border border-dashed border-gray-300 bg-white text-gray-800 resize-none leading-snug"></textarea>
+                <button type="button" onclick="addCommentFromModal()" class="py-1 px-2.5 church-primary text-white rounded-lg text-xs font-semibold active:scale-95 transition-all self-stretch flex items-center justify-center">등록</button>
+                <button type="button" onclick="closeCommentsModal()" class="py-1 px-3 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-xs font-medium active:scale-95 transition-all">
                     닫기
                 </button>
             </div>
@@ -969,32 +968,6 @@
                 <button type="button" onclick="requestSavePost()" class="w-full py-2.5 church-primary text-white rounded-xl font-semibold text-xs shadow-md active:scale-95 transition-all inline-flex items-center justify-center space-x-1.5" id="submit-btn-text">
                     <i class="fa-solid fa-check"></i>
                     <span>등록하기</span>
-                </button>
-            </div>
-        </div>
-    </div>
-
-    
-    <!-- [카톡방 공유 확인 모달] -->
-    <div id="kakao-share-confirm-modal" class="fixed inset-0 z-[70] bg-black/60 backdrop-blur-xs flex items-center justify-center p-3 hidden" style="touch-action: none;">
-        <div class="bg-white rounded-2xl w-full max-w-xs p-4 shadow-2xl border church-border text-center space-y-3">
-            <div class="w-11 h-11 bg-yellow-100 text-yellow-800 rounded-full flex items-center justify-center mx-auto text-xl shadow-2xs border border-yellow-200">
-                <i class="fa-solid fa-comment"></i>
-            </div>
-            <div>
-                <h4 class="text-sm font-bold text-gray-800">가족 이야기 카톡 공유</h4>
-                <p class="text-[12.5px] text-gray-800 font-semibold mt-1">올린글을 카톡방에 공유할까요.?</p>
-                <div class="mt-2 p-2 bg-yellow-50/80 rounded-xl border border-yellow-200/80 text-[11px] text-gray-700 text-left font-medium leading-relaxed">
-                    <span id="kakao-share-preview-text"></span>
-                </div>
-            </div>
-            <div class="grid grid-cols-2 gap-2 pt-1">
-                <button type="button" onclick="closeKakaoShareModal()" class="py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl text-xs font-semibold active:scale-95 transition-all">
-                    아니요
-                </button>
-                <button type="button" onclick="executeKakaoShare()" class="py-2.5 bg-[#FEE500] hover:bg-[#FDD800] text-[#3C1E1E] font-bold rounded-xl text-xs shadow-xs active:scale-95 transition-all flex items-center justify-center space-x-1.5">
-                    <i class="fa-solid fa-share-nodes text-xs"></i>
-                    <span>예 (공유하기)</span>
                 </button>
             </div>
         </div>
@@ -1167,26 +1140,26 @@
 
     <!-- [라이트박스 모달] -->
     <div id="lightbox-modal" class="fixed inset-0 z-50 bg-white flex flex-col items-center justify-between hidden p-2 select-none">
-        <div class="w-full flex items-center justify-center px-1 py-1.5 z-50 bg-white/95 border-b border-gray-200 shadow-xs rounded-xl overflow-x-auto scrollbar-none">
-            <div class="flex items-center justify-center space-x-1 sm:space-x-1.5 flex-nowrap whitespace-nowrap max-w-full">
-                <button type="button" id="lightbox-autofix-btn" onclick="toggleLightboxAdjustPanel()" class="h-7 sm:h-8 px-1.5 sm:px-2.5 bg-gray-100 hover:bg-gray-200 active:scale-95 text-gray-700 rounded-lg flex items-center justify-center space-x-0.5 sm:space-x-1 transition-all border border-gray-200 shadow-2xs text-[11px] sm:text-xs font-semibold shrink-0">
-                    <i class="fa-solid fa-wand-magic-sparkles text-[10.5px] sm:text-xs text-emerald-700"></i>
+        <div class="w-full flex items-center justify-center p-2 z-50 bg-white/95 border-b border-gray-200 shadow-xs rounded-xl">
+            <div class="flex items-center justify-center space-x-2 flex-nowrap whitespace-nowrap">
+                <button type="button" id="lightbox-autofix-btn" onclick="toggleLightboxAdjustPanel()" class="h-8 px-2.5 bg-gray-100 hover:bg-gray-200 active:scale-95 text-gray-700 rounded-lg flex items-center justify-center space-x-1 transition-all border border-gray-200 shadow-2xs text-xs font-semibold">
+                    <i class="fa-solid fa-wand-magic-sparkles text-xs text-emerald-700"></i>
                     <span>마법봉</span>
                 </button>
-                <button type="button" onclick="rotateLightboxImage()" class="h-7 sm:h-8 px-1.5 sm:px-2.5 bg-gray-100 hover:bg-gray-200 active:scale-95 text-gray-700 rounded-lg flex items-center justify-center space-x-0.5 sm:space-x-1 transition-all border border-gray-200 shadow-2xs text-[11px] sm:text-xs font-semibold shrink-0">
-                    <i class="fa-solid fa-rotate-right text-[10.5px] sm:text-xs text-gray-700"></i>
+                <button type="button" onclick="rotateLightboxImage()" class="h-8 px-2.5 bg-gray-100 hover:bg-gray-200 active:scale-95 text-gray-700 rounded-lg flex items-center justify-center space-x-1 transition-all border border-gray-200 shadow-2xs text-xs font-semibold">
+                    <i class="fa-solid fa-rotate-right text-xs text-gray-700"></i>
                     <span>회전</span>
                 </button>
-                <button type="button" onclick="resetLightboxAll()" class="h-7 sm:h-8 px-1.5 sm:px-2.5 bg-gray-100 hover:bg-gray-200 active:scale-95 text-gray-700 rounded-lg flex items-center justify-center space-x-0.5 sm:space-x-1 transition-all border border-gray-200 shadow-2xs text-[11px] sm:text-xs font-semibold shrink-0">
-                    <i class="fa-solid fa-arrows-rotate text-[10.5px] sm:text-xs text-emerald-800"></i>
+                <button type="button" onclick="resetLightboxAll()" class="h-8 px-2.5 bg-gray-100 hover:bg-gray-200 active:scale-95 text-gray-700 rounded-lg flex items-center justify-center space-x-1 transition-all border border-gray-200 shadow-2xs text-xs font-semibold">
+                    <i class="fa-solid fa-arrows-rotate text-xs text-emerald-800"></i>
                     <span>초기화</span>
                 </button>
-                <button type="button" onclick="deleteCurrentPhotoFromLightbox()" class="h-7 sm:h-8 px-1.5 sm:px-2.5 bg-rose-50 hover:bg-rose-100 active:scale-95 text-rose-600 rounded-lg flex items-center justify-center space-x-0.5 sm:space-x-1 transition-all border border-rose-200 shadow-2xs text-[11px] sm:text-xs font-semibold shrink-0" title="이 사진 삭제 (다음 사진이 자동으로 채워짐)">
-                    <i class="fa-solid fa-trash-can text-[10.5px] sm:text-xs"></i>
+                <button type="button" onclick="deleteCurrentPhotoFromLightbox()" class="h-8 px-2.5 bg-rose-50 hover:bg-rose-100 active:scale-95 text-rose-600 rounded-lg flex items-center justify-center space-x-1 transition-all border border-rose-200 shadow-2xs text-xs font-semibold" title="이 사진 삭제 (다음 사진이 자동으로 채워짐)">
+                    <i class="fa-solid fa-trash-can text-xs"></i>
                     <span>사진삭제</span>
                 </button>
-                <button type="button" id="lightbox-rename-btn" onclick="openRenameModalFromLightbox()" class="hidden h-7 sm:h-8 px-1.5 sm:px-2.5 bg-emerald-50 hover:bg-emerald-100 active:scale-95 text-emerald-900 rounded-lg flex items-center justify-center space-x-0.5 sm:space-x-1 transition-all border border-emerald-200 shadow-2xs text-[11px] sm:text-xs font-semibold shrink-0">
-                    <i class="fa-solid fa-user-pen text-[10.5px] sm:text-xs text-emerald-700"></i>
+                <button type="button" id="lightbox-rename-btn" onclick="openRenameModalFromLightbox()" class="hidden h-8 px-2.5 bg-emerald-50 hover:bg-emerald-100 active:scale-95 text-emerald-900 rounded-lg flex items-center justify-center space-x-1 transition-all border border-emerald-200 shadow-2xs text-xs font-semibold">
+                    <i class="fa-solid fa-user-pen text-xs text-emerald-700"></i>
                     <span>이름변경</span>
                 </button>
                 <span id="lightbox-zoom-level" class="hidden">100%</span>
@@ -1305,6 +1278,33 @@
         </div>
     </div>
 
+    <!-- [카카오톡 공유 확인 모달] -->
+    <div id="kakao-share-modal" class="fixed inset-0 z-[80] bg-black/60 backdrop-blur-xs flex items-center justify-center p-3 hidden" style="touch-action: none;">
+        <div class="bg-white rounded-2xl w-full max-w-xs p-4 shadow-2xl border church-border text-center space-y-3 animate-sway-welcome">
+            <div class="w-12 h-12 bg-amber-100 text-amber-800 rounded-2xl flex items-center justify-center mx-auto text-xl shadow-2xs border border-amber-200">
+                <i class="fa-solid fa-comment-dots text-[#3A1D1D] text-2xl"></i>
+            </div>
+            <div>
+                <h4 class="text-sm font-bold text-gray-800">카톡방 공유</h4>
+                <p class="text-xs text-gray-600 mt-1 font-medium leading-relaxed">
+                    올린글을 카톡방에 공유할까요.?
+                </p>
+                <div class="mt-2.5 p-2 bg-amber-50/80 rounded-xl border border-amber-200/80 text-[11px] text-amber-950 font-medium text-left leading-snug break-all shadow-inner">
+                    <span id="kakao-share-preview-text"></span>
+                </div>
+            </div>
+            <div class="grid grid-cols-2 gap-2 pt-1">
+                <button type="button" onclick="closeKakaoShareModal()" class="py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl text-xs font-semibold active:scale-95 transition-all">
+                    아니요
+                </button>
+                <button type="button" onclick="executeKakaoShare()" class="py-2.5 bg-[#FEE500] hover:bg-[#FDD835] text-[#191919] rounded-xl text-xs font-bold shadow-xs active:scale-95 transition-all flex items-center justify-center space-x-1">
+                    <i class="fa-solid fa-comment text-[11px]"></i>
+                    <span>예 (공유하기)</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- [댓글 및 펜댓글 삭제 확인 모달: "삭제하시겠습니까?"] -->
     <div id="delete-comment-confirm-modal" class="fixed inset-0 z-[75] bg-black/60 backdrop-blur-xs flex items-center justify-center p-3 hidden" style="touch-action: none;">
         <div class="bg-white rounded-2xl w-full max-w-xs p-4 shadow-2xl border church-border text-center space-y-3">
@@ -1329,64 +1329,82 @@
         import { getStorage, ref as storageRef, uploadString, getDownloadURL } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-storage.js";
 
         // [작업 4-가, 나, 다, 라: 로그인 세션 기반 사용자 이름 및 목자/부목자/일반목원 권한 체계 초기화]
-        
-        // [카톡방 공유 팝업 및 클립보드 복사 시스템]
+                // [카카오톡 공유 모달 및 클립보드 복사 로직 (직분 호칭 포함)]
         let pendingKakaoShareText = "";
 
-        window.openKakaoShareModal = function(authorName, postIndex) {
-            const author = authorName || currentUser || '우리가족';
-            const countText = `${postIndex}번째`;
-            pendingKakaoShareText = `${author} 님이 ❤️가족 웹북에 새로운 글을 (${countText}) 올렸습니다.`;
-            
-            const previewEl = document.getElementById('kakao-share-preview-text');
-            if (previewEl) {
-                previewEl.textContent = pendingKakaoShareText;
+        function getAuthorTitleName(authorName) {
+            const rawName = String(authorName || currentUser || "가족").trim();
+            // 이미 직분 명칭(목자, 부목자, 목원, 집사, 권사, 장로 등)이 포함된 경우 중복 추가 방지
+            if (/(?:목자|부목자|목원|집사|권사|장로)$/.test(rawName)) {
+                return rawName;
             }
-            const modal = document.getElementById('kakao-share-confirm-modal');
-            if (modal) {
-                modal.classList.remove('hidden');
+            if (rawName === "우리가족" || rawName === "가족") {
+                return rawName;
             }
+
+            // 직분 판별: currentUserRole, configuredLeaderName, configuredSubLeaderName, configuredSubLeaders
+            const role = (typeof currentUserRole !== 'undefined' ? currentUserRole : '') || (typeof localStorage !== 'undefined' ? localStorage.getItem('family_user_role') : '') || 'member';
+            const isLeader = (role === 'leader' || rawName === (typeof configuredLeaderName !== 'undefined' ? configuredLeaderName : '아빠') || rawName === '아빠' || rawName === '관리자');
+            const isSubLeader = (!isLeader && (role === 'subleader' || rawName === (typeof configuredSubLeaderName !== 'undefined' ? configuredSubLeaderName : '엄마') || (typeof configuredSubLeaders !== 'undefined' && Array.isArray(configuredSubLeaders) && configuredSubLeaders.includes(rawName)) || rawName === '엄마'));
+
+            let title = "목원";
+            if (isLeader) {
+                title = "목자";
+            } else if (isSubLeader) {
+                title = "부목자";
+            }
+            return rawName + " " + title;
+        }
+
+        window.openKakaoShareModal = function(authorName, postNumber) {
+            const displayName = getAuthorTitleName(authorName);
+            const countNum = postNumber || (typeof cachedPosts !== 'undefined' && cachedPosts ? cachedPosts.length : 1);
+            const shareText = displayName + "님이 ❤️가족 웹북에 새로운 글을 (" + countNum + "번째) 올렸습니다.";
+            pendingKakaoShareText = shareText;
+
+            const previewEl = document.getElementById("kakao-share-preview-text");
+            if (previewEl) previewEl.textContent = shareText;
+
+            const modal = document.getElementById("kakao-share-modal");
+            if (modal) modal.classList.remove("hidden");
         };
 
         window.closeKakaoShareModal = function() {
+            const modal = document.getElementById("kakao-share-modal");
+            if (modal) modal.classList.add("hidden");
             pendingKakaoShareText = "";
-            const modal = document.getElementById('kakao-share-confirm-modal');
-            if (modal) {
-                modal.classList.add('hidden');
-            }
         };
 
         window.executeKakaoShare = async function() {
-            if (!pendingKakaoShareText) return;
-            const textToShare = pendingKakaoShareText;
+            const displayName = getAuthorTitleName(currentUser);
+            const textToShare = pendingKakaoShareText || (displayName + "님이 ❤️가족 웹북에 새로운 글을 올렸습니다.");
             closeKakaoShareModal();
 
-            // 1. 클립보드에 복사
             try {
                 if (navigator.clipboard && navigator.clipboard.writeText) {
                     await navigator.clipboard.writeText(textToShare);
                 } else {
-                    const ta = document.createElement('textarea');
+                    const ta = document.createElement("textarea");
                     ta.value = textToShare;
-                    ta.style.position = 'fixed';
-                    ta.style.left = '-9999px';
+                    ta.style.position = "fixed";
+                    ta.style.left = "-9999px";
                     document.body.appendChild(ta);
                     ta.select();
-                    document.execCommand('copy');
+                    document.execCommand("copy");
                     document.body.removeChild(ta);
                 }
-            } catch (err) {}
+            } catch (clipErr) {
+                console.warn("클립보드 복사 실패:", clipErr);
+            }
 
-            // 2. 모바일 공유창 (카카오톡 채팅방 선택)
             if (navigator.share) {
                 try {
                     await navigator.share({
-                        title: '우리 가족 이야기',
                         text: textToShare
                     });
                     showNotification("카톡방 공유를 진행합니다.");
                 } catch (err) {
-                    if (err.name !== 'AbortError') {
+                    if (err.name !== "AbortError") {
                         showNotification("내용이 복사되었습니다. 카톡방을 열어 붙여넣기 하세요!");
                     }
                 }
@@ -1656,6 +1674,7 @@
             const el = document.getElementById('header-user-display');
             if (!el) return;
             const countText = getKoreanCountWord(lastOnlineCount);
+            const roleTag = currentUserRole === 'leader' ? '아빠' : (currentUserRole === 'subleader' ? '엄마' : '가족');
             el.innerHTML = `<span class="text-gray-700 font-bold">${escapeHtml(currentUser)}</span>님 <span class="text-emerald-600 font-semibold">${countText}</span> 입장 하셨습니다`;
         }
 
@@ -1686,7 +1705,6 @@
 
         const commentDrafts = {};
         const DRAFT_EXPIRE_MS = 5 * 60 * 1000;
-
         // Firebase 설정
         const firebaseConfig = {
             apiKey: "AIzaSyD4b9FkK9AFUMud7YeBQ1Wy_wM-FhPN16w",
@@ -4100,8 +4118,9 @@
                     setTimeout(() => {
                         const currentCount = (cachedPosts && cachedPosts.length > 0) ? cachedPosts.length : 1;
                         openKakaoShareModal(currentUser, currentCount);
-                    }, 650);
+                    }, 600);
                 }
+
             } catch (err) {
                 console.error("게시글 저장 오류:", err);
                 const descEl = document.getElementById('upload-stage-status-desc');
@@ -5126,7 +5145,7 @@
             if (mode === 'expanded') {
                 expandedPhotoPosts.add(postId);
                 container.setAttribute('data-view-mode', 'expanded');
-                container.className = "flex flex-col space-y-1 w-full mt-0.5 mb-0.5 transition-all duration-300";
+                container.className = "flex flex-col space-y-1 w-full mt-0.5 mb-1 transition-all duration-300";
 
                 for (let i = 0; i < count; i++) {
                     const block = document.getElementById(`photo-block-${postId}-${i}`);
@@ -5154,7 +5173,7 @@
             } else {
                 expandedPhotoPosts.delete(postId);
                 container.setAttribute('data-view-mode', 'grid');
-                container.className = `grid gap-0.5 w-full ${count === 1 ? 'grid-cols-1' : 'grid-cols-2'} mt-0.5 mb-0.5 transition-all duration-300`;
+                container.className = `grid gap-0.5 w-full ${count === 1 ? 'grid-cols-1' : 'grid-cols-2'} mt-0.5 mb-1 transition-all duration-300`;
 
                 for (let i = 0; i < count; i++) {
                     const block = document.getElementById(`photo-block-${postId}-${i}`);
@@ -5167,7 +5186,7 @@
                     if (img) {
                         img.classList.remove('h-auto', 'max-h-[650px]', 'object-contain', 'bg-black/5');
                         const origHeight = img.getAttribute('data-grid-height') || 'h-36 sm:h-40';
-                        img.className = `w-full ${origHeight} object-cover select-none continuous-photo-item block transition-all duration-300`;
+                        img.className = `w-full ${origHeight} object-cover select-none continuous-photo-item block transition-all duration-200`;
                         img.style.objectPosition = 'center 20%';
                     }
                 }
@@ -7006,11 +7025,11 @@
                     </div>
 
                     <!-- [작업 4-마: 인라인 댓글 작성 시 현재 작성자 이름 표시] -->
-                    <div id="inline-comment-row-${post.id}" class="no-export mt-1 pt-1 border-t border-gray-100 hidden w-full max-w-full box-border overflow-hidden">
+                    <div id="inline-comment-row-${post.id}" class="no-export mt-1.5 pt-1 border-t border-gray-100 hidden w-full max-w-full box-border overflow-hidden">
                         <div class="flex items-stretch gap-1.5 w-full max-w-full box-border">
                             <textarea id="inline-comment-input-${post.id}" rows="2" maxlength="300" placeholder="따뜻한 댓글을 남겨보세요..." 
                                       oninput="handleDraftInput('${post.id}', this.value); autoExpandCommentTextarea(this);"
-                                      class="flex-1 min-w-0 w-full min-h-[44px] px-2.5 py-1.5 border border-dashed border-gray-300 rounded-lg text-xs bg-white text-gray-900 placeholder-gray-400 outline-none focus:outline-none focus:border-dashed focus:border-emerald-600 resize-none shadow-2xs box-border leading-snug"></textarea>
+                                      class="flex-1 min-w-0 w-full min-h-[46px] px-2.5 py-1.5 border border-dashed border-gray-300 rounded-lg text-xs bg-white text-gray-900 placeholder-gray-400 outline-none focus:outline-none focus:border-dashed focus:border-emerald-600 resize-none shadow-2xs box-border leading-snug"></textarea>
                             <button type="button" onpointerdown="event.preventDefault();" onmousedown="event.preventDefault();" onclick="event.stopPropagation(); addCommentInline('${post.id}', event)" class="shrink-0 self-stretch px-3 church-primary hover:opacity-90 active:scale-95 text-white rounded-lg text-xs font-semibold whitespace-nowrap shadow-2xs transition-all flex items-center justify-center" title="댓글 등록">
                                 <span>등록</span>
                             </button>
@@ -7680,11 +7699,8 @@
             }
 
             setTimeout(() => {
-                resetCropBoxToImage(1.0, false);
+                resetCropBoxToImage(0.85);
             }, 80);
-            setTimeout(() => {
-                resetCropBoxToImage(1.0, false);
-            }, 280);
         };
 
         function moveToLightboxSlide(index, animate = true) {
@@ -7720,17 +7736,10 @@
             resetBrightnessContrast();
             updateActiveImageTransform();
             const nextImg = getActiveImageEl();
-            const alignToActiveImage = () => {
-                resetCropBoxToImage(1.0, false);
-            };
-            if (nextImg) {
-                if (nextImg.complete && nextImg.naturalWidth > 0) {
-                    setTimeout(alignToActiveImage, animate ? 330 : 50);
-                } else {
-                    nextImg.onload = () => { setTimeout(alignToActiveImage, animate ? 330 : 50); };
-                }
+            if (nextImg && !nextImg.complete) {
+                nextImg.onload = () => { resetCropBoxToImage(0.85, false); };
             }
-            setTimeout(alignToActiveImage, animate ? 330 : 60);
+            setTimeout(() => { resetCropBoxToImage(0.85, false); }, 60);
         }
 
         function getActiveImageEl() {
@@ -7748,15 +7757,15 @@
             }
         }
 
-        window.resetCropBoxToImage = function(ratio = 1.0, notify = true) {
+        window.resetCropBoxToImage = function(ratio = 0.85, notify = true) {
             const vp = document.getElementById('lightbox-viewport');
             const activeImg = getActiveImageEl();
             const cropBox = document.getElementById('lightbox-crop-box');
             if (!vp || !cropBox) return;
 
             const vpRect = vp.getBoundingClientRect();
-            const marginPad = 8;
-            let refW = vpRect.width * 0.88;
+            const marginPad = 14;
+            let refW = vpRect.width * 0.82;
             let refH = vpRect.height * 0.65;
             let refLeft = (vpRect.width - refW) / 2;
             let refTop = (vpRect.height - refH) / 2;
@@ -7769,8 +7778,8 @@
                 refTop = imgRect.top - vpRect.top;
             }
 
-            const targetW = Math.max(60, Math.min(vpRect.width - marginPad * 2, Math.round(refW * ratio)));
-            const targetH = Math.max(60, Math.min(vpRect.height - marginPad * 2, Math.round(refH * ratio)));
+            const targetW = Math.max(80, Math.min(vpRect.width - marginPad * 2, Math.round(refW * ratio)));
+            const targetH = Math.max(80, Math.min(vpRect.height - marginPad * 2, Math.round(refH * ratio)));
             const targetX = Math.round(refLeft + (refW - targetW) / 2);
             const targetY = Math.round(refTop + (refH - targetH) / 2);
 
@@ -7782,7 +7791,7 @@
             };
             applyCropBoxRectToDom();
             if (notify) {
-                showNotification("편집 틀이 사진 테두리에 정렬되었습니다.");
+                showNotification("편집 틀이 중앙 초기 상태로 정렬되었습니다.");
             }
         };
 
@@ -7798,7 +7807,7 @@
                 autoFixBtn.classList.add('bg-gray-100', 'text-gray-700');
             }
             setTimeout(() => {
-                resetCropBoxToImage(1.0, false);
+                resetCropBoxToImage(0.85, false);
                 showNotification("사진 틀과 이미지 보정 설정이 모두 초기화되었습니다.");
             }, 30);
         };
@@ -8008,7 +8017,7 @@
         window.rotateLightboxImage = function() {
             currentLightboxRotationAngle = (currentLightboxRotationAngle + 90) % 360;
             updateActiveImageTransform();
-            setTimeout(() => { resetCropBoxToImage(1.0, false); }, 50);
+            setTimeout(() => { resetCropBoxToImage(0.85); }, 50);
         };
 
         window.slideLightboxPrev = function(e) {

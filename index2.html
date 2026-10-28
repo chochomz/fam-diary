@@ -485,7 +485,7 @@
                         <span id="title-mokjang-name" class="relative inline-block"></span>
                     </h1>
                     <!-- 서브 환영 문구 ('세' 자와 상하 같은 시작 라인으로 정렬) -->
-                    <p class="text-[10px] text-gray-500 font-medium truncate whitespace-nowrap leading-none mt-0.5 animate-sway-welcome select-none text-left" id="header-user-display"><span class="text-emerald-600 font-semibold">한분</span> 입장 환영합니다</p>
+                    <p class="text-[10px] text-gray-500 font-medium truncate whitespace-nowrap leading-none mt-0.5 animate-sway-welcome select-none text-left" id="header-user-display"><span class="text-emerald-600 font-semibold">한분</span> 입장 하셨습니다</p>
                 </div>
                 <!-- 타이틀 하트 애니메이션 오버레이 -->
                 <div id="header-title-hearts-layer" class="absolute inset-0 pointer-events-none overflow-visible"></div>
@@ -1140,26 +1140,26 @@
 
     <!-- [라이트박스 모달] -->
     <div id="lightbox-modal" class="fixed inset-0 z-50 bg-white flex flex-col items-center justify-between hidden p-2 select-none">
-        <div class="w-full flex items-center justify-center p-2 z-50 bg-white/95 border-b border-gray-200 shadow-xs rounded-xl">
-            <div class="flex items-center justify-center space-x-2 flex-nowrap whitespace-nowrap">
-                <button type="button" id="lightbox-autofix-btn" onclick="toggleLightboxAdjustPanel()" class="h-8 px-2.5 bg-gray-100 hover:bg-gray-200 active:scale-95 text-gray-700 rounded-lg flex items-center justify-center space-x-1 transition-all border border-gray-200 shadow-2xs text-xs font-semibold">
-                    <i class="fa-solid fa-wand-magic-sparkles text-xs text-emerald-700"></i>
+        <div class="w-full flex items-center justify-center px-1 py-1.5 z-50 bg-white/95 border-b border-gray-200 shadow-xs rounded-xl overflow-x-auto scrollbar-none">
+            <div class="flex items-center justify-center space-x-1 sm:space-x-1.5 flex-nowrap whitespace-nowrap max-w-full">
+                <button type="button" id="lightbox-autofix-btn" onclick="toggleLightboxAdjustPanel()" class="h-7 sm:h-8 px-1.5 sm:px-2.5 bg-gray-100 hover:bg-gray-200 active:scale-95 text-gray-700 rounded-lg flex items-center justify-center space-x-0.5 sm:space-x-1 transition-all border border-gray-200 shadow-2xs text-[11px] sm:text-xs font-semibold shrink-0">
+                    <i class="fa-solid fa-wand-magic-sparkles text-[10.5px] sm:text-xs text-emerald-700"></i>
                     <span>마법봉</span>
                 </button>
-                <button type="button" onclick="rotateLightboxImage()" class="h-8 px-2.5 bg-gray-100 hover:bg-gray-200 active:scale-95 text-gray-700 rounded-lg flex items-center justify-center space-x-1 transition-all border border-gray-200 shadow-2xs text-xs font-semibold">
-                    <i class="fa-solid fa-rotate-right text-xs text-gray-700"></i>
+                <button type="button" onclick="rotateLightboxImage()" class="h-7 sm:h-8 px-1.5 sm:px-2.5 bg-gray-100 hover:bg-gray-200 active:scale-95 text-gray-700 rounded-lg flex items-center justify-center space-x-0.5 sm:space-x-1 transition-all border border-gray-200 shadow-2xs text-[11px] sm:text-xs font-semibold shrink-0">
+                    <i class="fa-solid fa-rotate-right text-[10.5px] sm:text-xs text-gray-700"></i>
                     <span>회전</span>
                 </button>
-                <button type="button" onclick="resetLightboxAll()" class="h-8 px-2.5 bg-gray-100 hover:bg-gray-200 active:scale-95 text-gray-700 rounded-lg flex items-center justify-center space-x-1 transition-all border border-gray-200 shadow-2xs text-xs font-semibold">
-                    <i class="fa-solid fa-arrows-rotate text-xs text-emerald-800"></i>
+                <button type="button" onclick="resetLightboxAll()" class="h-7 sm:h-8 px-1.5 sm:px-2.5 bg-gray-100 hover:bg-gray-200 active:scale-95 text-gray-700 rounded-lg flex items-center justify-center space-x-0.5 sm:space-x-1 transition-all border border-gray-200 shadow-2xs text-[11px] sm:text-xs font-semibold shrink-0">
+                    <i class="fa-solid fa-arrows-rotate text-[10.5px] sm:text-xs text-emerald-800"></i>
                     <span>초기화</span>
                 </button>
-                <button type="button" onclick="deleteCurrentPhotoFromLightbox()" class="h-8 px-2.5 bg-rose-50 hover:bg-rose-100 active:scale-95 text-rose-600 rounded-lg flex items-center justify-center space-x-1 transition-all border border-rose-200 shadow-2xs text-xs font-semibold" title="이 사진 삭제 (다음 사진이 자동으로 채워짐)">
-                    <i class="fa-solid fa-trash-can text-xs"></i>
+                <button type="button" onclick="deleteCurrentPhotoFromLightbox()" class="h-7 sm:h-8 px-1.5 sm:px-2.5 bg-rose-50 hover:bg-rose-100 active:scale-95 text-rose-600 rounded-lg flex items-center justify-center space-x-0.5 sm:space-x-1 transition-all border border-rose-200 shadow-2xs text-[11px] sm:text-xs font-semibold shrink-0" title="이 사진 삭제 (다음 사진이 자동으로 채워짐)">
+                    <i class="fa-solid fa-trash-can text-[10.5px] sm:text-xs"></i>
                     <span>사진삭제</span>
                 </button>
-                <button type="button" id="lightbox-rename-btn" onclick="openRenameModalFromLightbox()" class="hidden h-8 px-2.5 bg-emerald-50 hover:bg-emerald-100 active:scale-95 text-emerald-900 rounded-lg flex items-center justify-center space-x-1 transition-all border border-emerald-200 shadow-2xs text-xs font-semibold">
-                    <i class="fa-solid fa-user-pen text-xs text-emerald-700"></i>
+                <button type="button" id="lightbox-rename-btn" onclick="openRenameModalFromLightbox()" class="hidden h-7 sm:h-8 px-1.5 sm:px-2.5 bg-emerald-50 hover:bg-emerald-100 active:scale-95 text-emerald-900 rounded-lg flex items-center justify-center space-x-0.5 sm:space-x-1 transition-all border border-emerald-200 shadow-2xs text-[11px] sm:text-xs font-semibold shrink-0">
+                    <i class="fa-solid fa-user-pen text-[10.5px] sm:text-xs text-emerald-700"></i>
                     <span>이름변경</span>
                 </button>
                 <span id="lightbox-zoom-level" class="hidden">100%</span>
@@ -1563,8 +1563,7 @@
             const el = document.getElementById('header-user-display');
             if (!el) return;
             const countText = getKoreanCountWord(lastOnlineCount);
-            const roleTag = currentUserRole === 'leader' ? '아빠' : (currentUserRole === 'subleader' ? '엄마' : '가족');
-            el.innerHTML = `<span class="text-gray-700 font-bold">${escapeHtml(currentUser)}</span><span class="text-[9px] text-gray-500">(${roleTag})</span>님 <span class="text-emerald-600 font-semibold">${countText}</span> 입장 환영합니다`;
+            el.innerHTML = `<span class="text-gray-700 font-bold">${escapeHtml(currentUser)}</span>님 <span class="text-emerald-600 font-semibold">${countText}</span> 입장 하셨습니다`;
         }
 
         // 라이트박스 상태 관리
@@ -7582,8 +7581,11 @@
             }
 
             setTimeout(() => {
-                resetCropBoxToImage(0.85);
+                resetCropBoxToImage(1.0, false);
             }, 80);
+            setTimeout(() => {
+                resetCropBoxToImage(1.0, false);
+            }, 280);
         };
 
         function moveToLightboxSlide(index, animate = true) {
@@ -7619,10 +7621,17 @@
             resetBrightnessContrast();
             updateActiveImageTransform();
             const nextImg = getActiveImageEl();
-            if (nextImg && !nextImg.complete) {
-                nextImg.onload = () => { resetCropBoxToImage(0.85, false); };
+            const alignToActiveImage = () => {
+                resetCropBoxToImage(1.0, false);
+            };
+            if (nextImg) {
+                if (nextImg.complete && nextImg.naturalWidth > 0) {
+                    setTimeout(alignToActiveImage, animate ? 330 : 50);
+                } else {
+                    nextImg.onload = () => { setTimeout(alignToActiveImage, animate ? 330 : 50); };
+                }
             }
-            setTimeout(() => { resetCropBoxToImage(0.85, false); }, 60);
+            setTimeout(alignToActiveImage, animate ? 330 : 60);
         }
 
         function getActiveImageEl() {
@@ -7640,15 +7649,15 @@
             }
         }
 
-        window.resetCropBoxToImage = function(ratio = 0.85, notify = true) {
+        window.resetCropBoxToImage = function(ratio = 1.0, notify = true) {
             const vp = document.getElementById('lightbox-viewport');
             const activeImg = getActiveImageEl();
             const cropBox = document.getElementById('lightbox-crop-box');
             if (!vp || !cropBox) return;
 
             const vpRect = vp.getBoundingClientRect();
-            const marginPad = 14;
-            let refW = vpRect.width * 0.82;
+            const marginPad = 8;
+            let refW = vpRect.width * 0.88;
             let refH = vpRect.height * 0.65;
             let refLeft = (vpRect.width - refW) / 2;
             let refTop = (vpRect.height - refH) / 2;
@@ -7661,8 +7670,8 @@
                 refTop = imgRect.top - vpRect.top;
             }
 
-            const targetW = Math.max(80, Math.min(vpRect.width - marginPad * 2, Math.round(refW * ratio)));
-            const targetH = Math.max(80, Math.min(vpRect.height - marginPad * 2, Math.round(refH * ratio)));
+            const targetW = Math.max(60, Math.min(vpRect.width - marginPad * 2, Math.round(refW * ratio)));
+            const targetH = Math.max(60, Math.min(vpRect.height - marginPad * 2, Math.round(refH * ratio)));
             const targetX = Math.round(refLeft + (refW - targetW) / 2);
             const targetY = Math.round(refTop + (refH - targetH) / 2);
 
@@ -7674,7 +7683,7 @@
             };
             applyCropBoxRectToDom();
             if (notify) {
-                showNotification("편집 틀이 중앙 초기 상태로 정렬되었습니다.");
+                showNotification("편집 틀이 사진 테두리에 정렬되었습니다.");
             }
         };
 
@@ -7690,7 +7699,7 @@
                 autoFixBtn.classList.add('bg-gray-100', 'text-gray-700');
             }
             setTimeout(() => {
-                resetCropBoxToImage(0.85, false);
+                resetCropBoxToImage(1.0, false);
                 showNotification("사진 틀과 이미지 보정 설정이 모두 초기화되었습니다.");
             }, 30);
         };
@@ -7900,7 +7909,7 @@
         window.rotateLightboxImage = function() {
             currentLightboxRotationAngle = (currentLightboxRotationAngle + 90) % 360;
             updateActiveImageTransform();
-            setTimeout(() => { resetCropBoxToImage(0.85); }, 50);
+            setTimeout(() => { resetCropBoxToImage(1.0, false); }, 50);
         };
 
         window.slideLightboxPrev = function(e) {

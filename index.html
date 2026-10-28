@@ -82,7 +82,7 @@
             overflow: hidden; touch-action: manipulation;
             will-change: transform;
             cursor: pointer;
-            box-shadow: 0 12px 32px rgba(0, 0, 0, 0.14);
+            margin: 0; padding: 0;
         }
 
         #monthly-svg-stage {
@@ -545,13 +545,11 @@
                 if (animationStarted) return;
                 animationStarted = true;
 
-                // 로그인 즉시 바깥 배경 및 시스템 바를 100% 올 흰색(#FFFFFF)으로 전환
                 document.documentElement.style.backgroundColor = '#FFFFFF';
                 document.body.style.backgroundColor = '#FFFFFF';
                 if (seamlessStage) seamlessStage.style.backgroundColor = '#FFFFFF';
                 if (seamlessFrame) seamlessFrame.style.backgroundColor = '#FFFFFF';
-                const metaTheme = document.getElementById('meta-theme-color') || document.querySelector('meta[name="theme-color"]');
-                if (metaTheme) metaTheme.setAttribute('content', '#FFFFFF');
+                if (authGate) authGate.style.backgroundColor = 'transparent';
 
                 authGate.classList.add('gate-open-active');
                 if (seamlessStage) seamlessStage.classList.add('stage-follow-active');
@@ -569,6 +567,7 @@
 
                     // [중요: 게이트가 완전히 올라간 뒤 배경 잔상이 남지 않도록 즉시 제거]
                     authGate.style.display = 'none';
+                    if (typeof svgStage !== 'undefined' && svgStage) { svgStage.style.backgroundColor = '#FFFFFF'; svgStage.innerHTML = ''; }
                     authGate.style.backgroundColor = '#FFFFFF';
                     if (typeof svgStage !== 'undefined' && svgStage) { svgStage.style.backgroundColor = '#FFFFFF'; svgStage.innerHTML = ''; }
                     if (svgStage) svgStage.innerHTML = '';

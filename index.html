@@ -58,14 +58,27 @@
             pointer-events: none;
         }
 
-        @keyframes slideUpFadeOut {
-            0% { transform: translateY(0); opacity: 1; }
-            20% { transform: translateY(24px); opacity: 1; }
-            100% { transform: translateY(-100%); opacity: 0; }
+        @keyframes slideUpGate {
+            0% { transform: translateY(0); }
+            100% { transform: translateY(-100%); }
+        }
+        @keyframes slideUpFollowView {
+            0% { transform: translateY(100%); }
+            100% { transform: translateY(0); }
         }
 
         .gate-exit-active {
-            animation: slideUpFadeOut 1.0s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+            animation: slideUpGate 0.85s cubic-bezier(0.25, 1, 0.5, 1) forwards !important;
+        }
+        .follow-view-active {
+            animation: slideUpFollowView 0.85s cubic-bezier(0.25, 1, 0.5, 1) forwards !important;
+        }
+
+        #index2-follow-frame {
+            position: fixed; inset: 0; width: 100%; height: 100%;
+            border: 0; z-index: 990; transform: translateY(100%);
+            background-color: #F8F9FA;
+            pointer-events: none;
         }
 
         #auth-gate {
@@ -322,6 +335,34 @@
 
         let isCodePassed = false;
         let isLoginTransitioning = false;
+
+        // [auto □ 보안 저장 관리: 이름 화면 노출 절대 차단]
+        function getStoredAutoName() {
+            try {
+                const isAuto = localStorage.getItem('family_auto_remember') === 'true';
+                if (!isAuto) return '';
+                const saved = localStorage.getItem('family_user_name');
+                return (saved && saved.trim()) ? saved.trim() : '';
+            } catch(e) { return ''; }
+        }
+
+        function initAutoCheckUI() {
+            const chk = document.getElementById('auto-login-check');
+            if (chk) {
+                chk.checked = (localStorage.getItem('family_auto_remember') === 'true');
+            }
+        }
+        setTimeout(initAutoCheckUI, 100);
+
+        window.handleAutoCheckChange = function(el) {
+            try {
+                if (el.checked) {
+                    localStorage.setItem('family_auto_remember', 'true');
+                } else {
+                    localStorage.setItem('family_auto_remember', 'false');
+                }
+            } catch(e) {}
+        };
         let tapCount = 0;
         let tapResetTimer = null;
         let lastGateTapTime = 0;
@@ -408,6 +449,15 @@
 
             if (isCodeCorrect) {
                 setNameInputLocked(false);
+                const storedName = getStoredAutoName();
+                // auto 저장된 이름이 유효한 경우 화면에 글자를 드러내지 않고 즉시 입장 검증 시도
+                if (storedName) {
+                    const nameInput = document.getElementById('input-member-name');
+                    if (nameInput) nameInput.value = storedName;
+                    checkAutoLogin();
+                    return;
+                }
+
                 if (document.activeElement === input) {
                     if (navigator.vibrate) {
                         try { navigator.vibrate(40); } catch(e) {}
@@ -513,11 +563,23 @@
             forceWhiteBar();
             createHearts();
 
+            // auto 체크 상태 저장
+            const autoChk = document.getElementById('auto-login-check');
+            if (autoChk && autoChk.checked) {
+                localStorage.setItem('family_auto_remember', 'true');
+            }
+
+            const followFrame = document.getElementById('index2-follow-frame');
+            if (followFrame) {
+                try { followFrame.src = 'index2.html'; } catch(e) {}
+                followFrame.classList.add('follow-view-active');
+            }
+
             authGate.classList.add('gate-exit-active');
 
             setTimeout(() => {
                 window.location.replace('index2.html');
-            }, 700);
+            }, 820);
         }
 
         let adminTapCount = 0;

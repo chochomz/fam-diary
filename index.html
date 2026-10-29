@@ -56,7 +56,8 @@
         /* [슬라이드 전환 애니메이션] */
         @keyframes slideUpGate {
             0% { transform: translateY(0); opacity: 1; }
-            100% { transform: translateY(-100%); opacity: 0.95; }
+            40% { opacity: 0.8; }
+            100% { transform: translateY(-100%); opacity: 0; }
         }
 
         .gate-exit-active {
@@ -98,7 +99,7 @@
         #code-auth-box {
             position: absolute;
             left: 50%;
-            bottom: calc(env(safe-area-inset-bottom, 0px) + 24px);
+            bottom: calc(env(safe-area-inset-bottom, 0px) + 33px);
             transform: translateX(-50%);
             z-index: 45;
             opacity: 0;
@@ -337,6 +338,9 @@
             const activeBg = isOddDay ? d.oddOuterBg : d.evenBg;
 
             svgStage.style.backgroundColor = activeBg;
+            if (authGate) authGate.style.backgroundColor = activeBg;
+            document.body.style.backgroundColor = activeBg;
+            document.documentElement.style.backgroundColor = activeBg;
 
             if (isOddDay) {
                 svgStage.innerHTML = `

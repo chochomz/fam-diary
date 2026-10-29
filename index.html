@@ -363,6 +363,34 @@
                 }
             } catch(e) {}
         };
+
+        // [auto □ 보안 저장 관리: 이름 화면 노출 절대 차단]
+        function getStoredAutoName() {
+            try {
+                const isAuto = localStorage.getItem('family_auto_remember') === 'true';
+                if (!isAuto) return '';
+                const saved = localStorage.getItem('family_user_name');
+                return (saved && saved.trim()) ? saved.trim() : '';
+            } catch(e) { return ''; }
+        }
+
+        function initAutoCheckUI() {
+            const chk = document.getElementById('auto-login-check');
+            if (chk) {
+                chk.checked = (localStorage.getItem('family_auto_remember') === 'true');
+            }
+        }
+        setTimeout(initAutoCheckUI, 100);
+
+        window.handleAutoCheckChange = function(el) {
+            try {
+                if (el.checked) {
+                    localStorage.setItem('family_auto_remember', 'true');
+                } else {
+                    localStorage.setItem('family_auto_remember', 'false');
+                }
+            } catch(e) {}
+        };
         let tapCount = 0;
         let tapResetTimer = null;
         let lastGateTapTime = 0;

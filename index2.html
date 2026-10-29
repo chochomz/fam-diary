@@ -3925,10 +3925,33 @@ initAuth();
             }
         }
 
+        function cleanPostHtmlContent(rawStr) {
+            if (!rawStr) return '';
+            let s = String(rawStr).replace(/\u200B/g, '');
+            // 이스케이프된 div/p/br 태그 및 깨진 /div 흔적 복원·정리
+            s = s.replace(/&lt;\/?div[^&]*&gt;/gi, '<br>')
+                 .replace(/&lt;\/?p[^&]*&gt;/gi, '<br>')
+                 .replace(/&lt;br\s*\/?&gt;/gi, '<br>');
+            // contenteditable이 생성하는 <div>, <p> 블록 태그를 깔끔한 줄바꿈(<br>)으로 변환
+            s = s.replace(/<div[^>]*>\s*<br\s*\/?>\s*<\/div>/gi, '<br>')
+                 .replace(/<p[^>]*>\s*<br\s*\/?>\s*<\/p>/gi, '<br>')
+                 .replace(/<div[^>]*>/gi, '<br>')
+                 .replace(/<\/div>/gi, '')
+                 .replace(/<p[^>]*>/gi, '<br>')
+                 .replace(/<\/p>/gi, '')
+                 .replace(/<\/?div[^>]*>/gi, '')
+                 .replace(/(?:<|\b)\/div>?(?=\s|$|<)/gi, '')
+                 .replace(/\/div(?=<|$|\s)/gi, '');
+            // 맨 앞이나 끝에 불필요하게 붙은 <br> 정리
+            s = s.replace(/^(?:<br\s*\/?>\s*)+/i, '').replace(/(?:\s*<br\s*\/?>)+$/i, '');
+            return s.trim();
+        }
+
         function renderPostContentHtml(contentStr) {
             if (!contentStr) return '';
-            const str = String(contentStr).trim();
-            if (str.includes('<span') || str.includes('<br')) {
+            const str = cleanPostHtmlContent(contentStr);
+            if (!str) return '';
+            if (str.includes('<span') || str.includes('<br') || str.includes('<font') || str.includes('<b') || str.includes('<i') || str.includes('<u')) {
                 return str
                     .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
                     .replace(/<iframe\b[^<]*(?:(?!<\/iframe>)<[^<]*)*<\/iframe>/gi, '')
@@ -4179,7 +4202,7 @@ initAuth();
             const contentEl = document.getElementById('post-content');
             if (contentEl) {
                 contentEl.setAttribute('data-placeholder', `${currentUser}님, 우리 가족들과 나눌 따뜻한 이야기를 입력하세요...`);
-                contentEl.innerHTML = existingContent || "";
+                contentEl.innerHTML = (typeof cleanPostHtmlContent === 'function' ? cleanPostHtmlContent(existingContent || "") : (existingContent || ""));
                 const plain = (contentEl.innerText || '').replace(/\u200B/g, '').trim();
                 if (!plain) {
                     contentEl.setAttribute('data-empty', 'true');
@@ -4431,7 +4454,8 @@ initAuth();
 
             isSubmittingPostLock = true;
             const contentEl = document.getElementById('post-content');
-            let content = contentEl ? contentEl.innerHTML.replace(/\u200B/g, '').trim() : '';
+            let rawEditorHtml = contentEl ? contentEl.innerHTML.replace(/\u200B/g, '').trim() : '';
+            let content = typeof cleanPostHtmlContent === 'function' ? cleanPostHtmlContent(rawEditorHtml) : rawEditorHtml;
             if (content === '<br>' || content === '<div><br></div>') content = '';
             const finalImages = [...selectedImagesList];
             const fileToSave = currentAttachedFile;

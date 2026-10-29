@@ -3870,7 +3870,7 @@ initAuth();
                     if (result) {
                         const estTotal = calculateCurrentPayloadBytes() + (result ? result.length : 0);
                         if (estTotal > 10 * 1024 * 1024) {
-                            showNotification("사진들의 총 용량이 초과되어 더 이상 추가할 수 없습니다.");
+                            showNotification("사진의 갯수가 많으니 줄여보세요");
                         } else {
                             selectedImagesList.push(result);
                             if ( typeof editingPhotoCaptionsList !== 'undefined' ) editingPhotoCaptionsList.push(null);
@@ -4564,14 +4564,14 @@ initAuth();
                 console.error("게시글 저장 오류:", err);
                 const descEl = document.getElementById('upload-stage-status-desc');
                 if (descEl) {
-                    descEl.innerText = "등록에 실패했습니다. 잠시 후 다시 시도해 주세요.";
+                    descEl.innerText = "사진의 갯수가 많으니 줄여보세요";
                     descEl.classList.replace('text-emerald-700', 'text-rose-600');
                 }
                 setTimeout(() => {
                     closeUploadProgressModal();
                     if (descEl) descEl.classList.replace('text-rose-600', 'text-emerald-700');
                 }, 1800);
-                showNotification("게시글 등록 실패: " + err.message);
+                showNotification("사진의 갯수가 많으니 줄여보세요");
                 setDbStatus('error');
             } finally {
                 isSubmittingPostLock = false;

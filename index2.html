@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes, viewport-fit=cover">
     <title>우리 가족 이야기</title>
     <!-- [작업 4-나: 오직 index.html을 통해서만 입장 가능하도록 직접 링크 호출 시 index.html로 리다이렉트 & 주소 가림] -->
     <script>
@@ -119,7 +119,7 @@
             background-color: #F8F9FA;
             color: #222222;
             -webkit-tap-highlight-color: transparent;
-            touch-action: pan-y;
+            touch-action: pan-x pan-y pinch-zoom;
             padding-bottom: env(safe-area-inset-bottom, 0px);
         }
         header {
@@ -242,11 +242,6 @@
             scrollbar-width: thin;
             padding-bottom: 48vh !important;
             touch-action: pan-y pinch-zoom;
-            transform-origin: top center;
-            transition: zoom 0.12s ease-out;
-        }
-        #feed-container.feed-zoomed {
-            overflow-x: auto !important;
         }
         #feed-container::-webkit-scrollbar {
             width: 4px;
@@ -1869,7 +1864,7 @@
             setTimeout(spawnTitleHeart, 400);
             titleHeartTimer = setInterval(() => {
                 spawnTitleHeart();
-            }, 1150);
+            }, 3000);
         }
 
         let selectedImagesList = [];
@@ -1899,6 +1894,7 @@
 
         let lastOnlineUsersList = [];
         let lastRenderedWelcomeHtml = '';
+        let lastOnlineNamesSignature = '';
 
         function updateWelcomeUserDisplay(usersOrCount = lastOnlineUsersList) {
             const el = document.getElementById('header-user-display');
@@ -1916,6 +1912,16 @@
             } else if (typeof usersOrCount === 'number') {
                 lastOnlineCount = Math.max(1, usersOrCount);
             }
+
+            // [순서 뒤바뀜 원천 방지]: 가나다(사전) 순으로 고정 정렬하여 누가 재접속하든 순서가 절대 바뀌지 않도록 고정
+            otherNames.sort((a, b) => a.localeCompare(b, 'ko'));
+
+            // [스레드/리소스 절약]: 접속자 명단 시그니처가 동일하면 문자열 연산 및 DOM 접근 즉시 중단
+            const currentSignature = `${currentUser}|${otherNames.join(',')}`;
+            if (lastOnlineNamesSignature === currentSignature && lastRenderedWelcomeHtml) {
+                return;
+            }
+            lastOnlineNamesSignature = currentSignature;
 
             let displayText = '';
             if (otherNames.length === 0) {
@@ -3558,58 +3564,15 @@
         }
 
 
-        // [메인 타이틀·책갈피 고정 & 피드(글/사진/댓글) 독립 손가락 확대(Pinch-to-Zoom) 시스템]
+        // [모바일 자체 네이티브 전체 화면 확대/축소 사용 (레이아웃 깨짐 원천 방지)]
         let currentFeedZoom = 1.0;
         let isPinchingFeed = false;
 
         function applyFeedZoom(zoomVal, animate = false) {
-            const feed = document.getElementById('feed-container');
-            if (!feed) return;
-
-            // 1.0배(기본)부터 최대 2.8배까지 부드럽게 확대 허용
-            currentFeedZoom = Math.max(1.0, Math.min(2.8, Math.round(zoomVal * 100) / 100));
-
-            if (animate) {
-                feed.style.transition = 'zoom 0.2s cubic-bezier(0.25, 1, 0.5, 1)';
-                setTimeout(() => {
-                    if (feed) feed.style.transition = '';
-                }, 220);
-            } else {
-                feed.style.transition = '';
-            }
-
-            // CSS zoom: 상단 헤더와 측면 책갈피는 100% 원본 크기로 완벽 고정되고 피드 내부만 시원하게 확대됨
-            feed.style.zoom = currentFeedZoom;
-            if (currentFeedZoom > 1.02) {
-                feed.classList.add('feed-zoomed');
-            } else {
-                feed.classList.remove('feed-zoomed');
-            }
-
-            updateFeedZoomBadge();
+            currentFeedZoom = 1.0;
         }
 
         function updateFeedZoomBadge() {
-            let badge = document.getElementById('feed-zoom-reset-badge');
-            if (currentFeedZoom > 1.05) {
-                if (!badge) {
-                    badge = document.createElement('div');
-                    badge.id = 'feed-zoom-reset-badge';
-                    badge.className = 'fixed bottom-5 left-4 z-40 bg-slate-900/90 backdrop-blur-md text-white border border-emerald-500/50 rounded-full px-3 py-1.5 shadow-2xl text-xs font-mono font-bold flex items-center space-x-1.5 cursor-pointer active:scale-90 transition-all select-none animate-bounce';
-                    badge.setAttribute('title', '두 번 터치하거나 누르면 원래 크기(100%)로 복귀합니다');
-                    badge.onclick = (e) => {
-                        e.stopPropagation();
-                        applyFeedZoom(1.0, true);
-                        showNotification('화면 크기가 원래대로(100%) 복귀되었습니다.');
-                    };
-                    document.body.appendChild(badge);
-                }
-                const pct = Math.round(currentFeedZoom * 100);
-                badge.innerHTML = `<i class="fa-solid fa-magnifying-glass-plus text-emerald-400 text-xs"></i><span>${pct}%</span><span class="text-[9px] font-sans font-semibold bg-emerald-700/80 text-white rounded-full px-1.5 py-0.5 ml-0.5">100% 복귀</span>`;
-                badge.classList.remove('hidden');
-            } else if (badge) {
-                badge.classList.add('hidden');
-            }
         }
 
         
@@ -3757,77 +3720,7 @@
         }
 
         function initFeedPinchZoom() {
-            const feed = document.getElementById('feed-container');
-            if (!feed || feed.__pinchZoomInitialized) return;
-            feed.__pinchZoomInitialized = true;
-
-            let touchStartDist = 0;
-            let baseZoom = 1.0;
-            let lastTapTime = 0;
-
-            // 두 손가락 터치(핀치 줌) 시작
-            feed.addEventListener('touchstart', (e) => {
-                if (e.touches.length === 2) {
-                    isPinchingFeed = true;
-                    touchStartDist = Math.hypot(
-                        e.touches[0].clientX - e.touches[1].clientX,
-                        e.touches[0].clientY - e.touches[1].clientY
-                    );
-                    baseZoom = currentFeedZoom;
-                } else if (e.touches.length === 1) {
-                    // 화면 확대 상태에서 빈 배경 더블 탭 시 즉시 100% 리셋
-                    const now = Date.now();
-                    if (currentFeedZoom > 1.05 && (now - lastTapTime < 320)) {
-                        if (!e.target.closest('button, textarea, input, a, [onclick]')) {
-                            applyFeedZoom(1.0, true);
-                            showNotification('화면 크기가 원래대로(100%) 복귀되었습니다.');
-                        }
-                        lastTapTime = 0;
-                    } else {
-                        lastTapTime = now;
-                    }
-                }
-            }, { passive: true });
-
-            // 두 손가락 벌리기/모으기 (확대 / 축소)
-            feed.addEventListener('touchmove', (e) => {
-                if (e.touches.length === 2 && touchStartDist > 0) {
-                    const currentDist = Math.hypot(
-                        e.touches[0].clientX - e.touches[1].clientX,
-                        e.touches[0].clientY - e.touches[1].clientY
-                    );
-                    if (currentDist > 8) {
-                        if (e.cancelable) e.preventDefault();
-                        const factor = currentDist / touchStartDist;
-                        applyFeedZoom(baseZoom * factor, false);
-                    }
-                }
-            }, { passive: false });
-
-            // 터치 종료 시 마무리 보정
-            feed.addEventListener('touchend', (e) => {
-                if (e.touches.length < 2) {
-                    isPinchingFeed = false;
-                    touchStartDist = 0;
-                    if (currentFeedZoom < 1.05) {
-                        applyFeedZoom(1.0, true);
-                    }
-                }
-            }, { passive: true });
-
-            feed.addEventListener('touchcancel', () => {
-                isPinchingFeed = false;
-                touchStartDist = 0;
-            }, { passive: true });
-
-            // PC 트랙패드 핀치(Ctrl + 마우스 휠) 확대 지원
-            feed.addEventListener('wheel', (e) => {
-                if (e.ctrlKey) {
-                    e.preventDefault();
-                    const delta = e.deltaY > 0 ? -0.12 : 0.12;
-                    applyFeedZoom(currentFeedZoom + delta, false);
-                }
-            }, { passive: false });
+            // 모바일 자체 브라우저 확대/축소를 사용하므로 커스텀 CSS zoom 개입 비활성화
         }
 
                 initAuth();
@@ -3839,8 +3732,9 @@
 
             const myRef = getPresenceDocRef(sessionId);
 
-            // [최초 접속 시간(joinedAt) 영구 고정 & 하트비트 45초 완화로 스레드/트래픽 최적화]
+            // [최초 접속 시간(joinedAt) 영구 고정 & 하트비트 90초 완화 및 백그라운드 절전으로 스레드/트래픽 최적화]
             const sendHeartbeat = async () => {
+                if (document.hidden) return;
                 try {
                     await setDoc(myRef, {
                         sessionId: sessionId,
@@ -3853,42 +3747,51 @@
 
             sendHeartbeat();
             if (onlineHeartbeatTimer) clearInterval(onlineHeartbeatTimer);
-            onlineHeartbeatTimer = setInterval(sendHeartbeat, 45000);
+            onlineHeartbeatTimer = setInterval(sendHeartbeat, 90000);
+
+            document.addEventListener('visibilitychange', () => {
+                if (!document.hidden) sendHeartbeat();
+            });
 
             window.addEventListener('beforeunload', () => {
                 try { deleteDoc(myRef); } catch (e) {}
             });
 
             const presenceCol = collection(db, 'family_presence');
-            onSnapshot(presenceCol, (snapshot) => {
-                const now = Date.now();
-                const timeoutWindow = 120000; // 2분 내 활동 기준 (네트워크 딜레이 시 깜빡임 방지)
-                const seenUsers = new Map();
+            let presenceDebounceTimer = null;
 
-                snapshot.forEach(docSnap => {
-                    const data = docSnap.data();
-                    if (data && typeof data.lastSeen === 'number') {
-                        if (now - data.lastSeen < timeoutWindow) {
-                            const rawName = (data.user && data.user.trim()) ? data.user.trim() : '가족';
-                            const joined = data.joinedAt || data.lastSeen;
-                            // 동일 사용자 중복 제거 및 가장 먼저 접속한 시간(joinedAt) 유지
-                            if (!seenUsers.has(rawName) || joined < seenUsers.get(rawName).joinedAt) {
-                                seenUsers.set(rawName, {
-                                    user: rawName,
-                                    joinedAt: joined,
-                                    lastSeen: data.lastSeen
-                                });
+            onSnapshot(presenceCol, (snapshot) => {
+                // 스냅샷 연속 호출 시 600ms 디바운싱으로 메인 스레드 부하 원천 차단
+                if (presenceDebounceTimer) clearTimeout(presenceDebounceTimer);
+                presenceDebounceTimer = setTimeout(() => {
+                    const now = Date.now();
+                    const timeoutWindow = 180000; // 3분 내 활동 기준 (하트비트 90초 주기에 맞춘 안정적 유지)
+                    const seenUsers = new Map();
+
+                    snapshot.forEach(docSnap => {
+                        const data = docSnap.data();
+                        if (data && typeof data.lastSeen === 'number') {
+                            if (now - data.lastSeen < timeoutWindow) {
+                                const rawName = (data.user && data.user.trim()) ? data.user.trim() : '가족';
+                                const joined = data.joinedAt || data.lastSeen;
+                                if (!seenUsers.has(rawName) || joined < seenUsers.get(rawName).joinedAt) {
+                                    seenUsers.set(rawName, {
+                                        user: rawName,
+                                        joinedAt: joined,
+                                        lastSeen: data.lastSeen
+                                    });
+                                }
                             }
                         }
-                    }
-                });
+                    });
 
-                // [순서 고정]: 활동 시간차로 순서가 뒤집히지 않도록 '최초 입장 시간(joinedAt)' 오름차순으로 완벽 고정
-                const activeUsers = Array.from(seenUsers.values());
-                activeUsers.sort((a, b) => (a.joinedAt || 0) - (b.joinedAt || 0));
+                    // [순서 완벽 고정]: 이름 가나다순으로 고정 정렬
+                    const activeUsers = Array.from(seenUsers.values());
+                    activeUsers.sort((a, b) => a.user.localeCompare(b.user, 'ko'));
 
-                lastOnlineCount = Math.max(1, activeUsers.length);
-                updateWelcomeUserDisplay(activeUsers);
+                    lastOnlineCount = Math.max(1, activeUsers.length);
+                    updateWelcomeUserDisplay(activeUsers);
+                }, 600);
             }, (err) => {
                 updateWelcomeUserDisplay([]);
             });

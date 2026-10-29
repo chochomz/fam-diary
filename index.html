@@ -341,6 +341,10 @@
             if (authGate) authGate.style.backgroundColor = activeBg;
             document.body.style.backgroundColor = activeBg;
             document.documentElement.style.backgroundColor = activeBg;
+            const topEdge = document.getElementById('safari-top-edge');
+            const bottomEdge = document.getElementById('safari-bottom-edge');
+            if (topEdge) topEdge.style.backgroundColor = activeBg;
+            if (bottomEdge) bottomEdge.style.backgroundColor = activeBg;
 
             if (isOddDay) {
                 svgStage.innerHTML = `

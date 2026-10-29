@@ -90,39 +90,55 @@
             position: relative;
             width: 100vw;
             height: 100dvh;
-            margin: 0; padding: 0;
+            margin: 0; 
+            padding-top: max(env(safe-area-inset-top, 0px), 10px);
+            padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 90px); /* 하단 바 간섭 완전 차단 */
             display: flex; align-items: center; justify-content: center;
             pointer-events: none; user-select: none;
             -webkit-user-select: none;
             overflow: hidden;
             background-color: #FFFFFF;
+            box-sizing: border-box;
+            transform: translateY(-16px); /* 전체 SVG를 위로 여유있게 배치하여 테두리 온전 보호 */
         }
 
         #monthly-svg-stage svg.full-bleed-svg {
             width: 100%; height: 100%;
+            max-height: calc(100dvh - 110px); /* 상하 테두리 잘림 완전 방지 */
             display: block; pointer-events: none; user-select: none;
         }
 
-        /* [방안 A: 최하단 안전 영역 플로팅 도크 - SVG 그림 및 글자 겹침 0%] */
+        /* [하단 3회 터치 시 페이드인되는 플로팅 바 & 두꺼운 빨간색 사각형 커서] */
         #code-auth-box {
             position: absolute;
             left: 50%;
-            bottom: max(env(safe-area-inset-bottom, 0px), 8px);
+            bottom: calc(env(safe-area-inset-bottom, 0px) + 24px);
             transform: translateX(-50%);
-            z-index: 35;
-            opacity: 1;
-            pointer-events: auto;
+            z-index: 45;
+            opacity: 0; /* 초기 숨김 상태 */
+            pointer-events: none;
             display: flex;
             align-items: center;
             justify-content: center;
-            background-color: rgba(0, 0, 0, 0.12);
-            backdrop-filter: blur(8px);
-            -webkit-backdrop-filter: blur(8px);
-            border: 1px solid rgba(255, 255, 255, 0.22);
+            background-color: rgba(0, 0, 0, 0.24);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.35);
             border-radius: 9999px;
-            padding: 7px 16px;
-            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+            padding: 8px 18px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
             user-select: none;
+            transition: opacity 0.35s cubic-bezier(0.2, 0.9, 0.3, 1), transform 0.35s ease;
+        }
+
+        /* 하단 3회 터치 감지 영역 (화면 하단 30%) */
+        #bottom-tap-trigger-zone {
+            position: absolute;
+            left: 0; right: 0; bottom: 0;
+            height: 35vh;
+            z-index: 30;
+            cursor: pointer;
+            -webkit-tap-highlight-color: transparent;
         }
 
         .auth-label {
@@ -213,7 +229,10 @@
             <button type="button" onclick="goToAdminPage(event)" aria-label="관리자 페이지" class="w-full h-full bg-transparent border-0 focus:outline-none"></button>
         </div>
 
-        <!-- [방안 A: 최하단 안착 Code ____  ID ______  auto □] -->
+        <!-- [하단 3회 터치 감지 존] -->
+        <div id="bottom-tap-trigger-zone" onclick="handleBottomThreeTap(event)" onpointerdown="event.stopPropagation();"></div>
+
+        <!-- [하단 3회 터치 시 노출되는 Code ____  ID ______  auto □] -->
         <div id="code-auth-box" onpointerdown="event.stopPropagation();">
             <div class="flex items-center space-x-2">
                 <!-- Code 영역 (4자리) -->
@@ -402,17 +421,48 @@
         let isCodePassed = false;
         let isLoginTransitioning = false;
 
-        // [화면 진입 시 Code 입력창 자동 포커스 및 두꺼운 빨간색 사각형 커서 활성화]
-        function focusInitialCodeInput() {
-            const codeInput = document.getElementById('input-family-code');
-            if (codeInput && !isLoginTransitioning) {
-                setTimeout(() => {
-                    try { codeInput.focus(); } catch(e) {}
-                }, 150);
+        // [하단 화면 3회 터치 시 Code/ID 창 노출 및 Code 자동 포커스]
+        let bottomTapCount = 0;
+        let bottomTapTimer = null;
+        let lastBottomTapTime = 0;
+
+        window.handleBottomThreeTap = function(e) {
+            if (isLoginTransitioning) return;
+            if (e && e.target && e.target.closest('#code-auth-box')) return;
+
+            const now = Date.now();
+            if (now - lastBottomTapTime < 180) return;
+            lastBottomTapTime = now;
+
+            bottomTapCount++;
+            if (bottomTapCount >= 3) {
+                bottomTapCount = 0;
+                clearTimeout(bottomTapTimer);
+
+                const authBox = document.getElementById('code-auth-box');
+                const codeInput = document.getElementById('input-family-code');
+
+                if (authBox) {
+                    authBox.style.opacity = '1';
+                    authBox.style.pointerEvents = 'auto';
+                }
+
+                if (navigator.vibrate) {
+                    try { navigator.vibrate([30, 40, 30]); } catch(err) {}
+                }
+
+                if (codeInput) {
+                    setTimeout(() => {
+                        try { codeInput.focus(); } catch(err) {}
+                    }, 120);
+                }
+            } else {
+                clearTimeout(bottomTapTimer);
+                bottomTapTimer = setTimeout(() => {
+                    bottomTapCount = 0;
+                }, 900);
             }
-        }
-        window.addEventListener('DOMContentLoaded', focusInitialCodeInput);
-        window.addEventListener('load', focusInitialCodeInput);
+        };
 
         // [auto □ 보안 저장 관리: 이름 화면 노출 절대 차단]
         function getStoredAutoName() {

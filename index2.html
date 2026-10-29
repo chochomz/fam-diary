@@ -1520,34 +1520,27 @@
             const author = authorName || currentUser || '우리가족';
             const countText = `${postIndex}번째`;
 
-            let snippet = "";
-            if (postContent) {
-                const plain = postContent.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
-                if (plain) {
-                    snippet = plain.length > 50 ? plain.substring(0, 48) + "..." : plain;
-                }
-            }
-
             pendingKakaoShareData = {
                 author: author,
                 postIndex: postIndex,
                 countText: countText,
-                snippet: snippet,
                 imageUrl: postFirstImage || ""
             };
 
             const appUrl = `${window.location.origin}${window.location.pathname.replace(/\/[^/]*$/, '/index.html')}`;
-            let shareText = `[우리 가족 이야기 📖]\n${author} 님이 ❤️가족 웹북에 새로운 이야기(${countText})를 올렸습니다.`;
-            if (snippet) {
-                shareText += `\n\n"${snippet}"`;
-            }
-            shareText += `\n\n👉 가족 이야기 보러가기 :\n${appUrl}`;
+            const shareText = `우리 가족 아름다운 이야기를\n${author}님이 ${countText} 올렸어요\n\n👉 보러가기 :\n${appUrl}`;
 
             pendingKakaoShareText = shareText;
 
             const previewEl = document.getElementById('kakao-share-preview-text');
             if (previewEl) {
-                previewEl.innerText = `${author} 님이 ❤️가족 웹북에 새로운 이야기(${countText})를 올렸습니다.` + (snippet ? `\n"${snippet}"` : '');
+                previewEl.innerHTML = `
+                    <div class="space-y-1 py-0.5">
+                        <p class="font-bold text-gray-800 text-[11.5px]">우리 가족 아름다운 이야기를</p>
+                        <p class="font-semibold text-emerald-800 text-[11px]">${author}님이 ${countText} 올렸어요</p>
+                        <p class="text-blue-600 text-[10.5px] font-bold underline pt-0.5">👉 보러가기</p>
+                    </div>
+                `;
             }
             const modal = document.getElementById('kakao-share-confirm-modal');
             if (modal) {
@@ -1588,19 +1581,20 @@
 
             const appUrl = `${window.location.origin}${window.location.pathname.replace(/\/[^/]*$/, '/index.html')}`;
             const logoUrl = `${window.location.origin}${window.location.pathname.replace(/\/[^/]*$/, '/flogo.png')}`;
-            const imgUrl = (data.imageUrl && (data.imageUrl.startsWith('http://') || data.imageUrl.startsWith('https://'))) 
-                ? data.imageUrl 
-                : logoUrl;
+            const hasValidImage = data.imageUrl && (data.imageUrl.startsWith('http://') || data.imageUrl.startsWith('https://'));
+            const finalImgUrl = hasValidImage ? data.imageUrl : logoUrl;
 
-            // 2-A. 카카오 JavaScript SDK 키가 등록된 경우: 카카오톡 앱 즉시 실행 및 피드 카드 발송
+            // 2-A. 카카오 JavaScript SDK 키가 등록된 경우: 방안 B(최소 높이 슬림 썸네일 + 3줄 카드) 발송
             if (window.Kakao && window.Kakao.isInitialized && window.Kakao.isInitialized()) {
                 try {
                     window.Kakao.Share.sendDefault({
                         objectType: 'feed',
                         content: {
-                            title: '우리 가족 이야기 📖',
-                            description: `${data.author || '우리가족'} 님이 새로운 이야기(${data.countText || '새 소식'})를 올렸습니다.${data.snippet ? '\n"' + data.snippet + '"' : ''}`,
-                            imageUrl: imgUrl,
+                            title: '우리 가족 아름다운 이야기를',
+                            description: `${data.author || '우리가족'}님이 ${data.countText || '새 글'} 올렸어요`,
+                            imageUrl: finalImgUrl,
+                            imageWidth: 600,
+                            imageHeight: 180, // 가로 대비 세로 비율을 3.3:1로 슬림하게 압축하여 사진 높이를 최소화!
                             link: {
                                 mobileWebUrl: appUrl,
                                 webUrl: appUrl
@@ -1608,7 +1602,7 @@
                         },
                         buttons: [
                             {
-                                title: '가족 이야기 보러가기',
+                                title: '👉 보러가기',
                                 link: {
                                     mobileWebUrl: appUrl,
                                     webUrl: appUrl

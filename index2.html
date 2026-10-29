@@ -1857,6 +1857,7 @@
         }
 
         let selectedImagesList = [];
+        let originalEditingImages = [];
         let postToDeleteId = null;
         let isAuthReady = false;
         let currentDbStatus = 'connecting';
@@ -1991,17 +1992,18 @@
             console.error("Firebase 초기화 에러:", e);
         }
 
+        let isStorageFallbackActive = false;
         async function uploadPhotoToStorage(dataUrl, folderName = 'family_photos') {
             if (!dataUrl || typeof dataUrl !== 'string') return dataUrl;
             if (dataUrl.startsWith('http://') || dataUrl.startsWith('https://')) {
                 return dataUrl;
             }
-            if (!storage || !dataUrl.startsWith('data:image/')) {
+            if (!storage || isStorageFallbackActive || !dataUrl.startsWith('data:image/')) {
                 return dataUrl;
             }
 
             const timeoutPromise = new Promise((_, reject) => 
-                setTimeout(() => reject(new Error("Storage timeout")), 4000)
+                setTimeout(() => reject(new Error("Storage timeout")), 2500)
             );
 
             const uploadPromise = (async () => {
@@ -2014,6 +2016,7 @@
             try {
                 return await Promise.race([uploadPromise, timeoutPromise]);
             } catch (err) {
+                isStorageFallbackActive = true;
                 console.warn("Storage 사진 업로드 경고 (DataURL 안전 폴백):", err);
                 return dataUrl;
             }
@@ -4215,6 +4218,7 @@ initAuth();
             selectPostFont(existingFont || 'pretendard', false);
 
             selectedImagesList = Array.isArray(existingImages) ? [...existingImages] : (existingImages ? [existingImages] : []);
+            originalEditingImages = [...selectedImagesList];
             editingPhotoCaptionsList = [];
             if (postId) {
                 const editPostObj = cachedPosts.find(p => p.id === postId || String(p.id) === String(postId));
@@ -4232,13 +4236,15 @@ initAuth();
                 if (editTargetPost && (editTargetPost.fileName || editTargetPost.fileId)) {
                     const matchedFile = cachedMokjangFiles.find(f => f.id === editTargetPost.fileId || f.fileName === editTargetPost.fileName);
                     if (matchedFile) {
-                        currentAttachedFile = { ...matchedFile };
+                        currentAttachedFile = { ...matchedFile, isExisting: true };
                     } else {
                         currentAttachedFile = {
+                            id: editTargetPost.fileId || null,
                             fileName: editTargetPost.fileName,
                             fileSize: editTargetPost.fileSize,
                             fileType: editTargetPost.fileType || 'application/octet-stream',
-                            dataUrl: editTargetPost.fileDataUrl || ''
+                            dataUrl: editTargetPost.fileDataUrl || '',
+                            isExisting: true
                         };
                     }
                     if (fileTitleInput) fileTitleInput.value = editTargetPost.fileTitle || '';
@@ -4259,6 +4265,7 @@ initAuth();
         window.closeWriteModal = function() {
             document.getElementById('write-modal').classList.add('hidden');
             selectedImagesList = [];
+            originalEditingImages = [];
             currentAttachedFile = null;
             renderAttachedFileUI();
             const contentEl = document.getElementById('post-content');
@@ -4464,30 +4471,35 @@ initAuth();
 
             // [1단계: 1. 저장 준비 및 용량검사 (20%)]
             setUploadProgressStage(1, false);
-            await new Promise(r => setTimeout(r, 140));
+            await new Promise(r => setTimeout(r, 60));
 
             try {
+                const isImagesUnchanged = Boolean(
+                    postId &&
+                    finalImages.length === originalEditingImages.length &&
+                    finalImages.every((img, idx) => img === originalEditingImages[idx])
+                );
+
                 // [2단계: 2. 사진 고효율 압축처리 (40%)]
                 setUploadProgressStage(2, false);
-                await new Promise(r => setTimeout(r, 160));
+                if (!isImagesUnchanged) {
+                    await new Promise(r => setTimeout(r, 60));
+                }
 
                 // [3단계: 3. 클라우드 저장소 업로드 (60%)]
                 setUploadProgressStage(3, false);
-                const uploadedImages = [];
-                for (let i = 0; i < finalImages.length; i++) {
-                    const imgData = finalImages[i];
-                    if (imgData.startsWith('http://') || imgData.startsWith('https://')) {
-                        uploadedImages.push(imgData);
-                    } else {
-                        setUploadProgressStage(3, false);
-                        const url = await uploadPhotoToStorage(imgData);
-                        uploadedImages.push(url);
-                    }
-                }
+                const uploadedImages = isImagesUnchanged
+                    ? [...finalImages]
+                    : await Promise.all(finalImages.map(imgData => {
+                        if (!imgData || imgData.startsWith('http://') || imgData.startsWith('https://') || (postId && originalEditingImages.includes(imgData))) {
+                            return Promise.resolve(imgData);
+                        }
+                        return uploadPhotoToStorage(imgData);
+                    }));
 
                 // [4단계: 4. 저장소 위치 정리 (80%)]
                 setUploadProgressStage(4, false);
-                await new Promise(r => setTimeout(r, 140));
+                await new Promise(r => setTimeout(r, 50));
 
                 let savedFileId = null;
                 let savedFileName = null;
@@ -4496,7 +4508,16 @@ initAuth();
                 const fileTitleInput = document.getElementById('post-file-title');
                 const fileTitle = fileTitleInput ? fileTitleInput.value.trim().substring(0, 15) : '';
 
-                if (fileToSave) {
+                if (fileToSave && fileToSave.isExisting) {
+                    savedFileId = fileToSave.id || null;
+                    savedFileName = fileToSave.fileName;
+                    savedFileSize = fileToSave.fileSize;
+                    if (savedFileId && fileTitle) {
+                        try {
+                            await updateDoc(doc(db, 'family_files', savedFileId), { title: fileTitle });
+                        } catch (e) {}
+                    }
+                } else if (fileToSave) {
                     const fileDocRef = await addDoc(collection(db, 'family_files'), {
                         title: fileTitle || fileToSave.fileName,
                         fileName: fileToSave.fileName,
@@ -4528,11 +4549,13 @@ initAuth();
                     const updatePayload = {
                         content: content,
                         fontFamily: currentSelectedFont || 'pretendard',
-                        images: uploadedImages,
-                        imageUrl: uploadedImages.length > 0 ? uploadedImages[0] : "",
                         photoCaptions: reindexedCaptions,
                         updatedAt: new Date()
                     };
+                    if (!isImagesUnchanged) {
+                        updatePayload.images = uploadedImages;
+                        updatePayload.imageUrl = uploadedImages.length > 0 ? uploadedImages[0] : "";
+                    }
                     if (savedFileId) {
                         updatePayload.fileId = savedFileId;
                         updatePayload.fileName = savedFileName;

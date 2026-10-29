@@ -1536,10 +1536,8 @@
             const previewEl = document.getElementById('kakao-share-preview-text');
             if (previewEl) {
                 previewEl.innerHTML = `
-                    <div class="space-y-1 py-0.5">
-                        <p class="font-bold text-gray-800 text-[11.5px]">우리 가족 아름다운 이야기를</p>
-                        <p class="font-semibold text-emerald-800 text-[11px]">${author}님이 ${countText} 올렸어요</p>
-                        <p class="text-blue-600 text-[10.5px] font-bold underline pt-0.5">👉 보러가기</p>
+                    <div class="py-1 text-center">
+                        <p class="font-bold text-gray-800 text-xs">${author}님이 <span class="text-emerald-800">${countText}</span> 아름다운 이야기를 올렸습니다.</p>
                     </div>
                 `;
             }
@@ -1591,25 +1589,16 @@
                     window.Kakao.Share.sendDefault({
                         objectType: 'feed',
                         content: {
-                            title: '우리 가족 아름다운 이야기를',
-                            description: `${data.author || '우리가족'}님이 ${data.countText || '새 글'} 올렸어요`,
-                            imageUrl: finalImgUrl,
-                            imageWidth: 600,
-                            imageHeight: 180, // 가로 대비 세로 비율을 3.3:1로 슬림하게 압축하여 사진 높이를 최소화!
+                            title: '우리 가족 이야기',
+                            description: `${data.author || '우리가족'}님이 ${data.countText || ''} 아름다운 이야기를 올렸습니다.`,
+                            imageUrl: logoUrl,
+                            imageWidth: 200,
+                            imageHeight: 200,
                             link: {
                                 mobileWebUrl: appUrl,
                                 webUrl: appUrl
                             }
-                        },
-                        buttons: [
-                            {
-                                title: '👉 보러가기',
-                                link: {
-                                    mobileWebUrl: appUrl,
-                                    webUrl: appUrl
-                                }
-                            }
-                        ]
+                        }
                     });
                     showNotification("카카오톡 가족 단톡방을 선택해 주세요.");
                     return;
@@ -6181,9 +6170,7 @@ initAuth();
             const headerHtml = `
                 <div class="flex items-center justify-between pb-2 mb-2 border-b border-gray-100 w-full">
                     <div class="flex items-center space-x-2">
-                        <div class="w-7 h-7 rounded-full church-accent church-primary-text flex items-center justify-center font-bold text-xs shrink-0 shadow-2xs">
-                            ${escapeHtml((post.author || 'M').charAt(0))}
-                        </div>
+                        
                         <div>
                             <h4 class="text-xs font-bold text-gray-800 leading-tight">${escapeHtml(post.author || '우리가족')}</h4>
                             <p class="text-[9.5px] text-gray-400 leading-none mt-0.5">${formatDate(post.createdAt)}</p>
@@ -6234,9 +6221,7 @@ initAuth();
             const headerHtml = `
                 <div class="flex items-center justify-between pb-2 mb-2 border-b border-gray-100 w-full">
                     <div class="flex items-center space-x-2">
-                        <div class="w-7 h-7 rounded-full church-accent church-primary-text flex items-center justify-center font-bold text-xs shrink-0 shadow-2xs">
-                            ${escapeHtml((post.author || 'M').charAt(0))}
-                        </div>
+                        
                         <div>
                             <h4 class="text-xs font-bold text-gray-800 leading-tight">${escapeHtml(post.author || '우리가족')}</h4>
                             <p class="text-[9.5px] text-gray-400 leading-none mt-0.5">${formatDate(post.createdAt)}</p>
@@ -6675,9 +6660,7 @@ initAuth();
                     <div class="w-full bg-white rounded-xl border border-gray-200 shadow-2xs p-2.5 box-border text-left pdf-render-card flex flex-col justify-between h-full">
                         <div>
                             <div class="flex items-center space-x-1.5 pb-1 mb-1 border-b border-gray-100">
-                                <div class="w-5 h-5 rounded-full church-accent church-primary-text flex items-center justify-center font-bold text-[9.5px] shrink-0">
-                                    ${escapeHtml((post.author || 'M').charAt(0))}
-                                </div>
+                                
                                 <span class="text-[11px] font-bold text-gray-800 truncate">${escapeHtml(post.author || '우리가족')}</span>
                                 <span class="text-[8.5px] text-gray-400 ml-auto whitespace-nowrap">${formatDate(post.createdAt)}</span>
                             </div>

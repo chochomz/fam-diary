@@ -15,7 +15,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
     
-    <!-- [사파리/크롬 상하단 바 순백색 고정] -->
+    <!-- [상·하단 바 순백색 고정] -->
     <meta name="theme-color" content="#FFFFFF">
     <meta name="theme-color" media="(prefers-color-scheme: light)" content="#FFFFFF">
     <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#FFFFFF">
@@ -25,11 +25,6 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        :root {
-            --auth-box-left: 50%;
-            --auth-box-top: 70%;
-        }
-
         html, body {
             width: 100%; height: 100%; max-width: 100vw; overflow: hidden;
             font-family: 'Pretendard', sans-serif; 
@@ -42,7 +37,7 @@
             margin: 0; padding: 0;
         }
 
-        /* [사파리 상하단 바 흰색 고정 엣지] */
+        /* [상·하단 바 흰색 고정 엣지] */
         #safari-top-edge {
             position: fixed; top: 0; left: 0; right: 0;
             height: env(safe-area-inset-top, 0px);
@@ -58,6 +53,7 @@
             pointer-events: none;
         }
 
+        /* [슬라이드 전환 애니메이션] */
         @keyframes slideUpGate {
             0% { transform: translateY(0); }
             100% { transform: translateY(-100%); }
@@ -107,52 +103,63 @@
             display: block; pointer-events: none; user-select: none;
         }
 
-        /* [수정: 배경 투명 일체형 언더라인 로그인 바 & 두꺼운 빨간색 사각형 블록 커서] */
+        /* [방안 A: 최하단 안전 영역 플로팅 도크 - SVG 그림 및 글자 겹침 0%] */
         #code-auth-box {
             position: absolute;
-            left: var(--auth-box-left);
-            top: var(--auth-box-top);
-            transform: translate(-50%, -50%);
-            z-index: 30;
-            opacity: 1; /* 처음부터 바로 표시되어 커서 깜빡임 */
+            left: 50%;
+            bottom: calc(env(safe-area-inset-bottom, 0px) + 38px);
+            transform: translateX(-50%);
+            z-index: 35;
+            opacity: 1;
             pointer-events: auto;
             display: flex;
             align-items: center;
             justify-content: center;
-            background-color: transparent !important;
-            border: none !important;
-            box-shadow: none !important;
-            padding: 4px 8px;
+            background-color: rgba(0, 0, 0, 0.12);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            border: 1px solid rgba(255, 255, 255, 0.22);
+            border-radius: 9999px;
+            padding: 7px 16px;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
             user-select: none;
         }
 
-        /* 입력창 및 레이블 스타일: 6자리 크기 밑줄 & 투명 배경 */
         .auth-label {
-            font-size: 13.5px;
+            font-size: 13px;
             font-weight: 700;
-            letter-spacing: 0.02em;
+            letter-spacing: 0.04em;
             margin-right: 4px;
-            opacity: 0.9;
+            color: #FFFFFF;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.45);
         }
 
         .auth-underline-input {
-            width: 68px; /* 6자리 기준 여유 폭 */
             background: transparent !important;
             text-align: center;
-            font-size: 16px !important;
+            font-size: 15px !important;
             font-weight: 700;
+            color: #FFFFFF !important;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.45);
             border-radius: 0 !important;
             border: none !important;
-            border-bottom: 2px solid currentColor !important;
+            border-bottom: 2px solid rgba(255, 255, 255, 0.85) !important;
             outline: none !important;
-            padding: 1px 2px 3px 2px;
-            caret-color: #EF4444 !important; /* 빨간색 캐럿 */
-            caret-shape: block !important;  /* 모던 브라우저 두꺼운 블록(사각형) 캐럿 */
-            letter-spacing: 0.08em;
+            padding: 1px 2px 2px 2px;
+            caret-color: #EF4444 !important;
+            caret-shape: block !important;
+            letter-spacing: 0.12em;
             transition: border-color 0.2s, opacity 0.2s;
         }
 
-        /* 블록형 사각형 깜빡임 커서 효과 강화 (모든 환경 호환) */
+        /* Code 4자리(52px), ID 6자리(74px) 맞춤 폭 */
+        #input-family-code {
+            width: 54px;
+        }
+        #input-member-name {
+            width: 76px;
+        }
+
         @keyframes blockCaretBlink {
             0%, 49% { border-right: 7px solid #EF4444; }
             50%, 100% { border-right: 7px solid transparent; }
@@ -162,17 +169,16 @@
         }
 
         #input-member-name:disabled {
-            opacity: 0.35;
+            opacity: 0.38;
             cursor: not-allowed;
+            border-bottom-color: rgba(255, 255, 255, 0.3) !important;
         }
 
-        /* 체크박스 스타일 */
         .auth-auto-check {
-            width: 16px;
-            height: 16px;
+            width: 15px;
+            height: 15px;
             cursor: pointer;
             accent-color: #3B5D50;
-            margin-left: 8px;
             vertical-align: middle;
         }
 
@@ -191,7 +197,7 @@
 </head>
 <body class="flex flex-col h-full w-full max-w-full overflow-hidden bg-[#FFFFFF]">
 
-    <!-- [사파리 상·하단 바 흰색 고정 엣지] -->
+    <!-- [상·하단 바 흰색 고정 엣지] -->
     <div id="safari-top-edge"></div>
     <div id="safari-bottom-edge"></div>
 
@@ -207,27 +213,27 @@
             <button type="button" onclick="goToAdminPage(event)" aria-label="관리자 페이지" class="w-full h-full bg-transparent border-0 focus:outline-none"></button>
         </div>
 
-        <!-- [수정: 배경 투명 언더라인형 Code ______ ID _______ □] -->
+        <!-- [방안 A: 최하단 안착 Code ____  ID ______  auto □] -->
         <div id="code-auth-box" onpointerdown="event.stopPropagation();">
             <div class="flex items-center space-x-2">
-                <!-- Code 영역 -->
+                <!-- Code 영역 (4자리) -->
                 <div class="flex items-center">
-                    <span class="auth-label" id="auth-code-label">Code</span>
-                    <input type="text" id="input-mokjang-code" oninput="handleCodeInput(this)" maxlength="6" inputmode="numeric" pattern="[0-9]*" class="auth-underline-input input-block-cursor">
+                    <span class="auth-label">Code</span>
+                    <input type="text" id="input-family-code" oninput="handleCodeInput(this)" maxlength="4" inputmode="numeric" pattern="[0-9]*" class="auth-underline-input input-block-cursor">
                 </div>
 
-                <!-- 구분 공백 -->
-                <div class="w-2.5"></div>
+                <div class="w-2"></div>
 
-                <!-- ID 영역 -->
+                <!-- ID 영역 (6자리) -->
                 <div class="flex items-center">
-                    <span class="auth-label" id="auth-id-label">ID</span>
+                    <span class="auth-label">ID</span>
                     <input type="text" id="input-member-name" oninput="handleNameInput(this)" onfocus="guardNameInputFocus(this)" maxlength="6" disabled readonly tabindex="-1" class="auth-underline-input input-block-cursor">
                 </div>
 
                 <!-- auto □ 체크박스 -->
-                <label class="flex items-center ml-1 cursor-pointer select-none" title="이름 자동저장">
+                <label class="flex items-center ml-2 space-x-1 cursor-pointer select-none" title="이름 자동저장">
                     <input type="checkbox" id="auto-login-check" onchange="handleAutoCheckChange(this)" class="auth-auto-check">
+                    <span class="text-[10.5px] font-bold text-white/90">auto</span>
                 </label>
             </div>
         </div>
@@ -266,7 +272,7 @@
                 art: `<g opacity="0.7"><line x1="140.0" y1="176.0" x2="164.0" y2="176.0" stroke="#F4D58A" stroke-width="3" stroke-linecap="round"/><line x1="136.0" y1="193.4" x2="157.7" y2="203.8" stroke="#F4D58A" stroke-width="3" stroke-linecap="round"/><line x1="124.9" y1="207.3" x2="139.9" y2="226.0" stroke="#F4D58A" stroke-width="3" stroke-linecap="round"/><line x1="108.9" y1="215.0" x2="114.2" y2="238.4" stroke="#F4D58A" stroke-width="3" stroke-linecap="round"/><line x1="91.1" y1="215.0" x2="85.8" y2="238.4" stroke="#F4D58A" stroke-width="3" stroke-linecap="round"/><line x1="75.1" y1="207.3" x2="60.1" y2="226.0" stroke="#F4D58A" stroke-width="3" stroke-linecap="round"/><line x1="64.0" y1="193.4" x2="42.3" y2="203.8" stroke="#F4D58A" stroke-width="3" stroke-linecap="round"/><line x1="60.0" y1="176.0" x2="36.0" y2="176.0" stroke="#F4D58A" stroke-width="3" stroke-linecap="round"/><line x1="64.0" y1="158.6" x2="42.3" y2="148.2" stroke="#F4D58A" stroke-width="3" stroke-linecap="round"/><line x1="75.1" y1="144.7" x2="60.1" y2="126.0" stroke="#F4D58A" stroke-width="3" stroke-linecap="round"/><line x1="91.1" y1="137.0" x2="85.8" y2="113.6" stroke="#F4D58A" stroke-width="3" stroke-linecap="round"/><line x1="108.9" y1="137.0" x2="114.2" y2="113.6" stroke="#F4D58A" stroke-width="3" stroke-linecap="round"/><line x1="124.9" y1="144.7" x2="139.9" y2="126.0" stroke="#F4D58A" stroke-width="3" stroke-linecap="round"/><line x1="136.0" y1="158.6" x2="157.7" y2="148.2" stroke="#F4D58A" stroke-width="3" stroke-linecap="round"/></g><circle cx="100" cy="176" r="34" fill="#F4D58A"/><path d="M0 200 Q70 174 140 196 T200 190 V270 H0Z" fill="#FFFFFF"/><path d="M0 234 Q80 214 200 232 V270 H0Z" fill="#B7CBE3"/><rect x="122" y="176" width="28" height="22" fill="#6F8CB3"/><polygon points="118,178 136,160 154,178" fill="#23364A"/><rect x="131" y="184" width="9" height="9" fill="#F9D56E"/><polygon points="56,200 66,176 76,200" fill="#6F8CB3"/><polygon points="58,188 66,168 74,188" fill="#6F8CB3"/><rect x="64" y="200" width="4" height="8" fill="#8A6A4B"/><g fill="#fff" opacity="0.88"><circle cx="22" cy="86" r="1.5"/><circle cx="75" cy="123" r="1.9"/><circle cx="128" cy="160" r="2.3"/><circle cx="181" cy="197" r="1.5"/><circle cx="44" cy="234" r="1.9"/><circle cx="97" cy="121" r="2.3"/><circle cx="150" cy="158" r="1.5"/><circle cx="13" cy="195" r="1.9"/><circle cx="66" cy="232" r="2.3"/><circle cx="119" cy="119" r="1.5"/><circle cx="172" cy="156" r="1.9"/><circle cx="35" cy="193" r="2.3"/><circle cx="88" cy="230" r="1.5"/><circle cx="141" cy="117" r="1.9"/></g>`
             },
             2: {
-                title: "소망을 향해", sub: "기도 감사 찬양",
+                title: "소망을 향해", sub: "사랑 감사 행복",
                 oddOuterBg: "#5A2F3E", oddArchBg: "#F3E1E4", oddStroke: "#F4B2A0", oddText: "#F3E1E4",
                 evenBg: "#F3E1E4", evenText: "#5A2F3E",
                 art: `<polygon points="0,254 66,160 132,254" fill="#D9B8C6"/><polygon points="70,254 140,146 214,254" fill="#BE95AB"/><polygon points="140,146 128,166 140,160 152,168" fill="#fff"/><polygon points="66,160 58,174 66,170 74,176" fill="#fff"/><path d="M0 250 Q100 232 200 252 V270 H0Z" fill="#8E6580"/><path d="M100 262 Q150 238 112 214 Q72 190 130 172 Q150 164 140 152" fill="none" stroke="#fff" stroke-width="4" stroke-dasharray="1 8" stroke-linecap="round"/><circle cx="140" cy="122" r="18" fill="#F4B2A0" opacity="0.35"/><polygon points="140.0,110.0 142.9,118.0 151.4,118.3 144.8,123.5 147.1,131.7 140.0,127.0 132.9,131.7 135.2,123.5 128.6,118.3 137.1,118.0" fill="#F4B2A0"/>`
@@ -278,7 +284,7 @@
                 art: `<circle cx="158" cy="118" r="16" fill="#F5D56B"/><g opacity="0.7"><line x1="178.0" y1="118.0" x2="186.0" y2="118.0" stroke="#F5D56B" stroke-width="2.5" stroke-linecap="round"/><line x1="174.2" y1="129.8" x2="180.7" y2="134.5" stroke="#F5D56B" stroke-width="2.5" stroke-linecap="round"/><line x1="164.2" y1="137.0" x2="166.7" y2="144.6" stroke="#F5D56B" stroke-width="2.5" stroke-linecap="round"/><line x1="151.8" y1="137.0" x2="149.3" y2="144.6" stroke="#F5D56B" stroke-width="2.5" stroke-linecap="round"/><line x1="141.8" y1="129.8" x2="135.3" y2="134.5" stroke="#F5D56B" stroke-width="2.5" stroke-linecap="round"/><line x1="138.0" y1="118.0" x2="130.0" y2="118.0" stroke="#F5D56B" stroke-width="2.5" stroke-linecap="round"/><line x1="141.8" y1="106.2" x2="135.3" y2="101.5" stroke="#F5D56B" stroke-width="2.5" stroke-linecap="round"/><line x1="151.8" y1="99.0" x2="149.3" y2="91.4" stroke="#F5D56B" stroke-width="2.5" stroke-linecap="round"/><line x1="164.2" y1="99.0" x2="166.7" y2="91.4" stroke="#F5D56B" stroke-width="2.5" stroke-linecap="round"/><line x1="174.2" y1="106.2" x2="180.7" y2="101.5" stroke="#F5D56B" stroke-width="2.5" stroke-linecap="round"/></g><ellipse cx="36" cy="130" rx="1.6" ry="4" fill="#8CC3E8"/><ellipse cx="60" cy="150" rx="1.6" ry="4" fill="#8CC3E8"/><ellipse cx="46" cy="176" rx="1.6" ry="4" fill="#8CC3E8"/><path d="M0 236 Q100 222 200 238 V270 H0Z" fill="#D4E3B0"/><path d="M24 270 Q100 206 176 270Z" fill="#9B6B4F"/><path d="M100 240 Q96 208 100 180" fill="none" stroke="#6FA84F" stroke-width="5" stroke-linecap="round"/><path d="M100 196 Q68 174 60 192 Q80 206 100 196Z" fill="#A8CC7C"/><path d="M100 184 Q134 152 148 170 Q126 192 100 184Z" fill="#7DB86A"/><path d="M148 252 Q146 238 150 224" fill="none" stroke="#6FA84F" stroke-width="4" stroke-linecap="round"/><path d="M149 236 Q134 224 130 234 Q140 242 149 236Z" fill="#A8CC7C"/><path d="M150 228 Q166 216 172 224 Q164 234 150 228Z" fill="#7DB86A"/>`
             },
             4: {
-                title: "내 마음의 초록", sub: "그리스도의 푸른계절",
+                title: "내 마음의 초록", sub: "우리 가족의 푸른계절",
                 oddOuterBg: "#6B3040", oddArchBg: "#FDEFF2", oddStroke: "#F7D26A", oddText: "#FDEFF2",
                 evenBg: "#FDEFF2", evenText: "#6B3040",
                 art: `<circle cx="160" cy="118" r="16" fill="#F7D26A"/><path d="M0 216 Q100 170 200 210 V270 H0Z" fill="#BFE0A0"/><rect x="96" y="152" width="8" height="50" fill="#8A6A4B"/><rect x="84" y="164" width="32" height="8" fill="#8A6A4B"/><rect x="40" y="172" width="7" height="46" fill="#8A6A4B"/><circle cx="44" cy="160" r="20" fill="#F4A8BE"/><circle cx="30" cy="172" r="14" fill="#F6C3CF"/><circle cx="58" cy="172" r="14" fill="#F6C3CF"/><circle cx="44" cy="148" r="12" fill="#F6C3CF"/><circle cx="164" cy="196" r="14" fill="#7DB86A"/><rect x="162" y="206" width="4" height="14" fill="#8A6A4B"/><ellipse cx="134" cy="140" rx="5" ry="3" fill="#F7D26A" transform="rotate(-30 134 140)"/><ellipse cx="142" cy="140" rx="5" ry="3" fill="#C2506B" transform="rotate(30 142 140)"/><circle cx="70" cy="190" r="2" fill="#F4A8BE"/><circle cx="150" cy="160" r="2" fill="#F4A8BE"/><circle cx="24" cy="210" r="2" fill="#F6C3CF"/>`
@@ -290,7 +296,7 @@
                 art: `<path d="M0 200 Q100 188 200 200 V270 H0Z" fill="#BFE0A0"/><rect x="72" y="150" width="56" height="46" fill="#F9D8C0"/><polygon points="64,152 100,120 136,152" fill="#D2604C"/><rect x="94" y="172" width="12" height="24" fill="#8A4B38"/><circle cx="94" cy="98" r="6" fill="#D9534F"/><circle cx="106" cy="98" r="6" fill="#D9534F"/><polygon points="88,101 112,101 100,114" fill="#D9534F"/><circle cx="66" cy="223.1" r="5.1" fill="#4A6FA5"/><rect x="61.2" y="229.2" width="9.5" height="23.1" fill="#4A6FA5" rx="3.4"/><circle cx="88" cy="224.8" r="4.8" fill="#D2604C"/><rect x="83.5" y="230.6" width="9.0" height="21.8" fill="#D2604C" rx="3.2"/><circle cx="108" cy="233.3" r="3.3" fill="#F29E4C"/><rect x="104.9" y="237.3" width="6.2" height="15.0" fill="#F29E4C" rx="2.2"/><circle cx="126" cy="235.0" r="3.0" fill="#6FBF73"/><rect x="123.2" y="238.6" width="5.6" height="13.6" fill="#6FBF73" rx="2.0"/><line x1="30" y1="262" x2="30" y2="240" stroke="#4E8F3A" stroke-width="2" stroke-linecap="round"/><circle cx="30" cy="238" r="5" fill="#D2604C"/><line x1="168" y1="262" x2="168" y2="242" stroke="#4E8F3A" stroke-width="2" stroke-linecap="round"/><circle cx="168" cy="240" r="5" fill="#F6D365"/><line x1="152" y1="262" x2="152" y2="246" stroke="#4E8F3A" stroke-width="2" stroke-linecap="round"/><circle cx="152" cy="244" r="4" fill="#D2604C"/>`
             },
             6: {
-                title: "따스함을 나눔", sub: "창조의 아름다움",
+                title: "따스함을 나눔", sub: "자연의 아름다움",
                 oddOuterBg: "#1E4A55", oddArchBg: "#D9EEF2", oddStroke: "#9ED3E0", oddText: "#D9EEF2",
                 evenBg: "#D9EEF2", evenText: "#1E4A55",
                 art: `<path d="M16 214 A84 84 0 0 1 184 214" fill="none" stroke="#E57373" stroke-width="8"/><path d="M24 214 A76 76 0 0 1 176 214" fill="none" stroke="#F6B26B" stroke-width="8"/><path d="M32 214 A68 68 0 0 1 168 214" fill="none" stroke="#F6D58E" stroke-width="8"/><path d="M40 214 A60 60 0 0 1 160 214" fill="none" stroke="#8BC48A" stroke-width="8"/><path d="M48 214 A52 52 0 0 1 152 214" fill="none" stroke="#7FB5E0" stroke-width="8"/><path d="M56 214 A44 44 0 0 1 144 214" fill="none" stroke="#9C8FD6" stroke-width="8"/><ellipse cx="34" cy="208" rx="22" ry="10" fill="#fff" opacity="0.95"/><ellipse cx="52" cy="202" rx="16" ry="8" fill="#fff" opacity="0.95"/><ellipse cx="166" cy="208" rx="22" ry="10" fill="#fff" opacity="0.95"/><ellipse cx="150" cy="202" rx="16" ry="8" fill="#fff" opacity="0.95"/><path d="M0 220 Q100 196 200 220 V270 H0Z" fill="#5FAE8A"/><circle cx="30" cy="244" r="5" fill="#F2A5A5"/><circle cx="30" cy="244" r="2" fill="#fff"/><circle cx="62" cy="256" r="5" fill="#F6D58E"/><circle cx="62" cy="256" r="2" fill="#fff"/><circle cx="100" cy="240" r="5" fill="#F2A5A5"/><circle cx="100" cy="240" r="2" fill="#fff"/><circle cx="140" cy="254" r="5" fill="#F6D58E"/><circle cx="140" cy="254" r="2" fill="#fff"/><circle cx="170" cy="242" r="5" fill="#F2A5A5"/><circle cx="170" cy="242" r="2" fill="#fff"/>`
@@ -342,20 +348,8 @@
 
             const d = MONTHLY_DESIGN_DATA[month] || MONTHLY_DESIGN_DATA[5];
             const activeBg = isOddDay ? d.oddOuterBg : d.evenBg;
-            const activeTextColor = isOddDay ? d.oddText : d.evenText;
 
             svgStage.style.backgroundColor = activeBg;
-
-            // [Code, ID 레이블 및 언더라인 색상을 현재 SVG 테마 색상으로 자동 동기화]
-            const codeLabel = document.getElementById('auth-code-label');
-            const idLabel = document.getElementById('auth-id-label');
-            const codeInput = document.getElementById('input-mokjang-code');
-            const nameInput = document.getElementById('input-member-name');
-
-            if (codeLabel) codeLabel.style.color = activeTextColor;
-            if (idLabel) idLabel.style.color = activeTextColor;
-            if (codeInput) codeInput.style.color = activeTextColor;
-            if (nameInput) nameInput.style.color = activeTextColor;
 
             if (isOddDay) {
                 svgStage.innerHTML = `
@@ -408,19 +402,17 @@
         let isCodePassed = false;
         let isLoginTransitioning = false;
 
-        // [화면 처음 열었을 때 Code 입력창에 즉시 빨간색 두꺼운 사각형 커서 깜빡임]
-        function focusCodeInputInitial() {
-            const codeInput = document.getElementById('input-mokjang-code');
+        // [화면 진입 시 Code 입력창 자동 포커스 및 두꺼운 빨간색 사각형 커서 활성화]
+        function focusInitialCodeInput() {
+            const codeInput = document.getElementById('input-family-code');
             if (codeInput && !isLoginTransitioning) {
                 setTimeout(() => {
-                    try {
-                        codeInput.focus();
-                    } catch(e) {}
+                    try { codeInput.focus(); } catch(e) {}
                 }, 150);
             }
         }
-        window.addEventListener('DOMContentLoaded', focusCodeInputInitial);
-        window.addEventListener('load', focusCodeInputInitial);
+        window.addEventListener('DOMContentLoaded', focusInitialCodeInput);
+        window.addEventListener('load', focusInitialCodeInput);
 
         // [auto □ 보안 저장 관리: 이름 화면 노출 절대 차단]
         function getStoredAutoName() {
@@ -453,7 +445,7 @@
         window.guardNameInputFocus = function(nameInput) {
             if (!isCodePassed) {
                 nameInput.blur();
-                const codeInput = document.getElementById('input-mokjang-code');
+                const codeInput = document.getElementById('input-family-code');
                 if (codeInput) codeInput.focus();
             }
         };
@@ -476,24 +468,26 @@
         }
 
         window.handleCodeInput = function(input) {
-            let clean = input.value.replace(/[^0-9]/g, '').slice(0, 6);
+            let clean = input.value.replace(/[^0-9]/g, '').slice(0, 4);
             if (input.value !== clean) input.value = clean;
             
-            let validCode = window.liveFamilyConfig?.mokjangCode || '1111';
+            let validCode = window.liveFamilyConfig?.familyCode || window.liveFamilyConfig?.mokjangCode || '1111';
             try {
                 const rawCfg = localStorage.getItem('family_config_backup');
                 if (rawCfg && !window.liveFamilyConfigLoaded) {
                     const cfg = JSON.parse(rawCfg);
-                    if (cfg.mokjangCode) validCode = String(cfg.mokjangCode).trim();
+                    if (cfg.familyCode || cfg.mokjangCode) {
+                        validCode = String(cfg.familyCode || cfg.mokjangCode).trim();
+                    }
                 }
             } catch(e) {}
 
-            const isCodeCorrect = (clean.length >= 4 && (clean === '1111' || clean === validCode));
+            const isCodeCorrect = (clean.length === 4 && (clean === '1111' || clean === validCode));
 
             if (isCodeCorrect) {
                 setNameInputLocked(false);
                 const storedName = getStoredAutoName();
-                // [요구사항]: check 박스 선택 시 이름 자동저장된 상태라면 code 누르자마자 즉시 index2로 직행
+                // [auto □ 선택 시]: 이름이 저장되어 있으면 Code 4자리 입력 즉시 index2로 직행
                 if (storedName) {
                     const nameInput = document.getElementById('input-member-name');
                     if (nameInput) nameInput.value = storedName;
@@ -517,7 +511,7 @@
         window.handleNameInput = function(input) {
             if (!isCodePassed) {
                 setNameInputLocked(true);
-                const codeInput = document.getElementById('input-mokjang-code');
+                const codeInput = document.getElementById('input-family-code');
                 if (codeInput) codeInput.focus();
                 return;
             }
@@ -528,7 +522,7 @@
 
         function checkAutoLogin() {
             if (!isCodePassed || isLoginTransitioning) return;
-            const codeInput = document.getElementById('input-mokjang-code');
+            const codeInput = document.getElementById('input-family-code');
             const nameInput = document.getElementById('input-member-name');
             const code = codeInput.value.trim();
             const name = nameInput.value.trim();
@@ -541,10 +535,11 @@
                 }
             } catch(e) {}
 
-            const validCode = cfg.mokjangCode ? String(cfg.mokjangCode).trim() : '1111';
-            const familyShort = cfg.mokjangName ? String(cfg.mokjangName).trim().replace(/^우리\s*가족\s*이야기\s*/, '') : '';
-            const leaderName = cfg.leaderName ? String(cfg.leaderName).trim() : '아빠';
-            const subLeaderName = (cfg.subLeaderName || cfg.subleaderName) ? String(cfg.subLeaderName || cfg.subleaderName).trim() : '';
+            const validCode = (cfg.familyCode || cfg.mokjangCode) ? String(cfg.familyCode || cfg.mokjangCode).trim() : '1111';
+            const rawFamilyTitle = cfg.familyName || cfg.mokjangName || '';
+            const familyShort = rawFamilyTitle ? String(rawFamilyTitle).trim().replace(/^우리\s*가족\s*이야기\s*/, '') : '';
+            const leaderName = (cfg.adminFatherName || cfg.leaderName) ? String(cfg.adminFatherName || cfg.leaderName).trim() : '아빠';
+            const subLeaderName = (cfg.adminMotherName || cfg.subLeaderName || cfg.subleaderName) ? String(cfg.adminMotherName || cfg.subLeaderName || cfg.subleaderName).trim() : '';
             const subLeaders = Array.isArray(cfg.subLeaders) ? cfg.subLeaders : [];
             const validMembers = Array.isArray(cfg.members) ? cfg.members.map(m => typeof m === 'object' ? m.name : m) : ['1111'];
             const memberRoles = (cfg.memberRoles && typeof cfg.memberRoles === 'object') ? cfg.memberRoles : {};
@@ -554,7 +549,7 @@
             const isSubLeaderMatch = (code === validCode && ((subLeaderName && name === subLeaderName) || subLeaders.includes(name) || memberRoles[name] === 'subleader'));
             const isMemberMatch = (code === validCode && validMembers.includes(name));
 
-            if (code.length >= 4 && name.length >= 2 && (isDefaultMatch || isLeaderMatch || isSubLeaderMatch || isMemberMatch)) {
+            if (code.length === 4 && name.length >= 2 && (isDefaultMatch || isLeaderMatch || isSubLeaderMatch || isMemberMatch)) {
                 let userRole = 'member';
                 let isAdminBool = false;
 
@@ -595,7 +590,8 @@
                     authorizedFromIndex: true,
                     token: 'tk_' + Date.now() + '_' + Math.random().toString(36).slice(2),
                     userName: finalName,
-                    mokjangShort: finalFamily,
+                    familyShort: finalFamily,
+                    mokjangShort: finalFamily, // 이전 버전 호환성 유지
                     role: userRole,
                     isAdmin: isAdminFlag === '1',
                     issuedAt: Date.now()

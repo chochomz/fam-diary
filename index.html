@@ -107,7 +107,7 @@
         #code-auth-box {
             position: absolute;
             left: 50%;
-            bottom: calc(env(safe-area-inset-bottom, 0px) + 38px);
+            bottom: max(env(safe-area-inset-bottom, 0px), 8px);
             transform: translateX(-50%);
             z-index: 35;
             opacity: 1;

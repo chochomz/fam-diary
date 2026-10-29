@@ -6071,6 +6071,17 @@
                 item.style.clear = 'both';
             });
 
+            const photoImgs = target.querySelectorAll('img.continuous-photo-item');
+            photoImgs.forEach(img => {
+                img.style.width = 'auto';
+                img.style.height = 'auto';
+                img.style.maxWidth = '100%';
+                img.style.maxHeight = '420px';
+                img.style.objectFit = 'contain';
+                img.style.margin = '0 auto';
+                img.style.display = 'block';
+            });
+
             target.querySelectorAll('.no-export').forEach(el => el.style.display = 'none');
         }
 
@@ -6106,7 +6117,9 @@
                 const capInfo = extractPhotoCaptionInfo(rawCap, post.author);
                 return `
                     <div class="w-full flex flex-col border border-gray-100 rounded-xl overflow-hidden bg-gray-50/70 shadow-2xs">
-                        <img src="${url}" alt="사진 ${i+1}" class="w-full ${maxH} object-cover block mx-auto" loading="lazy" decoding="async">
+                        <div class="w-full flex items-center justify-center bg-gray-50 p-0.5">
+                            <img src="${url}" alt="사진 ${i+1}" style="width: auto; height: auto; max-width: 100%; object-fit: contain;" class="${maxH} block mx-auto" loading="lazy" decoding="async">
+                        </div>
                         ${capInfo.text ? `<div class="px-1 py-0.5 bg-gray-50 text-[10px] text-gray-700 leading-snug border-t border-gray-100 text-left"><i class="fa-regular fa-comment-dots text-emerald-600 mr-0.5 text-[9px]"></i><span class="font-bold text-emerald-900 mr-0.5">${escapeHtml(capInfo.author)} :</span>${escapeHtml(capInfo.text)}</div>` : ''}
                     </div>
                 `;
@@ -6470,7 +6483,7 @@
 
             try {
                 const canvas = await html2canvas(targetEl, {
-                    scale: 2,
+                    scale: 1.5,
                     useCORS: true,
                     backgroundColor: '#ffffff',
                     onclone: (clonedDoc) => {
@@ -6480,7 +6493,7 @@
                     }
                 });
 
-                const imgData = canvas.toDataURL('image/jpeg', 0.95);
+                const imgData = canvas.toDataURL('image/jpeg', 0.55);
                 const { jsPDF } = window.jspdf;
                 
                 let pdf;
@@ -6504,7 +6517,7 @@
                     const posX = margin + (contentWidth - imgMmWidth) / 2;
                     const posY = margin + (contentHeight - imgMmHeight) / 2;
 
-                    pdf.addImage(imgData, 'JPEG', posX, posY, imgMmWidth, imgMmHeight);
+                    pdf.addImage(imgData, 'JPEG', posX, posY, imgMmWidth, imgMmHeight, undefined, 'FAST');
                 } else {
                     pdf = new jsPDF('p', 'mm', 'a4');
                     const pageWidth = 210;
@@ -6523,7 +6536,7 @@
                     const posX = margin + (contentWidth - imgMmWidth) / 2;
                     const posY = margin;
 
-                    pdf.addImage(imgData, 'JPEG', posX, posY, imgMmWidth, imgMmHeight);
+                    pdf.addImage(imgData, 'JPEG', posX, posY, imgMmWidth, imgMmHeight, undefined, 'FAST');
                 }
 
                 pdf.save(`우리가족이야기_${postId.substring(0, 6)}_${formatFileDate(new Date())}.pdf`);
@@ -6928,7 +6941,7 @@
                         document.body.appendChild(captureDiv);
 
                         const canvas = await html2canvas(captureDiv, {
-                            scale: 2,
+                            scale: 1.5,
                             useCORS: true,
                             backgroundColor: '#ffffff'
                         });
@@ -6946,8 +6959,8 @@
                         const posX = margin + (contentWidth - imgMmWidth) / 2;
                         const posY = margin + (contentHeight - imgMmHeight) / 2;
 
-                        const pageImgData = canvas.toDataURL('image/jpeg', 0.95);
-                        pdf.addImage(pageImgData, 'JPEG', posX, posY, imgMmWidth, imgMmHeight);
+                        const pageImgData = canvas.toDataURL('image/jpeg', 0.55);
+                        pdf.addImage(pageImgData, 'JPEG', posX, posY, imgMmWidth, imgMmHeight, undefined, 'FAST');
                     }
 
                     generatedAllPdfFileName = `우리가족이야기_PDF백업_가로2열_${formatFileDate(new Date())}.pdf`;
@@ -6977,11 +6990,11 @@
                         </div>
                     `;
                     document.body.appendChild(headerCaptureDiv);
-                    const headCanvas = await html2canvas(headerCaptureDiv, { scale: 2, useCORS: true, backgroundColor: '#ffffff' });
+                    const headCanvas = await html2canvas(headerCaptureDiv, { scale: 1.5, useCORS: true, backgroundColor: '#ffffff' });
                     headerCaptureDiv.remove();
 
                     let headMmHeight = (headCanvas.height * contentWidth) / headCanvas.width;
-                    pdf.addImage(headCanvas.toDataURL('image/jpeg', 0.95), 'JPEG', margin, currentY, contentWidth, headMmHeight);
+                    pdf.addImage(headCanvas.toDataURL('image/jpeg', 0.55), 'JPEG', margin, currentY, contentWidth, headMmHeight, undefined, 'FAST');
                     currentY += headMmHeight + 4;
 
                     for (let i = 0; i < sortedPosts.length; i++) {
@@ -6998,24 +7011,31 @@
                         cardCaptureDiv.innerHTML = createLandscapePageCardHtml(post);
                         document.body.appendChild(cardCaptureDiv);
 
-                        const cardCanvas = await html2canvas(cardCaptureDiv, { scale: 2, useCORS: true, backgroundColor: '#ffffff' });
+                        const cardCanvas = await html2canvas(cardCaptureDiv, { scale: 1.5, useCORS: true, backgroundColor: '#ffffff' });
                         cardCaptureDiv.remove();
 
+                        let imgMmWidth = contentWidth;
                         let imgMmHeight = (cardCanvas.height * contentWidth) / cardCanvas.width;
                         const remainingY = (pageHeight - margin) - currentY;
 
                         if (remainingY >= 50 && imgMmHeight > remainingY && (imgMmHeight - remainingY) <= 50) {
-                            imgMmHeight = remainingY - 2;
+                            const fitHeight = remainingY - 2;
+                            const scaleRatio = fitHeight / imgMmHeight;
+                            imgMmHeight = fitHeight;
+                            imgMmWidth = imgMmWidth * scaleRatio;
                         } else if (imgMmHeight > remainingY) {
                             pdf.addPage();
                             currentY = margin;
                             if (imgMmHeight > contentHeight) {
+                                const scaleRatio = contentHeight / imgMmHeight;
                                 imgMmHeight = contentHeight;
+                                imgMmWidth = imgMmWidth * scaleRatio;
                             }
                         }
 
-                        const pageImgData = cardCanvas.toDataURL('image/jpeg', 0.95);
-                        pdf.addImage(pageImgData, 'JPEG', margin, currentY, contentWidth, imgMmHeight);
+                        const posX = margin + (contentWidth - imgMmWidth) / 2;
+                        const pageImgData = cardCanvas.toDataURL('image/jpeg', 0.55);
+                        pdf.addImage(pageImgData, 'JPEG', posX, currentY, imgMmWidth, imgMmHeight, undefined, 'FAST');
                         currentY += imgMmHeight + 3.5;
                     }
 

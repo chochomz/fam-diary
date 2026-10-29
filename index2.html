@@ -65,11 +65,18 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="dns-prefetch" href="https://firestore.googleapis.com">
     <link rel="dns-prefetch" href="https://firebasestorage.googleapis.com">
-    <!-- [PWA & 모바일 브라우저 최적화 메타 & 인라인 SVG 파비콘] -->
-    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='15' fill='%233B5D50'/%3E%3Cpath d='M16 23s-7-4.35-7-9.5A4.25 4.25 0 0 1 16 10a4.25 4.25 0 0 1 7 3.5C23 18.65 16 23 16 23z' fill='%23ffffff'/%3E%3C/svg%3E">
+    <!-- [PWA & 모바일 브라우저 최적화 메타 & flogo.png 앱 아이콘 / 매니페스트] -->
+    <link rel="icon" type="image/png" href="flogo.png">
+    <link rel="apple-touch-icon" href="flogo.png">
+    <link rel="apple-touch-icon" sizes="152x152" href="flogo.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="flogo.png">
+    <link rel="apple-touch-icon" sizes="192x192" href="flogo.png">
+    <link id="manifest-link" rel="manifest">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <meta name="theme-color" content="#3B5D50">
+    <!-- [카카오톡 공식 JavaScript SDK] -->
+    <script src="https://t1.kakaocdn.net/kakao_js_sdk/2.7.4/kakao.min.js"></script>
     <!-- Pretendard 기본 웹폰트 (초기 렌더링 최적화 병렬 로드) -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard-dynamic-subset.css">
     <!-- Tailwind CSS CDN -->
@@ -159,6 +166,19 @@
             display: inline-block;
             animation: swayWelcome 3.5s ease-in-out infinite;
             transform-origin: center center;
+        }
+
+        /* [요청 2-1: 카톡 공유 모달 살랑살랑 흔들림 애니메이션] */
+        @keyframes swayGentle {
+            0%, 100% { transform: rotate(0deg) translateY(0); }
+            20% { transform: rotate(-3deg) translateY(-2px); }
+            40% { transform: rotate(2.5deg) translateY(1px); }
+            60% { transform: rotate(-2deg) translateY(-1px); }
+            80% { transform: rotate(1.5deg) translateY(0.5px); }
+        }
+        .animate-sway-gentle {
+            animation: swayGentle 2.6s ease-in-out infinite;
+            transform-origin: center top;
         }
 
         @keyframes penLiveMotion {
@@ -479,7 +499,7 @@
         <!-- 중앙 메인 타이틀 ('세' 자와 하단 환영 문구 좌측 수직 라인 일치) -->
         <div class="absolute left-1/2 -translate-x-1/2 top-1/2 -translate-y-1/2 flex items-center justify-center pointer-events-auto max-w-[76vw]">
             <div class="relative flex items-center justify-center"" id="header-mokjang-title-container">
-                <img src="flogo.png" alt="우리 가족 로고" onerror="this.style.display='none'" class="w-[34px] h-[34px] object-contain shrink-0 select-none absolute right-full mr-2 top-1/2 -translate-y-1/2" id="header-church-logo">
+                <img src="flogo.png" alt="우리 가족 로고" onerror="this.style.display='none'" onclick="handleLogoTap(event)" class="w-[34px] h-[34px] object-contain shrink-0 select-none absolute right-full mr-2 top-1/2 -translate-y-1/2 cursor-pointer active:scale-90 transition-transform" id="header-church-logo" title="로고 3번 터치 시 홈 화면에 추가">
                 <div class="flex flex-col items-start text-left min-w-0">
                     <h1 class="header-main-title-text font-black tracking-tight leading-tight whitespace-nowrap select-none relative" id="header-mokjang-title">
                         <span id="title-church-prefix"><span id="title-char-se">우</span>리 가족 이야기</span>
@@ -975,9 +995,9 @@
     </div>
 
     
-    <!-- [카톡방 공유 확인 모달] -->
+    <!-- [카톡방 공유 확인 모달 (살랑살랑 흔들림 적용)] -->
     <div id="kakao-share-confirm-modal" class="fixed inset-0 z-[70] bg-black/60 backdrop-blur-xs flex items-center justify-center p-3 hidden" style="touch-action: none;">
-        <div class="bg-white rounded-2xl w-full max-w-xs p-4 shadow-2xl border church-border text-center space-y-3">
+        <div class="bg-white rounded-2xl w-full max-w-xs p-4 shadow-2xl border church-border text-center space-y-3 animate-sway-gentle">
             <div class="w-11 h-11 bg-yellow-100 text-yellow-800 rounded-full flex items-center justify-center mx-auto text-xl shadow-2xs border border-yellow-200">
                 <i class="fa-solid fa-comment"></i>
             </div>
@@ -1269,7 +1289,7 @@
         </div>
     </div>
 
-    <!-- [이름변경 모달 (목자 전용)] -->
+    <!-- [이름변경 모달 (아빠/엄마 전용)] -->
     <div id="rename-user-modal" class="fixed inset-0 z-[65] bg-black/60 backdrop-blur-xs flex items-center justify-center p-3 hidden" style="touch-action: none;">
         <div class="bg-white rounded-2xl w-full max-w-xs p-4 shadow-2xl border church-border text-center space-y-3">
             <div class="w-10 h-10 bg-emerald-50 text-emerald-700 rounded-full flex items-center justify-center mx-auto text-base border border-emerald-100">
@@ -1287,7 +1307,7 @@
         </div>
     </div>
 
-    <!-- [일반 댓글 수정 모달 (작업 4-다/라: 본인 및 목자 전용 댓글 수정)] -->
+    <!-- [일반 댓글 수정 모달 (본인 및 아빠/엄마 전용 댓글 수정)] -->
     <div id="edit-comment-modal" class="fixed inset-0 z-[65] bg-black/60 backdrop-blur-xs flex items-center justify-center p-3 hidden" style="touch-action: none;">
         <div class="bg-white rounded-2xl w-full max-w-xs p-4 shadow-2xl border church-border text-center space-y-3">
             <div class="w-9 h-9 bg-emerald-50 text-emerald-700 rounded-full flex items-center justify-center mx-auto text-sm border border-emerald-100">
@@ -1306,28 +1326,45 @@
     </div>
 
     
-    <!-- [카카오톡 공유 확인 모달 (우리 가족 이야기 전용)] -->
-    <div id="kakao-share-modal" class="fixed inset-0 z-[80] bg-black/60 backdrop-blur-xs flex items-center justify-center p-3 hidden" style="touch-action: none;">
-        <div class="bg-white rounded-2xl w-full max-w-xs p-4 shadow-2xl border church-border text-center space-y-3 animate-sway-welcome">
-            <div class="w-12 h-12 bg-amber-100 text-amber-800 rounded-2xl flex items-center justify-center mx-auto text-xl shadow-2xs border border-amber-200">
-                <i class="fa-solid fa-comment-dots text-[#3A1D1D] text-2xl"></i>
+
+
+    <!-- [홈화면에 추가 안내 모달 (로고 3회 터치)] -->
+    <div id="install-home-screen-modal" class="fixed inset-0 z-[85] bg-black/60 backdrop-blur-xs flex items-center justify-center p-3 hidden" style="touch-action: none;">
+        <div class="bg-white rounded-2xl w-full max-w-xs p-4 shadow-2xl border church-border text-center space-y-3.5">
+            <div class="relative w-16 h-16 mx-auto rounded-2xl overflow-hidden shadow-md border-2 border-emerald-600/60 bg-emerald-50 flex items-center justify-center p-1.5">
+                <img src="flogo.png" alt="앱 아이콘" class="w-full h-full object-contain">
             </div>
             <div>
-                <h4 class="text-sm font-bold text-gray-800">카톡방 공유</h4>
-                <p class="text-xs text-gray-600 mt-1 font-medium leading-relaxed">
-                    올린글을 카톡방에 공유할까요.?
+                <h4 class="text-sm font-bold text-gray-800">우리 가족 이야기 홈화면 추가</h4>
+                <p class="text-[11.5px] text-gray-600 mt-1 leading-relaxed">
+                    스마트폰 바탕화면에 <strong class="text-emerald-800">가족 앨범 앱 아이콘</strong>을 생성하여 간편하게 접속하세요!
                 </p>
-                <div class="mt-2.5 p-2 bg-amber-50/80 rounded-xl border border-amber-200/80 text-[11px] text-amber-950 font-medium text-left leading-snug break-all shadow-inner">
-                    <span id="kakao-share-preview-text"></span>
-                </div>
             </div>
-            <div class="grid grid-cols-2 gap-2 pt-1">
-                <button type="button" onclick="closeKakaoShareModal()" class="py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl text-xs font-semibold active:scale-95 transition-all">
-                    아니요
+
+            <!-- 디바이스별 추가 실행 영역 -->
+            <div id="pwa-install-action-area" class="w-full">
+                <button type="button" id="pwa-install-btn" onclick="executeInstallPwa()" 
+                        class="w-full py-2.5 church-primary hover:opacity-90 text-white rounded-xl text-xs font-bold shadow-xs active:scale-95 transition-all flex items-center justify-center space-x-1.5">
+                    <i class="fa-solid fa-mobile-screen-button text-xs"></i>
+                    <span>홈화면에 바로 추가하기</span>
                 </button>
-                <button type="button" onclick="executeKakaoShare()" class="py-2.5 bg-[#FEE500] hover:bg-[#FDD835] text-[#191919] rounded-xl text-xs font-bold active:scale-95 transition-all flex items-center justify-center space-x-1 shadow-xs border border-[#E6CF00]">
-                    <i class="fa-solid fa-share-nodes text-xs"></i>
-                    <span>예 (공유)</span>
+            </div>
+
+            <div id="pwa-ios-guide-box" class="hidden text-left bg-emerald-50/80 p-3 rounded-xl border border-emerald-200/80 text-xs text-gray-700 space-y-2">
+                <div class="flex items-center space-x-1.5 text-emerald-800 font-bold text-[11.5px]">
+                    <i class="fa-brands fa-apple text-sm"></i>
+                    <span>아이폰(iOS) 추가 방법</span>
+                </div>
+                <ol class="list-decimal list-inside space-y-1 text-[11px] text-gray-600 pl-0.5 leading-snug">
+                    <li>사파리 화면 하단 중앙의 <strong>공유 버튼 <i class="fa-solid fa-arrow-up-from-bracket text-[10px] text-blue-500"></i></strong> 터치</li>
+                    <li>메뉴를 올려 <strong>'홈 화면에 추가'</strong> 터치</li>
+                    <li>우측 상단 <strong>[추가]</strong>를 누르면 완료!</li>
+                </ol>
+            </div>
+
+            <div class="pt-1 border-t border-gray-100 flex justify-center">
+                <button type="button" onclick="closeInstallHomeScreenModal()" class="w-full py-2 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-xl text-xs font-semibold active:scale-95 transition-all">
+                    닫기
                 </button>
             </div>
         </div>
@@ -1357,17 +1394,153 @@
 
         // [작업 4-가, 나, 다, 라: 로그인 세션 기반 사용자 이름 및 목자/부목자/일반목원 권한 체계 초기화]
         
-        // [카톡방 공유 팝업 및 클립보드 복사 시스템]
-        let pendingKakaoShareText = "";
+        // =========================================================================
+        // [카카오 개발자 센터 JavaScript 앱 키 설정 영역]
+        // 무료 32자리 JavaScript 키를 발급받으신 후 아래 따옴표 사이에 넣어주세요.
+        // 예시: const KAKAO_JAVASCRIPT_KEY = "1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d";
+        // =========================================================================
+        const KAKAO_JAVASCRIPT_KEY = ""; 
 
-        window.openKakaoShareModal = function(authorName, postIndex) {
+        // 카카오 SDK 안전 초기화 함수
+        function initKakaoSDK() {
+            try {
+                if (window.Kakao && !window.Kakao.isInitialized() && KAKAO_JAVASCRIPT_KEY && KAKAO_JAVASCRIPT_KEY.trim()) {
+                    window.Kakao.init(KAKAO_JAVASCRIPT_KEY.trim());
+                }
+            } catch (e) {
+                console.warn("Kakao SDK 초기화 경고:", e);
+            }
+        }
+        initKakaoSDK();
+
+        // [동적 PWA 매니페스트 생성 (flogo.png 아이콘 및 우리 가족 이야기 타이틀 연동)]
+        try {
+            const manifestObj = {
+                name: "우리 가족 이야기",
+                short_name: "가족이야기",
+                start_url: "index.html",
+                display: "standalone",
+                background_color: "#F8F9FA",
+                theme_color: "#3B5D50",
+                icons: [
+                    { src: "flogo.png", sizes: "192x192", type: "image/png", purpose: "any maskable" },
+                    { src: "flogo.png", sizes: "512x512", type: "image/png", purpose: "any maskable" }
+                ]
+            };
+            const stringManifest = JSON.stringify(manifestObj);
+            const manifestBlob = new Blob([stringManifest], { type: 'application/json' });
+            const manifestURL = URL.createObjectURL(manifestBlob);
+            const mLink = document.getElementById('manifest-link');
+            if (mLink) mLink.setAttribute('href', manifestURL);
+        } catch(e) {}
+
+        // [PWA 설치 프롬프트 및 로고 3회 터치 핸들러]
+        let deferredPwaPrompt = null;
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPwaPrompt = e;
+        });
+
+        let logoTapCount = 0;
+        let logoTapTimer = null;
+        window.handleLogoTap = function(e) {
+            if (e) e.stopPropagation();
+            logoTapCount++;
+            if (logoTapTimer) clearTimeout(logoTapTimer);
+
+            if (logoTapCount >= 3) {
+                logoTapCount = 0;
+                if (navigator.vibrate) {
+                    try { navigator.vibrate([30, 40, 30]); } catch(err) {}
+                }
+                openInstallHomeScreenModal();
+            } else {
+                logoTapTimer = setTimeout(() => {
+                    logoTapCount = 0;
+                }, 600);
+            }
+        };
+
+        window.openInstallHomeScreenModal = function() {
+            const isIos = /iPad|iPhone|iPod/.test(navigator.userAgent) || 
+                          (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+            const guide = document.getElementById('pwa-ios-guide-box');
+            const btn = document.getElementById('pwa-install-btn');
+            if (isIos) {
+                if (guide) guide.classList.remove('hidden');
+                if (btn) btn.classList.add('hidden');
+            } else {
+                if (guide) guide.classList.add('hidden');
+                if (btn) btn.classList.remove('hidden');
+            }
+            const modal = document.getElementById('install-home-screen-modal');
+            if (modal) modal.classList.remove('hidden');
+        };
+
+        window.closeInstallHomeScreenModal = function() {
+            const modal = document.getElementById('install-home-screen-modal');
+            if (modal) modal.classList.add('hidden');
+        };
+
+        window.executeInstallPwa = async function() {
+            if (deferredPwaPrompt) {
+                deferredPwaPrompt.prompt();
+                const { outcome } = await deferredPwaPrompt.userChoice;
+                if (outcome === 'accepted') {
+                    showNotification("홈 화면에 바로가기 아이콘이 추가되었습니다.");
+                }
+                deferredPwaPrompt = null;
+                closeInstallHomeScreenModal();
+            } else {
+                const isIos = /iPad|iPhone|iPod/.test(navigator.userAgent) || 
+                              (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+                if (isIos) {
+                    const guide = document.getElementById('pwa-ios-guide-box');
+                    const btn = document.getElementById('pwa-install-btn');
+                    if (guide) guide.classList.remove('hidden');
+                    if (btn) btn.classList.add('hidden');
+                } else {
+                    showNotification("브라우저 메뉴에서 '홈 화면에 추가'를 눌러주세요.");
+                }
+            }
+        };
+
+        // [카톡방 공유 팝업 및 최적화 전송 시스템 (카카오 SDK 카드 & Web Share 지원)]
+        let pendingKakaoShareText = "";
+        let pendingKakaoShareData = null;
+
+        window.openKakaoShareModal = function(authorName, postIndex, postContent = '', postFirstImage = '') {
             const author = authorName || currentUser || '우리가족';
             const countText = `${postIndex}번째`;
-            pendingKakaoShareText = `${author} 님이 ❤️가족 웹북에 새로운 글을 (${countText}) 올렸습니다.`;
-            
+
+            let snippet = "";
+            if (postContent) {
+                const plain = postContent.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+                if (plain) {
+                    snippet = plain.length > 50 ? plain.substring(0, 48) + "..." : plain;
+                }
+            }
+
+            pendingKakaoShareData = {
+                author: author,
+                postIndex: postIndex,
+                countText: countText,
+                snippet: snippet,
+                imageUrl: postFirstImage || ""
+            };
+
+            const appUrl = `${window.location.origin}${window.location.pathname.replace(/\/[^/]*$/, '/index.html')}`;
+            let shareText = `[우리 가족 이야기 📖]\n${author} 님이 ❤️가족 웹북에 새로운 이야기(${countText})를 올렸습니다.`;
+            if (snippet) {
+                shareText += `\n\n"${snippet}"`;
+            }
+            shareText += `\n\n👉 가족 이야기 보러가기 :\n${appUrl}`;
+
+            pendingKakaoShareText = shareText;
+
             const previewEl = document.getElementById('kakao-share-preview-text');
             if (previewEl) {
-                previewEl.textContent = pendingKakaoShareText;
+                previewEl.innerText = `${author} 님이 ❤️가족 웹북에 새로운 이야기(${countText})를 올렸습니다.` + (snippet ? `\n"${snippet}"` : '');
             }
             const modal = document.getElementById('kakao-share-confirm-modal');
             if (modal) {
@@ -1377,6 +1550,7 @@
 
         window.closeKakaoShareModal = function() {
             pendingKakaoShareText = "";
+            pendingKakaoShareData = null;
             const modal = document.getElementById('kakao-share-confirm-modal');
             if (modal) {
                 modal.classList.add('hidden');
@@ -1386,9 +1560,10 @@
         window.executeKakaoShare = async function() {
             if (!pendingKakaoShareText) return;
             const textToShare = pendingKakaoShareText;
+            const data = pendingKakaoShareData || {};
             closeKakaoShareModal();
 
-            // 1. 클립보드에 복사
+            // 1. 클립보드에 기본 복사 (모든 환경 대비)
             try {
                 if (navigator.clipboard && navigator.clipboard.writeText) {
                     await navigator.clipboard.writeText(textToShare);
@@ -1404,26 +1579,63 @@
                 }
             } catch (err) {}
 
-            // 2. 모바일 공유창 (카카오톡 채팅방 선택)
+            const appUrl = `${window.location.origin}${window.location.pathname.replace(/\/[^/]*$/, '/index.html')}`;
+            const logoUrl = `${window.location.origin}${window.location.pathname.replace(/\/[^/]*$/, '/flogo.png')}`;
+            const imgUrl = (data.imageUrl && (data.imageUrl.startsWith('http://') || data.imageUrl.startsWith('https://'))) 
+                ? data.imageUrl 
+                : logoUrl;
+
+            // 2-A. 카카오 JavaScript SDK 키가 등록된 경우: 카카오톡 앱 즉시 실행 및 피드 카드 발송
+            if (window.Kakao && window.Kakao.isInitialized && window.Kakao.isInitialized()) {
+                try {
+                    window.Kakao.Share.sendDefault({
+                        objectType: 'feed',
+                        content: {
+                            title: '우리 가족 이야기 📖',
+                            description: `${data.author || '우리가족'} 님이 새로운 이야기(${data.countText || '새 소식'})를 올렸습니다.${data.snippet ? '\n"' + data.snippet + '"' : ''}`,
+                            imageUrl: imgUrl,
+                            link: {
+                                mobileWebUrl: appUrl,
+                                webUrl: appUrl
+                            }
+                        },
+                        buttons: [
+                            {
+                                title: '가족 이야기 보러가기',
+                                link: {
+                                    mobileWebUrl: appUrl,
+                                    webUrl: appUrl
+                                }
+                            }
+                        ]
+                    });
+                    showNotification("카카오톡 가족 단톡방을 선택해 주세요.");
+                    return;
+                } catch (kakaoErr) {
+                    console.warn("Kakao SDK 전송 실패, 브라우저 공유로 전환:", kakaoErr);
+                }
+            }
+
+            // 2-B. 모바일 Web Share API 지원 환경 (OS 공유창 -> 카카오톡 선택)
             if (navigator.share) {
                 try {
                     await navigator.share({
                         title: '우리 가족 이야기',
                         text: textToShare
                     });
-                    showNotification("카톡방 공유를 진행합니다.");
+                    showNotification("가족 단톡방을 선택하여 공유해 주세요.");
+                    return;
                 } catch (err) {
-                    if (err.name !== 'AbortError') {
-                        showNotification("내용이 복사되었습니다. 카톡방을 열어 붙여넣기 하세요!");
-                    }
+                    if (err.name === 'AbortError') return;
                 }
-            } else {
-                showNotification("내용이 복사되었습니다. 카톡방을 열어 붙여넣기 하세요!");
             }
+
+            // 2-C. PC 브라우저 또는 Web Share 미지원 환경
+            showNotification("공유 문구가 복사되었습니다! 카톡 단톡방에 붙여넣기(Ctrl+V) 해주세요.");
         };
 
         let currentUser = "우리가족";
-        let currentUserRole = "member"; // 'leader' (목자) | 'subleader' (부목자) | 'member' (일반 목원)
+        let currentUserRole = "member"; // 'leader' (아빠/관리자) | 'subleader' (엄마/부관리자) | 'member' (가족 구성원)
         let currentMokjangShort = "";
         let currentMokjang = "우리 가족 이야기";
         let isCurrentUserAdmin = false;
@@ -1451,7 +1663,7 @@
                 }
             }
 
-            // 2. 로컬 백업 설정에서 목장 이름(타이틀) 및 목자·부목자 이름 확인
+            // 2. 로컬 백업 설정에서 타이틀 및 아빠·엄마 이름 확인
             const rawCfg = localStorage.getItem('family_config_backup');
             if (rawCfg) {
                 const parsedCfg = JSON.parse(rawCfg);
@@ -1919,7 +2131,7 @@
                         configuredSubLeaderName = cfg.subLeaderName ? String(cfg.subLeaderName).trim() : "";
                         configuredSubLeaders = Array.isArray(cfg.subLeaders) ? cfg.subLeaders.map(s => String(s).trim()).filter(Boolean) : [];
 
-                        // 로그인한 이름이 목자이면 leader(전체 권한), 부목자이면 subleader(전체 권한), 그 외는 일반 목원(member, 본인 것만 수정·삭제)
+                        // 로그인한 이름이 아빠이면 leader(전체 권한), 엄마이면 subleader(전체 권한), 그 외는 일반 가족 구성원(member, 본인 것만 수정·삭제)
                         const isLeader = (currentUser === configuredLeaderName || currentUser === '아빠' || currentUser === '관리자');
                         const isSubLeader = (!isLeader && ((configuredSubLeaderName && currentUser === configuredSubLeaderName) || configuredSubLeaders.includes(currentUser) || currentUser === '엄마'));
 
@@ -4126,7 +4338,8 @@
                 if (!postId) {
                     setTimeout(() => {
                         const currentCount = (cachedPosts && cachedPosts.length > 0) ? cachedPosts.length : 1;
-                        openKakaoShareModal(currentUser, currentCount);
+                        const firstImg = (uploadedImages && uploadedImages.length > 0) ? uploadedImages[0] : '';
+                        openKakaoShareModal(currentUser, currentCount, content, firstImg);
                     }, 650);
                 }
             } catch (err) {

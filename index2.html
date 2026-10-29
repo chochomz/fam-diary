@@ -77,6 +77,8 @@
     <meta name="theme-color" content="#3B5D50">
     <!-- [카카오톡 공식 JavaScript SDK] -->
     <script src="https://t1.kakaocdn.net/kakao_js_sdk/2.7.4/kakao.min.js"></script>
+    <!-- [메인 타이틀 주아체 & 환영 문구 동글체 즉시 로드] -->
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Dongle:wght@400;700&family=Jua&display=swap">
     <!-- Pretendard 기본 웹폰트 (초기 렌더링 최적화 병렬 로드) -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard-dynamic-subset.css">
     <!-- Tailwind CSS CDN -->
@@ -130,13 +132,15 @@
         .church-border { border-color: #E5E7EB; }
 
         .header-main-title-text {
-            font-size: 18.8px !important;
+            font-family: 'Jua', sans-serif !important;
+            font-size: 19px !important;
             color: #374151 !important;
             background: none !important;
             -webkit-text-fill-color: #374151 !important;
             animation: none !important;
             display: inline-flex;
             align-items: center;
+            letter-spacing: 0.01em;
         }
         .header-title-floating-heart {
             position: absolute;
@@ -504,16 +508,18 @@
         <div class="w-8 shrink-0 flex items-center justify-start" id="header-logo-slot"></div>
 
         <!-- 중앙 메인 타이틀 ('세' 자와 하단 환영 문구 좌측 수직 라인 일치) -->
-        <div class="absolute left-1/2 -translate-x-1/2 top-1/2 -translate-y-1/2 flex items-center justify-center pointer-events-auto max-w-[76vw]">
-            <div class="relative flex items-center justify-center"" id="header-mokjang-title-container">
+        <div class="absolute left-1/2 -translate-x-1/2 top-1/2 -translate-y-1/2 flex items-center justify-center pointer-events-auto max-w-[calc(100vw-84px)] sm:max-w-[320px]">
+            <div class="relative flex items-center justify-center" id="header-mokjang-title-container">
                 <img src="flogo.png" alt="우리 가족 로고" onerror="this.style.display='none'" onclick="handleLogoTap(event)" class="w-[34px] h-[34px] object-contain shrink-0 select-none absolute right-full mr-2 top-1/2 -translate-y-1/2 cursor-pointer active:scale-90 transition-transform" id="header-church-logo" title="로고 3번 터치 시 홈 화면에 추가">
-                <div class="flex flex-col items-start text-left min-w-0">
-                    <h1 class="header-main-title-text font-black tracking-tight leading-tight whitespace-nowrap select-none relative" id="header-mokjang-title">
+                <div class="flex flex-col items-start text-left min-w-0 max-w-[calc(100vw-110px)] sm:max-w-[270px]">
+                    <h1 class="header-main-title-text font-jua tracking-normal leading-tight whitespace-nowrap select-none relative" id="header-mokjang-title">
                         <span id="title-church-prefix"><span id="title-char-se">우</span>리 가족 이야기</span>
                         <span id="title-mokjang-name" class="relative inline-block"></span>
                     </h1>
-                    <!-- 서브 환영 문구 ('세' 자와 상하 같은 시작 라인으로 정렬) -->
-                    <p class="text-[10px] text-gray-500 font-medium truncate whitespace-nowrap leading-none mt-0.5 animate-sway-welcome select-none text-left" id="header-user-display"><span class="text-emerald-600 font-semibold">한분</span> 입장 하셨습니다</p>
+                    <!-- 서브 환영 문구 (동글체, 펜 버튼 직전 길어질 때만 자연스러운 2열 자동 줄바꿈) -->
+                    <p class="font-dongle text-[16px] text-gray-600 font-bold leading-[1.05] break-keep select-none text-left" id="header-user-display">
+                        <span class="text-gray-800 font-bold">우리 가족</span> 들어왔어요
+                    </p>
                 </div>
                 <!-- 타이틀 하트 애니메이션 오버레이 -->
                 <div id="header-title-hearts-layer" class="absolute inset-0 pointer-events-none overflow-visible"></div>
@@ -1891,12 +1897,38 @@
             return `${num}분`;
         }
 
-        function updateWelcomeUserDisplay(count = lastOnlineCount) {
-            lastOnlineCount = Math.max(1, count || 1);
+        let lastOnlineUsersList = [];
+
+        function updateWelcomeUserDisplay(usersOrCount = lastOnlineUsersList) {
             const el = document.getElementById('header-user-display');
             if (!el) return;
-            const countText = getKoreanCountWord(lastOnlineCount);
-            el.innerHTML = `<span class="text-gray-700 font-bold">${escapeHtml(currentUser)}</span>님 <span class="text-emerald-600 font-semibold">${countText}</span> 입장 하셨습니다`;
+
+            let otherNames = [];
+            if (Array.isArray(usersOrCount)) {
+                lastOnlineUsersList = usersOrCount;
+                const unique = new Set();
+                usersOrCount.forEach(item => {
+                    const name = typeof item === 'string' ? item.trim() : (item && item.user ? String(item.user).trim() : '');
+                    if (name && name !== currentUser && !unique.has(name)) {
+                        unique.add(name);
+                        otherNames.push(name);
+                    }
+                });
+            } else if (typeof usersOrCount === 'number') {
+                lastOnlineCount = Math.max(1, usersOrCount);
+            }
+
+            let displayText = '';
+            if (otherNames.length === 0) {
+                displayText = `<span class="text-gray-800 font-bold">${escapeHtml(currentUser)}</span> 님 들어왔어요`;
+            } else if (otherNames.length === 1) {
+                displayText = `<span class="text-gray-800 font-bold">${escapeHtml(currentUser)}</span>와 <span class="text-emerald-700 font-bold">${escapeHtml(otherNames[0])}</span> 들어왔어요`;
+            } else {
+                const formattedOthers = otherNames.map(n => `<span class="text-emerald-700 font-bold">${escapeHtml(n)}</span>`).join(', ');
+                displayText = `<span class="text-gray-800 font-bold">${escapeHtml(currentUser)}</span>와 ${formattedOthers} 들어왔어요`;
+            }
+
+            el.innerHTML = displayText;
         }
 
         // 라이트박스 상태 관리
@@ -3156,6 +3188,7 @@
                 initRecentCommentsNavigatorDrag();
                 initPostLayoutObserver();
                 initFeedPinchZoom();
+                initPullToRefresh();
             } catch (e) {
                 console.warn("익명 인증 경고:", e);
                 isAuthReady = true;
@@ -3576,6 +3609,150 @@
             }
         }
 
+        
+        // [당겨서 새로고침(Pull-to-Refresh) 인앱 리프레시 시스템]
+        function ensurePullRefreshIndicator() {
+            let ind = document.getElementById('pull-refresh-indicator');
+            const feed = document.getElementById('feed-container');
+            if (!feed) return null;
+            if (!ind) {
+                ind = document.createElement('div');
+                ind.id = 'pull-refresh-indicator';
+                ind.className = 'w-full overflow-hidden transition-all duration-200 flex items-center justify-center text-xs text-emerald-800 select-none pointer-events-none';
+                ind.style.height = '0px';
+                ind.style.opacity = '0';
+                ind.innerHTML = `
+                    <div class="flex items-center space-x-1.5 py-1 px-3 bg-emerald-50/95 border border-emerald-200/80 rounded-full shadow-2xs my-1">
+                        <i id="pull-refresh-icon" class="fa-solid fa-arrow-down text-emerald-600 text-xs transition-transform duration-200"></i>
+                        <span id="pull-refresh-text" class="font-semibold text-[11px]">당겨서 새로고침</span>
+                    </div>
+                `;
+            }
+            if (feed.firstChild !== ind) {
+                feed.insertBefore(ind, feed.firstChild);
+            }
+            return ind;
+        }
+
+        function initPullToRefresh() {
+            const feed = document.getElementById('feed-container');
+            if (!feed || feed.__pullRefreshInitialized) return;
+            feed.__pullRefreshInitialized = true;
+            ensurePullRefreshIndicator();
+
+            let startY = 0;
+            let pullDistance = 0;
+            let isPulling = false;
+            let isRefreshing = false;
+            const PULL_THRESHOLD = 65;
+
+            feed.addEventListener('touchstart', (e) => {
+                if (isRefreshing || e.touches.length !== 1) return;
+                if (feed.scrollTop <= 2) {
+                    startY = e.touches[0].clientY;
+                    isPulling = true;
+                } else {
+                    isPulling = false;
+                }
+            }, { passive: true });
+
+            feed.addEventListener('touchmove', (e) => {
+                if (!isPulling || isRefreshing || e.touches.length !== 1) return;
+                const currentY = e.touches[0].clientY;
+                const diff = currentY - startY;
+
+                if (diff > 0 && feed.scrollTop <= 2) {
+                    pullDistance = Math.min(95, diff * 0.42);
+                    if (pullDistance > 8) {
+                        if (e.cancelable) e.preventDefault();
+                        const indicator = ensurePullRefreshIndicator();
+                        const icon = document.getElementById('pull-refresh-icon');
+                        const text = document.getElementById('pull-refresh-text');
+                        if (indicator) {
+                            indicator.style.height = `${pullDistance}px`;
+                            indicator.style.opacity = `${Math.min(1, pullDistance / 45)}`;
+                        }
+                        if (icon && text) {
+                            if (pullDistance >= PULL_THRESHOLD) {
+                                icon.className = 'fa-solid fa-arrow-up text-emerald-700 text-xs transition-transform duration-200';
+                                text.innerText = '손을 놓으면 새로고침';
+                            } else {
+                                icon.className = 'fa-solid fa-arrow-down text-emerald-600 text-xs transition-transform duration-200';
+                                text.innerText = '당겨서 새로고침';
+                            }
+                        }
+                    }
+                } else {
+                    pullDistance = 0;
+                    const indicator = document.getElementById('pull-refresh-indicator');
+                    if (indicator) {
+                        indicator.style.height = '0px';
+                        indicator.style.opacity = '0';
+                    }
+                }
+            }, { passive: false });
+
+            const finishRefresh = async () => {
+                if (!isPulling) return;
+                isPulling = false;
+                const indicator = document.getElementById('pull-refresh-indicator');
+                const icon = document.getElementById('pull-refresh-icon');
+                const text = document.getElementById('pull-refresh-text');
+
+                if (pullDistance >= PULL_THRESHOLD) {
+                    isRefreshing = true;
+                    if (indicator) {
+                        indicator.style.height = '42px';
+                        indicator.style.opacity = '1';
+                    }
+                    if (icon) icon.className = 'fa-solid fa-circle-notch fa-spin text-emerald-600 text-xs';
+                    if (text) text.innerText = '가족 이야기 새로 읽어오는 중...';
+
+                    if (navigator.vibrate) {
+                        try { navigator.vibrate(20); } catch(err) {}
+                    }
+
+                    try {
+                        loadMokjangFeed();
+                        ensureMokjangFilesLoaded();
+                        loadMokjangAdminConfig();
+                        await new Promise(r => setTimeout(r, 600));
+                        showNotification('가족 이야기를 새로 읽어왔습니다 ✨');
+                    } catch(err) {
+                        showNotification('새로고침 완료');
+                    } finally {
+                        isRefreshing = false;
+                        pullDistance = 0;
+                        if (indicator) {
+                            indicator.style.height = '0px';
+                            indicator.style.opacity = '0';
+                        }
+                        setTimeout(() => {
+                            if (icon) icon.className = 'fa-solid fa-arrow-down text-emerald-600 text-xs';
+                            if (text) text.innerText = '당겨서 새로고침';
+                        }, 220);
+                    }
+                } else {
+                    pullDistance = 0;
+                    if (indicator) {
+                        indicator.style.height = '0px';
+                        indicator.style.opacity = '0';
+                    }
+                }
+            };
+
+            feed.addEventListener('touchend', finishRefresh, { passive: true });
+            feed.addEventListener('touchcancel', () => {
+                isPulling = false;
+                pullDistance = 0;
+                const indicator = document.getElementById('pull-refresh-indicator');
+                if (indicator) {
+                    indicator.style.height = '0px';
+                    indicator.style.opacity = '0';
+                }
+            }, { passive: true });
+        }
+
         function initFeedPinchZoom() {
             const feed = document.getElementById('feed-container');
             if (!feed || feed.__pinchZoomInitialized) return;
@@ -3679,23 +3856,28 @@
             onSnapshot(presenceCol, (snapshot) => {
                 const now = Date.now();
                 const timeoutWindow = 45000;
-                let activeCount = 0;
+                const activeUsers = [];
 
                 snapshot.forEach(docSnap => {
                     const data = docSnap.data();
                     if (data && typeof data.lastSeen === 'number') {
                         if (now - data.lastSeen < timeoutWindow) {
-                            activeCount++;
+                            activeUsers.push({
+                                user: data.user,
+                                lastSeen: data.lastSeen,
+                                sessionId: data.sessionId
+                            });
                         } else {
                             try { deleteDoc(docSnap.ref); } catch (e) {}
                         }
                     }
                 });
 
-                activeCount = Math.max(1, activeCount);
-                updateWelcomeUserDisplay(activeCount);
+                activeUsers.sort((a, b) => (b.lastSeen || 0) - (a.lastSeen || 0));
+                lastOnlineCount = Math.max(1, activeUsers.length);
+                updateWelcomeUserDisplay(activeUsers);
             }, (err) => {
-                updateWelcomeUserDisplay(1);
+                updateWelcomeUserDisplay([]);
             });
         }
 
@@ -7484,6 +7666,7 @@
             }
 
             feedContainer.innerHTML = "";
+            ensurePullRefreshIndicator();
             visiblePosts.forEach(post => {
                 const card = buildPostCardElement(post);
                 feedContainer.appendChild(card);

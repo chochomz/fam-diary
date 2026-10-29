@@ -1898,6 +1898,7 @@
         }
 
         let lastOnlineUsersList = [];
+        let lastRenderedWelcomeHtml = '';
 
         function updateWelcomeUserDisplay(usersOrCount = lastOnlineUsersList) {
             const el = document.getElementById('header-user-display');
@@ -1906,11 +1907,9 @@
             let otherNames = [];
             if (Array.isArray(usersOrCount)) {
                 lastOnlineUsersList = usersOrCount;
-                const unique = new Set();
                 usersOrCount.forEach(item => {
                     const name = typeof item === 'string' ? item.trim() : (item && item.user ? String(item.user).trim() : '');
-                    if (name && name !== currentUser && !unique.has(name)) {
-                        unique.add(name);
+                    if (name && name !== currentUser && !otherNames.includes(name)) {
                         otherNames.push(name);
                     }
                 });
@@ -1928,7 +1927,11 @@
                 displayText = `<span class="text-gray-800 font-bold">${escapeHtml(currentUser)}</span>와 ${formattedOthers} 들어왔어요`;
             }
 
-            el.innerHTML = displayText;
+            // 구성원 목록이 실제로 달라졌을 때만 화면 갱신 (반복 깜빡임 및 스레드 낭비 100% 방지)
+            if (lastRenderedWelcomeHtml !== displayText) {
+                lastRenderedWelcomeHtml = displayText;
+                el.innerHTML = displayText;
+            }
         }
 
         // 라이트박스 상태 관리
@@ -3829,24 +3832,28 @@
 
                 initAuth();
 
+        const sessionJoinedAt = Date.now();
+
         function initPresenceSystem() {
             if (!db) return;
 
             const myRef = getPresenceDocRef(sessionId);
 
+            // [최초 접속 시간(joinedAt) 영구 고정 & 하트비트 45초 완화로 스레드/트래픽 최적화]
             const sendHeartbeat = async () => {
                 try {
                     await setDoc(myRef, {
                         sessionId: sessionId,
                         user: currentUser,
+                        joinedAt: sessionJoinedAt,
                         lastSeen: Date.now()
-                    });
+                    }, { merge: true });
                 } catch (e) {}
             };
 
             sendHeartbeat();
             if (onlineHeartbeatTimer) clearInterval(onlineHeartbeatTimer);
-            onlineHeartbeatTimer = setInterval(sendHeartbeat, 15000);
+            onlineHeartbeatTimer = setInterval(sendHeartbeat, 45000);
 
             window.addEventListener('beforeunload', () => {
                 try { deleteDoc(myRef); } catch (e) {}
@@ -3855,25 +3862,31 @@
             const presenceCol = collection(db, 'family_presence');
             onSnapshot(presenceCol, (snapshot) => {
                 const now = Date.now();
-                const timeoutWindow = 45000;
-                const activeUsers = [];
+                const timeoutWindow = 120000; // 2분 내 활동 기준 (네트워크 딜레이 시 깜빡임 방지)
+                const seenUsers = new Map();
 
                 snapshot.forEach(docSnap => {
                     const data = docSnap.data();
                     if (data && typeof data.lastSeen === 'number') {
                         if (now - data.lastSeen < timeoutWindow) {
-                            activeUsers.push({
-                                user: data.user,
-                                lastSeen: data.lastSeen,
-                                sessionId: data.sessionId
-                            });
-                        } else {
-                            try { deleteDoc(docSnap.ref); } catch (e) {}
+                            const rawName = (data.user && data.user.trim()) ? data.user.trim() : '가족';
+                            const joined = data.joinedAt || data.lastSeen;
+                            // 동일 사용자 중복 제거 및 가장 먼저 접속한 시간(joinedAt) 유지
+                            if (!seenUsers.has(rawName) || joined < seenUsers.get(rawName).joinedAt) {
+                                seenUsers.set(rawName, {
+                                    user: rawName,
+                                    joinedAt: joined,
+                                    lastSeen: data.lastSeen
+                                });
+                            }
                         }
                     }
                 });
 
-                activeUsers.sort((a, b) => (b.lastSeen || 0) - (a.lastSeen || 0));
+                // [순서 고정]: 활동 시간차로 순서가 뒤집히지 않도록 '최초 입장 시간(joinedAt)' 오름차순으로 완벽 고정
+                const activeUsers = Array.from(seenUsers.values());
+                activeUsers.sort((a, b) => (a.joinedAt || 0) - (b.joinedAt || 0));
+
                 lastOnlineCount = Math.max(1, activeUsers.length);
                 updateWelcomeUserDisplay(activeUsers);
             }, (err) => {

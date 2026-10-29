@@ -234,8 +234,15 @@
         #feed-container {
             -webkit-overflow-scrolling: touch;
             overflow-y: auto;
+            overflow-x: hidden;
             scrollbar-width: thin;
             padding-bottom: 48vh !important;
+            touch-action: pan-y pinch-zoom;
+            transform-origin: top center;
+            transition: zoom 0.12s ease-out;
+        }
+        #feed-container.feed-zoomed {
+            overflow-x: auto !important;
         }
         #feed-container::-webkit-scrollbar {
             width: 4px;
@@ -1399,7 +1406,7 @@
         // 무료 32자리 JavaScript 키를 발급받으신 후 아래 따옴표 사이에 넣어주세요.
         // 예시: const KAKAO_JAVASCRIPT_KEY = "1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d";
         // =========================================================================
-        const KAKAO_JAVASCRIPT_KEY = "ff7bdc404b2c33f68c64d589ae88ba18"; 
+        const KAKAO_JAVASCRIPT_KEY = ""; 
 
         // 카카오 SDK 안전 초기화 함수
         function initKakaoSDK() {
@@ -3154,6 +3161,7 @@
                 initBookmarkCalendarDrag();
                 initRecentCommentsNavigatorDrag();
                 initPostLayoutObserver();
+                initFeedPinchZoom();
             } catch (e) {
                 console.warn("익명 인증 경고:", e);
                 isAuthReady = true;
@@ -3164,6 +3172,7 @@
                     loadSpecialFonts();
                 }, 2500);
                 initPresenceSystem();
+                initFeedPinchZoom();
             }
         }
 
@@ -3518,7 +3527,136 @@
             });
         }
 
-        initAuth();
+
+        // [메인 타이틀·책갈피 고정 & 피드(글/사진/댓글) 독립 손가락 확대(Pinch-to-Zoom) 시스템]
+        let currentFeedZoom = 1.0;
+        let isPinchingFeed = false;
+
+        function applyFeedZoom(zoomVal, animate = false) {
+            const feed = document.getElementById('feed-container');
+            if (!feed) return;
+
+            // 1.0배(기본)부터 최대 2.8배까지 부드럽게 확대 허용
+            currentFeedZoom = Math.max(1.0, Math.min(2.8, Math.round(zoomVal * 100) / 100));
+
+            if (animate) {
+                feed.style.transition = 'zoom 0.2s cubic-bezier(0.25, 1, 0.5, 1)';
+                setTimeout(() => {
+                    if (feed) feed.style.transition = '';
+                }, 220);
+            } else {
+                feed.style.transition = '';
+            }
+
+            // CSS zoom: 상단 헤더와 측면 책갈피는 100% 원본 크기로 완벽 고정되고 피드 내부만 시원하게 확대됨
+            feed.style.zoom = currentFeedZoom;
+            if (currentFeedZoom > 1.02) {
+                feed.classList.add('feed-zoomed');
+            } else {
+                feed.classList.remove('feed-zoomed');
+            }
+
+            updateFeedZoomBadge();
+        }
+
+        function updateFeedZoomBadge() {
+            let badge = document.getElementById('feed-zoom-reset-badge');
+            if (currentFeedZoom > 1.05) {
+                if (!badge) {
+                    badge = document.createElement('div');
+                    badge.id = 'feed-zoom-reset-badge';
+                    badge.className = 'fixed bottom-5 left-4 z-40 bg-slate-900/90 backdrop-blur-md text-white border border-emerald-500/50 rounded-full px-3 py-1.5 shadow-2xl text-xs font-mono font-bold flex items-center space-x-1.5 cursor-pointer active:scale-90 transition-all select-none animate-bounce';
+                    badge.setAttribute('title', '두 번 터치하거나 누르면 원래 크기(100%)로 복귀합니다');
+                    badge.onclick = (e) => {
+                        e.stopPropagation();
+                        applyFeedZoom(1.0, true);
+                        showNotification('화면 크기가 원래대로(100%) 복귀되었습니다.');
+                    };
+                    document.body.appendChild(badge);
+                }
+                const pct = Math.round(currentFeedZoom * 100);
+                badge.innerHTML = `<i class="fa-solid fa-magnifying-glass-plus text-emerald-400 text-xs"></i><span>${pct}%</span><span class="text-[9px] font-sans font-semibold bg-emerald-700/80 text-white rounded-full px-1.5 py-0.5 ml-0.5">100% 복귀</span>`;
+                badge.classList.remove('hidden');
+            } else if (badge) {
+                badge.classList.add('hidden');
+            }
+        }
+
+        function initFeedPinchZoom() {
+            const feed = document.getElementById('feed-container');
+            if (!feed || feed.__pinchZoomInitialized) return;
+            feed.__pinchZoomInitialized = true;
+
+            let touchStartDist = 0;
+            let baseZoom = 1.0;
+            let lastTapTime = 0;
+
+            // 두 손가락 터치(핀치 줌) 시작
+            feed.addEventListener('touchstart', (e) => {
+                if (e.touches.length === 2) {
+                    isPinchingFeed = true;
+                    touchStartDist = Math.hypot(
+                        e.touches[0].clientX - e.touches[1].clientX,
+                        e.touches[0].clientY - e.touches[1].clientY
+                    );
+                    baseZoom = currentFeedZoom;
+                } else if (e.touches.length === 1) {
+                    // 화면 확대 상태에서 빈 배경 더블 탭 시 즉시 100% 리셋
+                    const now = Date.now();
+                    if (currentFeedZoom > 1.05 && (now - lastTapTime < 320)) {
+                        if (!e.target.closest('button, textarea, input, a, [onclick]')) {
+                            applyFeedZoom(1.0, true);
+                            showNotification('화면 크기가 원래대로(100%) 복귀되었습니다.');
+                        }
+                        lastTapTime = 0;
+                    } else {
+                        lastTapTime = now;
+                    }
+                }
+            }, { passive: true });
+
+            // 두 손가락 벌리기/모으기 (확대 / 축소)
+            feed.addEventListener('touchmove', (e) => {
+                if (e.touches.length === 2 && touchStartDist > 0) {
+                    const currentDist = Math.hypot(
+                        e.touches[0].clientX - e.touches[1].clientX,
+                        e.touches[0].clientY - e.touches[1].clientY
+                    );
+                    if (currentDist > 8) {
+                        if (e.cancelable) e.preventDefault();
+                        const factor = currentDist / touchStartDist;
+                        applyFeedZoom(baseZoom * factor, false);
+                    }
+                }
+            }, { passive: false });
+
+            // 터치 종료 시 마무리 보정
+            feed.addEventListener('touchend', (e) => {
+                if (e.touches.length < 2) {
+                    isPinchingFeed = false;
+                    touchStartDist = 0;
+                    if (currentFeedZoom < 1.05) {
+                        applyFeedZoom(1.0, true);
+                    }
+                }
+            }, { passive: true });
+
+            feed.addEventListener('touchcancel', () => {
+                isPinchingFeed = false;
+                touchStartDist = 0;
+            }, { passive: true });
+
+            // PC 트랙패드 핀치(Ctrl + 마우스 휠) 확대 지원
+            feed.addEventListener('wheel', (e) => {
+                if (e.ctrlKey) {
+                    e.preventDefault();
+                    const delta = e.deltaY > 0 ? -0.12 : 0.12;
+                    applyFeedZoom(currentFeedZoom + delta, false);
+                }
+            }, { passive: false });
+        }
+
+                initAuth();
 
         function initPresenceSystem() {
             if (!db) return;

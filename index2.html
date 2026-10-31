@@ -958,6 +958,21 @@
                          dir="ltr"
                          class="w-full min-h-[84px] max-h-[140px] overflow-y-auto px-3 py-2 rounded-xl border border-gray-200 text-sm focus:border-[#3B5D50] focus:ring-1 focus:ring-[#3B5D50] focus:outline-none bg-white block transition-all shadow-2xs text-left font-pretendard select-text"
                          style="white-space: pre-wrap; word-break: break-word;"></div>
+                    <!-- [긴글쓰기 (최대 1,500자) 두루마리 버튼] -->
+                    <div class="mt-2 pt-1 border-t border-gray-100 flex items-center justify-between">
+                        <button type="button" onclick="openLongTextModal()" id="trigger-long-text-btn"
+                                class="w-full py-2 px-3 rounded-xl border border-dashed border-amber-300/90 bg-amber-50/70 hover:bg-amber-100/80 active:scale-98 transition-all flex items-center justify-between shadow-2xs group"
+                                title="1,500자 이내 고운바탕체 긴글 작성">
+                            <div class="flex items-center space-x-1.5">
+                                <span class="text-base leading-none">📜</span>
+                                <span class="text-xs font-bold text-amber-950">긴글쓰기 (고운바탕체 · 1,500자)</span>
+                            </div>
+                            <div class="flex items-center space-x-1.5">
+                                <span id="long-text-indicator-badge" class="hidden px-2 py-0.5 rounded-full bg-amber-200/90 text-amber-900 text-[10px] font-mono font-bold">0자</span>
+                                <i class="fa-solid fa-chevron-right text-[10px] text-amber-700 group-hover:translate-x-0.5 transition-transform"></i>
+                            </div>
+                        </button>
+                    </div>
                 </div>
 
                 <div class="w-full pt-1.5 border-t border-gray-100 space-y-1.5" id="post-file-attach-container">
@@ -1189,6 +1204,127 @@
 
             <div class="pt-2 border-t church-border shrink-0 flex justify-end">
                 <button type="button" onclick="closeFileManagerModal()" class="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl text-xs font-medium active:scale-95 transition-all">닫기</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- [긴글쓰기 모달 (1,500자 이내, 고운바탕체 100%, 5단계 크기 조절)] -->
+    <div id="long-text-modal" class="fixed inset-0 z-[60] bg-black/60 backdrop-blur-xs flex items-center justify-center p-3 hidden" style="touch-action: none;">
+        <div class="bg-white rounded-2xl w-full max-w-sm shadow-2xl border church-border max-h-[88vh] flex flex-col overflow-hidden transition-all duration-300" style="max-height: calc(100dvh - 32px);">
+            <!-- 헤더 영역 -->
+            <div class="flex items-center justify-between px-3.5 py-2.5 border-b church-border shrink-0 bg-[#FAF8F5]">
+                <div class="flex items-center space-x-1.5 truncate">
+                    <span class="text-base leading-none">📜</span>
+                    <h3 class="text-xs font-bold text-amber-950 truncate">긴글 작성 <span class="text-[10px] text-amber-800 font-normal">(고운바탕체)</span></h3>
+                </div>
+                <div class="flex items-center space-x-1">
+                    <span id="long-text-char-indicator" class="text-gray-400 font-mono text-[10.5px] mr-1">0 / 1500자</span>
+                    <button type="button" onclick="closeLongTextModal()" class="text-gray-400 hover:text-gray-600 p-1 rounded-lg">
+                        <i class="fa-solid fa-xmark text-sm"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- 상부 5단계 글자 크기 조절 컨트롤러 (이모지 기반 직관적 UI) -->
+            <div class="bg-amber-50/90 px-3 py-1.5 border-b border-amber-200/70 flex items-center justify-between shrink-0 select-none">
+                <div class="flex items-center space-x-1 text-amber-900 font-bold text-[11px]">
+                    <span class="text-xs">📜</span>
+                    <span>글자크기</span>
+                </div>
+                <div class="flex items-center space-x-1">
+                    <button type="button" onclick="changeLongTextFontSize(-1)" class="w-6 h-6 rounded-full bg-white hover:bg-amber-100 text-amber-900 font-black border border-amber-200 shadow-2xs flex items-center justify-center text-[10px] active:scale-90 transition-all" title="작게">
+                        ➖
+                    </button>
+                    <div id="long-text-size-chips" class="inline-flex items-center space-x-0.5">
+                        <button type="button" onclick="setLongTextFontSize(1)" id="long-font-chip-1" class="w-5 h-5 rounded text-[10px] font-bold transition-all bg-white text-gray-600 border border-amber-200">1</button>
+                        <button type="button" onclick="setLongTextFontSize(2)" id="long-font-chip-2" class="w-5 h-5 rounded text-[10px] font-bold transition-all bg-amber-600 text-white shadow-2xs">2</button>
+                        <button type="button" onclick="setLongTextFontSize(3)" id="long-font-chip-3" class="w-5 h-5 rounded text-[10px] font-bold transition-all bg-white text-gray-600 border border-amber-200">3</button>
+                        <button type="button" onclick="setLongTextFontSize(4)" id="long-font-chip-4" class="w-5 h-5 rounded text-[10px] font-bold transition-all bg-white text-gray-600 border border-amber-200">4</button>
+                        <button type="button" onclick="setLongTextFontSize(5)" id="long-font-chip-5" class="w-5 h-5 rounded text-[10px] font-bold transition-all bg-white text-gray-600 border border-amber-200">5</button>
+                    </div>
+                    <button type="button" onclick="changeLongTextFontSize(1)" class="w-6 h-6 rounded-full bg-white hover:bg-amber-100 text-amber-900 font-black border border-amber-200 shadow-2xs flex items-center justify-center text-[10px] active:scale-90 transition-all" title="크게">
+                        ➕
+                    </button>
+                </div>
+            </div>
+
+            <!-- 에디터 영역 (순수 고운바탕체 강제 적용, 창 폭 내 자동 정렬 및 깨짐 방지) -->
+            <div class="flex-1 p-3 overflow-y-auto bg-[#FAF8F5]/60 flex flex-col min-h-0" style="touch-action: pan-y !important;">
+                <textarea id="long-text-input" maxlength="1500" 
+                          placeholder="가족들과 나눌 긴 이야기, 묵상글, 편지를 자유롭게 작성하거나 붙여넣으세요... (최대 1,500자)" 
+                          oninput="handleLongTextInput(this)"
+                          onpaste="handleLongTextPaste(event)"
+                          class="w-full flex-1 min-h-[200px] p-3 text-gray-900 bg-white border border-amber-200 rounded-xl outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 font-gowun-batang resize-none leading-[1.8] select-text box-border block shadow-inner"
+                          style="font-family: 'Gowun Batang', serif !important; font-size: 16px; word-break: break-word !important; overflow-wrap: anywhere !important; white-space: pre-wrap !important; text-align: left !important; direction: ltr !important;"></textarea>
+            </div>
+
+            <!-- 하단 확인 버튼 -->
+            <div class="p-2.5 border-t church-border shrink-0 bg-white flex items-center justify-between gap-2">
+                <button type="button" onclick="clearLongTextContent()" class="py-2 px-3 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-xl text-xs font-medium active:scale-95 transition-all">
+                    내용 비우기
+                </button>
+                <div class="flex items-center space-x-1.5 flex-1 justify-end">
+                    <button type="button" onclick="closeLongTextModal()" class="py-2 px-3 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl text-xs font-semibold active:scale-95 transition-all">
+                        취소
+                    </button>
+                    <button type="button" onclick="saveLongTextModal()" class="py-2 px-4 church-primary text-white rounded-xl text-xs font-bold shadow-xs active:scale-95 transition-all flex items-center space-x-1">
+                        <i class="fa-solid fa-check text-xs"></i>
+                        <span>입력 완료</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- [긴글읽기 팝업 뷰어 모달 (두루마리 이모지, 5단계 +- 크기 조절, 자동 정렬)] -->
+    <div id="long-content-reader-modal" class="fixed inset-0 z-[65] bg-black/60 backdrop-blur-xs flex items-center justify-center p-3 hidden" style="touch-action: none;">
+        <div class="bg-[#FAF8F5] rounded-2xl w-full max-w-sm shadow-2xl border border-amber-300 max-h-[88vh] flex flex-col overflow-hidden transition-all duration-300" style="max-height: calc(100dvh - 32px);">
+            <!-- 헤더 영역 -->
+            <div class="flex items-center justify-between px-3.5 py-2.5 border-b border-amber-200/80 shrink-0 bg-white/95">
+                <div class="flex items-center space-x-1.5 truncate mr-2">
+                    <span class="text-base leading-none">📜</span>
+                    <h3 id="long-reader-title" class="text-xs font-bold text-amber-950 truncate">가족 긴 이야기</h3>
+                </div>
+                <button type="button" onclick="closeLongContentReader()" class="w-6 h-6 rounded-full bg-amber-50 hover:bg-amber-100 text-amber-900 flex items-center justify-center text-xs active:scale-90 transition-all shrink-0">
+                    <i class="fa-solid fa-xmark text-xs"></i>
+                </button>
+            </div>
+
+            <!-- 상부 5단계 글자 크기 조절 바 (모바일 가독성 최적화 +- 버튼) -->
+            <div class="bg-amber-50/90 px-3 py-1.5 border-b border-amber-200/70 flex items-center justify-between shrink-0 select-none">
+                <div class="flex items-center space-x-1 text-amber-900 font-bold text-[11px]">
+                    <span class="text-xs">📜</span>
+                    <span>글자크기</span>
+                </div>
+                <div class="flex items-center space-x-1">
+                    <button type="button" onclick="changeLongReaderFontSize(-1)" class="w-6 h-6 rounded-full bg-white hover:bg-amber-100 text-amber-900 font-black border border-amber-200 shadow-2xs flex items-center justify-center text-[10px] active:scale-90 transition-all" title="작게">
+                        ➖
+                    </button>
+                    <div id="long-reader-size-chips" class="inline-flex items-center space-x-0.5">
+                        <button type="button" onclick="setLongReaderFontSize(1)" id="reader-font-chip-1" class="w-5 h-5 rounded text-[10px] font-bold transition-all bg-white text-gray-600 border border-amber-200">1</button>
+                        <button type="button" onclick="setLongReaderFontSize(2)" id="reader-font-chip-2" class="w-5 h-5 rounded text-[10px] font-bold transition-all bg-amber-600 text-white shadow-2xs">2</button>
+                        <button type="button" onclick="setLongReaderFontSize(3)" id="reader-font-chip-3" class="w-5 h-5 rounded text-[10px] font-bold transition-all bg-white text-gray-600 border border-amber-200">3</button>
+                        <button type="button" onclick="setLongReaderFontSize(4)" id="reader-font-chip-4" class="w-5 h-5 rounded text-[10px] font-bold transition-all bg-white text-gray-600 border border-amber-200">4</button>
+                        <button type="button" onclick="setLongReaderFontSize(5)" id="reader-font-chip-5" class="w-5 h-5 rounded text-[10px] font-bold transition-all bg-white text-gray-600 border border-amber-200">5</button>
+                    </div>
+                    <button type="button" onclick="changeLongReaderFontSize(1)" class="w-6 h-6 rounded-full bg-white hover:bg-amber-100 text-amber-900 font-black border border-amber-200 shadow-2xs flex items-center justify-center text-[10px] active:scale-90 transition-all" title="크게">
+                        ➕
+                    </button>
+                </div>
+            </div>
+
+            <!-- 스크롤 본문 뷰어 (고운바탕체, 1.8배 줄간격, 완벽한 창내 자동 정렬 및 줄바꿈 보장) -->
+            <div id="long-reader-viewport" class="flex-1 overflow-y-auto p-4 text-gray-900 font-gowun-batang select-text box-border" style="touch-action: pan-y !important; -webkit-overflow-scrolling: touch !important;">
+                <div id="long-reader-body" class="w-full text-left font-gowun-batang leading-[1.8] text-gray-900 select-text"
+                     style="font-family: 'Gowun Batang', serif !important; font-size: 16px; word-break: break-word !important; overflow-wrap: anywhere !important; white-space: pre-wrap !important; text-align: left !important; direction: ltr !important; box-sizing: border-box !important;"></div>
+            </div>
+
+            <!-- 하단 닫기 바 -->
+            <div class="px-3.5 py-2 border-t border-amber-200/80 bg-white/95 shrink-0 flex items-center justify-between">
+                <span id="long-reader-char-count" class="text-[10px] font-mono text-gray-500 font-bold">0자</span>
+                <button type="button" onclick="closeLongContentReader()" class="py-1.5 px-4 church-primary text-white rounded-xl text-xs font-bold shadow-2xs active:scale-95 transition-all">
+                    닫기
+                </button>
             </div>
         </div>
     </div>
@@ -1623,6 +1759,193 @@
 
             // 2-C. PC 브라우저 또는 Web Share 미지원 환경
             showNotification("공유 문구가 복사되었습니다! 카톡 단톡방에 붙여넣기(Ctrl+V) 해주세요.");
+        };
+
+        // [긴글쓰기 1,500자 상태 및 5단계 글자 크기 프리셋: 14px, 16px, 18px, 20px, 22px]
+        const LONG_FONT_SIZES = [14, 16, 18, 20, 22];
+        let currentLongContentText = "";
+        let currentLongContentFontSize = 2; // 기본 2단계 (16px)
+        let currentReaderFontSize = 2;
+        let activeReaderPostId = null;
+
+        window.openLongTextModal = function() {
+            const modal = document.getElementById('long-text-modal');
+            const textarea = document.getElementById('long-text-input');
+            if (textarea) {
+                textarea.value = currentLongContentText || "";
+                setLongTextFontSize(currentLongContentFontSize || 2);
+                updateLongTextCharCount();
+            }
+            if (modal) modal.classList.remove('hidden');
+            setTimeout(() => { if (textarea) textarea.focus(); }, 100);
+        };
+
+        window.closeLongTextModal = function() {
+            const modal = document.getElementById('long-text-modal');
+            if (modal) modal.classList.add('hidden');
+        };
+
+        window.clearLongTextContent = function() {
+            const textarea = document.getElementById('long-text-input');
+            if (textarea) {
+                textarea.value = "";
+                updateLongTextCharCount();
+                textarea.focus();
+            }
+        };
+
+        window.saveLongTextModal = function() {
+            const textarea = document.getElementById('long-text-input');
+            if (textarea) {
+                currentLongContentText = textarea.value.trim();
+            }
+            updateLongTextBtnBadge();
+            closeLongTextModal();
+            if (currentLongContentText.length > 0) {
+                showNotification(`긴글 ${currentLongContentText.length}자가 준비되었습니다.`);
+            }
+        };
+
+        window.handleLongTextInput = function(el) {
+            if (!el) return;
+            if (el.value.length > 1500) {
+                el.value = el.value.substring(0, 1500);
+                showNotification("긴글은 최대 1,500자까지 작성하실 수 있습니다.");
+            }
+            updateLongTextCharCount();
+        };
+
+        window.handleLongTextPaste = function(e) {
+            e.preventDefault();
+            const text = (e.clipboardData || window.clipboardData).getData('text/plain') || '';
+            const textarea = document.getElementById('long-text-input');
+            if (!textarea) return;
+
+            const start = textarea.selectionStart;
+            const end = textarea.selectionEnd;
+            const cur = textarea.value;
+            const maxLen = 1500;
+            const available = maxLen - (cur.length - (end - start));
+            if (available <= 0) {
+                showNotification("1,500자 용량을 초과하여 더 이상 붙여넣을 수 없습니다.");
+                return;
+            }
+            const insertPart = text.substring(0, available);
+            textarea.value = cur.substring(0, start) + insertPart + cur.substring(end);
+            textarea.selectionStart = textarea.selectionEnd = start + insertPart.length;
+            updateLongTextCharCount();
+            if (text.length > available) {
+                showNotification("1,500자를 초과한 뒷부분 내용은 자동으로 정제되었습니다.");
+            }
+        };
+
+        function updateLongTextCharCount() {
+            const textarea = document.getElementById('long-text-input');
+            const ind = document.getElementById('long-text-char-indicator');
+            const len = textarea ? textarea.value.length : 0;
+            if (ind) ind.innerText = `${len} / 1500자`;
+        }
+
+        function updateLongTextBtnBadge() {
+            const badge = document.getElementById('long-text-indicator-badge');
+            if (!badge) return;
+            const len = currentLongContentText ? currentLongContentText.length : 0;
+            if (len > 0) {
+                badge.innerText = `작성됨: ${len}자`;
+                badge.classList.remove('hidden');
+            } else {
+                badge.innerText = "0자";
+                badge.classList.add('hidden');
+            }
+        }
+
+        window.setLongTextFontSize = function(level) {
+            const safeLevel = Math.max(1, Math.min(5, parseInt(level) || 2));
+            currentLongContentFontSize = safeLevel;
+            const pxSize = LONG_FONT_SIZES[safeLevel - 1];
+
+            const textarea = document.getElementById('long-text-input');
+            if (textarea) {
+                textarea.style.fontSize = `${pxSize}px`;
+            }
+
+            for (let i = 1; i <= 5; i++) {
+                const chip = document.getElementById(`long-font-chip-${i}`);
+                if (!chip) continue;
+                if (i === safeLevel) {
+                    chip.className = "w-5 h-5 rounded text-[10px] font-bold transition-all bg-amber-600 text-white shadow-2xs";
+                } else {
+                    chip.className = "w-5 h-5 rounded text-[10px] font-bold transition-all bg-white text-gray-600 border border-amber-200";
+                }
+            }
+        };
+
+        window.changeLongTextFontSize = function(dir) {
+            setLongTextFontSize(currentLongContentFontSize + dir);
+        };
+
+        // [긴글읽기 팝업 뷰어 핸들러]
+        window.openLongContentReader = function(postId, event) {
+            if (event) event.stopPropagation();
+            const post = cachedPosts.find(p => p.id === postId || String(p.id) === String(postId));
+            if (!post || !post.longContent) {
+                showNotification("등록된 긴 글이 없습니다.");
+                return;
+            }
+
+            activeReaderPostId = postId;
+            const modal = document.getElementById('long-content-reader-modal');
+            const titleEl = document.getElementById('long-reader-title');
+            const bodyEl = document.getElementById('long-reader-body');
+            const countEl = document.getElementById('long-reader-char-count');
+
+            if (titleEl) {
+                titleEl.textContent = `${post.author || '우리가족'}의 긴 이야기`;
+            }
+            if (bodyEl) {
+                bodyEl.textContent = post.longContent;
+            }
+            if (countEl) {
+                countEl.textContent = `총 ${post.longContent.length}자 (고운바탕체)`;
+            }
+
+            const initialLevel = post.longFontSize ? Math.max(1, Math.min(5, parseInt(post.longFontSize))) : 2;
+            setLongReaderFontSize(initialLevel);
+
+            if (modal) modal.classList.remove('hidden');
+            const viewport = document.getElementById('long-reader-viewport');
+            if (viewport) viewport.scrollTop = 0;
+        };
+
+        window.closeLongContentReader = function() {
+            activeReaderPostId = null;
+            const modal = document.getElementById('long-content-reader-modal');
+            if (modal) modal.classList.add('hidden');
+        };
+
+        window.setLongReaderFontSize = function(level) {
+            const safeLevel = Math.max(1, Math.min(5, parseInt(level) || 2));
+            currentReaderFontSize = safeLevel;
+            const pxSize = LONG_FONT_SIZES[safeLevel - 1];
+
+            const bodyEl = document.getElementById('long-reader-body');
+            if (bodyEl) {
+                bodyEl.style.fontSize = `${pxSize}px`;
+            }
+
+            for (let i = 1; i <= 5; i++) {
+                const chip = document.getElementById(`reader-font-chip-${i}`);
+                if (!chip) continue;
+                if (i === safeLevel) {
+                    chip.className = "w-5 h-5 rounded text-[10px] font-bold transition-all bg-amber-600 text-white shadow-2xs";
+                } else {
+                    chip.className = "w-5 h-5 rounded text-[10px] font-bold transition-all bg-white text-gray-600 border border-amber-200";
+                }
+            }
+        };
+
+        window.changeLongReaderFontSize = function(dir) {
+            setLongReaderFontSize(currentReaderFontSize + dir);
         };
 
         let currentUser = "우리가족";
@@ -2914,6 +3237,9 @@ let specialFontsLoaded = false;
             const parts = [];
             if (post.content) {
                 parts.push(post.content.replace(/<[^>]+>/g, ' '));
+            }
+            if (post.longContent) {
+                parts.push(post.longContent);
             }
             if (post.author) parts.push(post.author);
             if (post.mokjangName) parts.push(post.mokjangName);
@@ -4215,6 +4541,17 @@ initAuth();
                 updateCharCount(contentEl);
             }
 
+            // 기존 게시글의 긴글(longContent) 복원
+            currentLongContentText = "";
+            currentLongContentFontSize = 2;
+            if (postId) {
+                const editTargetObj = cachedPosts.find(p => p.id === postId || String(p.id) === String(postId));
+                if (editTargetObj && editTargetObj.longContent) {
+                    currentLongContentText = String(editTargetObj.longContent);
+                    currentLongContentFontSize = editTargetObj.longFontSize ? parseInt(editTargetObj.longFontSize) : 2;
+                }
+            }
+            updateLongTextBtnBadge();
             selectPostFont(existingFont || 'pretendard', false);
 
             selectedImagesList = Array.isArray(existingImages) ? [...existingImages] : (existingImages ? [existingImages] : []);
@@ -4276,6 +4613,9 @@ initAuth();
             selectPostFont('pretendard', false);
             const fileTitleInput = document.getElementById('post-file-title');
             if (fileTitleInput) fileTitleInput.value = '';
+            currentLongContentText = "";
+            currentLongContentFontSize = 2;
+            updateLongTextBtnBadge();
             document.getElementById('editing-post-id').value = '';
         };
 
@@ -4285,7 +4625,7 @@ initAuth();
             const fileTitleInput = document.getElementById('post-file-title');
             const fileTitle = fileTitleInput ? fileTitleInput.value.trim() : '';
 
-            if (!plainText && selectedImagesList.length === 0 && !currentAttachedFile) {
+            if (!plainText && !currentLongContentText && selectedImagesList.length === 0 && !currentAttachedFile) {
                 showNotification('이야기 내용, 사진, 또는 첨부파일을 등록해 주세요.');
                 return;
             }
@@ -4464,6 +4804,9 @@ initAuth();
             let rawEditorHtml = contentEl ? contentEl.innerHTML.replace(/\u200B/g, '').trim() : '';
             let content = typeof cleanPostHtmlContent === 'function' ? cleanPostHtmlContent(rawEditorHtml) : rawEditorHtml;
             if (content === '<br>' || content === '<div><br></div>') content = '';
+            if (!content && currentLongContentText) {
+                content = currentLongContentText.length > 80 ? currentLongContentText.substring(0, 80).trim() + '...' : currentLongContentText.trim();
+            }
             const finalImages = [...selectedImagesList];
             const fileToSave = currentAttachedFile;
 
@@ -4549,6 +4892,8 @@ initAuth();
                     const updatePayload = {
                         content: content,
                         fontFamily: currentSelectedFont || 'pretendard',
+                        longContent: currentLongContentText || '',
+                        longFontSize: currentLongContentFontSize || 2,
                         photoCaptions: reindexedCaptions,
                         updatedAt: new Date()
                     };
@@ -4570,6 +4915,8 @@ initAuth();
                         authorUid: reactionUserId,
                         content: content,
                         fontFamily: currentSelectedFont || 'pretendard',
+                        longContent: currentLongContentText || '',
+                        longFontSize: currentLongContentFontSize || 2,
                         images: uploadedImages,
                         imageUrl: uploadedImages.length > 0 ? uploadedImages[0] : "",
                         likes: 0,
@@ -7258,7 +7605,7 @@ window.closeAllPdfPreviewModal = function() {
             card.className = "w-full px-1 py-0.5 box-border";
             card.setAttribute('data-post-id', post.id);
             const sigImgs = Array.isArray(post.images) ? post.images.filter(Boolean) : (post.imageUrl ? [post.imageUrl] : []);
-            card.setAttribute('data-post-sig', `${post.id}|${sigImgs.length}|${sigImgs.join(',')}|${post.content || ''}|${post.fontFamily || ''}|${post.fileName || ''}`);
+            card.setAttribute('data-post-sig', `${post.id}|${sigImgs.length}|${sigImgs.join(',')}|${post.content || ''}|${post.fontFamily || ''}|${post.fileName || ''}|${post.longContent || ''}|${post.longFontSize || ''}`);
 
             let imgArray = [];
             if (Array.isArray(post.images) && post.images.length > 0) {
@@ -7437,6 +7784,25 @@ window.closeAllPdfPreviewModal = function() {
                     </div>
 
                     ${formattedContent}
+                    ${post.longContent && String(post.longContent).trim().length > 0 ? `
+                        <div class="no-export my-1 px-0.5">
+                            <button type="button" onclick="event.stopPropagation(); openLongContentReader('${post.id}', event)"
+                                    class="w-full py-1.5 px-3 rounded-xl bg-gradient-to-r from-amber-50 to-orange-50/70 hover:from-amber-100 hover:to-orange-100/90 active:scale-98 border border-amber-300/80 text-amber-950 flex items-center justify-between shadow-2xs transition-all"
+                                    title="두루마리 긴글 읽기">
+                                <div class="flex items-center space-x-1.5">
+                                    <span class="text-base leading-none">📜</span>
+                                    <span class="text-xs font-bold text-amber-950">긴글읽기</span>
+                                    <span class="text-[9.5px] text-amber-800 font-mono font-bold bg-amber-100/90 border border-amber-200/90 px-1.5 py-0.2 rounded-full">
+                                        ${post.longContent.trim().length}자
+                                    </span>
+                                </div>
+                                <div class="flex items-center space-x-1 text-amber-800 text-[11px] font-semibold">
+                                    <span class="font-gowun-batang text-[10px] text-amber-700">고운바탕체</span>
+                                    <i class="fa-solid fa-chevron-right text-[9.5px]"></i>
+                                </div>
+                            </button>
+                        </div>
+                    ` : ''}
                     ${mediaSectionHtml}
 
                     <div class="pt-1 flex items-center justify-between no-export">
@@ -7585,7 +7951,7 @@ window.closeAllPdfPreviewModal = function() {
 
             const getPostMediaSignature = (p) => {
                 const imgs = Array.isArray(p.images) ? p.images.filter(Boolean) : (p.imageUrl ? [p.imageUrl] : []);
-                return `${p.id}|${imgs.length}|${imgs.join(',')}|${p.content || ''}|${p.fontFamily || ''}|${p.fileName || ''}`;
+                return `${p.id}|${imgs.length}|${imgs.join(',')}|${p.content || ''}|${p.fontFamily || ''}|${p.fileName || ''}|${p.longContent || ''}|${p.longFontSize || ''}`;
             };
             const existingArticles = Array.from(feedContainer.querySelectorAll('article[data-post-id]'));
             const existingSigs = existingArticles.map(a => a.getAttribute('data-post-sig') || '');

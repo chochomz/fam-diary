@@ -975,16 +975,15 @@
                     <!-- [긴글쓰기 (최대 1,500자) 두루마리 버튼] -->
                     <div class="mt-2 pt-1 border-t border-gray-100 flex items-center justify-between">
                         <button type="button" onclick="openLongTextModal()" id="trigger-long-text-btn"
-                                class="w-full py-2 px-3 rounded-xl border border-dashed border-amber-300/90 bg-amber-50/70 hover:bg-amber-100/80 active:scale-98 transition-all flex items-center justify-between shadow-2xs group"
+                                class="w-full py-2 px-3 rounded-xl border border-dashed border-amber-300/90 bg-amber-50/70 hover:bg-amber-100/80 active:scale-98 transition-all flex items-center justify-between shadow-2xs group whitespace-nowrap overflow-hidden"
                                 title="1,500자 이내 긴글 작성">
-                            <div class="flex items-center space-x-1.5">
-                                <span class="text-base leading-none">📜</span>
-                                <span class="text-xs font-bold text-amber-950">긴글쓰기 (최대 1,500자)</span>
+                            <div class="flex items-center space-x-1.5 truncate">
+                                <span class="text-base leading-none shrink-0">📜</span>
+                                <span class="text-xs font-bold text-amber-950 truncate whitespace-nowrap">
+                                    긴글쓰기&nbsp;&nbsp;현재 <span id="long-text-current-count" class="font-mono">0</span> / 1500
+                                </span>
                             </div>
-                            <div class="flex items-center space-x-1.5">
-                                <span id="long-text-indicator-badge" class="hidden px-2 py-0.5 rounded-full bg-amber-200/90 text-amber-900 text-[10px] font-mono font-bold">0자</span>
-                                <i class="fa-solid fa-chevron-right text-[10px] text-amber-700 group-hover:translate-x-0.5 transition-transform"></i>
-                            </div>
+                            <i class="fa-solid fa-chevron-right text-[10px] text-amber-700 group-hover:translate-x-0.5 transition-transform shrink-0 ml-1"></i>
                         </button>
                     </div>
                 </div>
@@ -1861,15 +1860,10 @@
         }
 
         function updateLongTextBtnBadge() {
-            const badge = document.getElementById('long-text-indicator-badge');
-            if (!badge) return;
+            const countEl = document.getElementById('long-text-current-count');
             const len = currentLongContentText ? currentLongContentText.length : 0;
-            if (len > 0) {
-                badge.innerText = `작성됨: ${len}자`;
-                badge.classList.remove('hidden');
-            } else {
-                badge.innerText = "0자";
-                badge.classList.add('hidden');
+            if (countEl) {
+                countEl.innerText = len;
             }
         }
 

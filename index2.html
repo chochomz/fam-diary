@@ -1966,15 +1966,24 @@
             }
         }
 
-                // [긴글읽기 전용 고품질 TTS 엔진: 슬라이드 성우 선택(남성1 현수, 남성2 인준, 여성1 선희) 및 Natural 원음 보장]
+        // [긴글읽기 전용 고품질 TTS 엔진: 사파리(iOS/Mac)/모바일 MS Neural 클라우드 스트리밍 & Edge Natural 완벽 지원]
         let isLongReaderSpeaking = false;
         let selectedLongReaderVoicePreset = 'hyunsu';
+        let longReaderTtsSessionId = 0;
+        let longReaderAudioPlayer = null;
+        let longReaderAudioBlobUrls = [];
+
+        const EDGE_NEURAL_VOICE_MAP = {
+            hyunsu: { voiceName: 'ko-KR-HyunsuNeural', label: '현수(남성1)', rate: '-8%', pitch: '-2Hz' },
+            injoon: { voiceName: 'ko-KR-InJoonNeural', label: '인준(남성2)', rate: '-6%', pitch: '+0Hz' },
+            sunhi:  { voiceName: 'ko-KR-SunHiNeural',  label: '선희(여성)',  rate: '-6%', pitch: '+0Hz' }
+        };
 
         if ('speechSynthesis' in window) {
             window.speechSynthesis.getVoices();
-            window.speechSynthesis.onvoiceschanged = () => {
-                window.speechSynthesis.getVoices();
-            };
+            if (window.speechSynthesis.onvoiceschanged !== undefined) {
+                window.speechSynthesis.onvoiceschanged = () => { window.speechSynthesis.getVoices(); };
+            }
         }
 
         function closeLongReaderTTSMenu() {
@@ -1999,17 +2008,11 @@
 
         window.handleLongReaderTTSBtnClick = function(event) {
             if (event) event.stopPropagation();
-            if (!('speechSynthesis' in window)) {
-                showNotification("현재 브라우저가 음성 합성을 지원하지 않습니다.");
-                return;
-            }
-            // 재생 중일 때 누르면 즉시 낭독 멈춤
-            if (window.speechSynthesis.speaking || isLongReaderSpeaking) {
+            if (isLongReaderSpeaking || ('speechSynthesis' in window && window.speechSynthesis.speaking)) {
                 stopLongReaderTTS();
                 showNotification("음성 낭독을 멈췄습니다.");
                 return;
             }
-            // 정지 상태일 때 누르면 슬라이드 성우 선택 메뉴 토글
             const menu = document.getElementById('long-reader-tts-menu');
             if (!menu) return;
             const isOpen = menu.classList.contains('menu-open');
@@ -2028,20 +2031,25 @@
             }
         });
 
-        function setLongReaderTTSPlayingUI(isPlaying) {
-            isLongReaderSpeaking = isPlaying;
+        function setLongReaderTTSPlayingUI(isPlaying, isLoading = false) {
+            isLongReaderSpeaking = isPlaying || isLoading;
             const btn = document.getElementById('long-reader-tts-btn');
             const icon = document.getElementById('long-reader-tts-icon');
             const text = document.getElementById('long-reader-tts-text');
             if (!btn || !icon || !text) return;
 
-            if (isPlaying) {
+            if (isLoading) {
+                btn.classList.add('bg-amber-200', 'text-amber-950', 'border-amber-400');
+                btn.classList.remove('bg-rose-100', 'text-rose-900', 'border-rose-300');
+                icon.className = 'fa-solid fa-circle-notch fa-spin text-[11px] text-amber-900';
+                text.innerText = '음성 준비중';
+            } else if (isPlaying) {
                 btn.classList.add('bg-rose-100', 'text-rose-900', 'border-rose-300');
-                btn.classList.remove('bg-amber-100/80', 'text-amber-950', 'border-amber-300/80');
+                btn.classList.remove('bg-amber-100/80', 'bg-amber-200', 'text-amber-950', 'border-amber-300/80', 'border-amber-400');
                 icon.className = 'fa-solid fa-stop text-[11px] text-rose-700 animate-pulse';
                 text.innerText = '낭독 멈춤';
             } else {
-                btn.classList.remove('bg-rose-100', 'text-rose-900', 'border-rose-300');
+                btn.classList.remove('bg-rose-100', 'bg-amber-200', 'text-rose-900', 'border-rose-300', 'border-amber-400');
                 btn.classList.add('bg-amber-100/80', 'text-amber-950', 'border-amber-300/80');
                 icon.className = 'fa-solid fa-volume-high text-[11px] text-amber-800';
                 text.innerText = '음성듣기';
@@ -2049,57 +2057,165 @@
         }
 
         function stopLongReaderTTS() {
+            longReaderTtsSessionId++;
             closeLongReaderTTSMenu();
+            if (longReaderAudioPlayer) {
+                try {
+                    longReaderAudioPlayer.pause();
+                    longReaderAudioPlayer.removeAttribute('src');
+                    longReaderAudioPlayer.load();
+                } catch (e) {}
+            }
+            if (longReaderAudioBlobUrls.length > 0) {
+                longReaderAudioBlobUrls.forEach(u => { try { URL.revokeObjectURL(u); } catch(e) {} });
+                longReaderAudioBlobUrls = [];
+            }
             if ('speechSynthesis' in window) {
                 try { window.speechSynthesis.cancel(); } catch (e) {}
             }
-            setLongReaderTTSPlayingUI(false);
+            setLongReaderTTSPlayingUI(false, false);
         }
 
-        function pickBestKoreanVoice(preset) {
+        function splitTextIntoSpeechChunks(text, maxLen = 160) {
+            const cleaned = String(text || '').replace(/\r\n/g, '\n').trim();
+            if (!cleaned) return [];
+            const rawSentences = cleaned.split(/(?<=[.!?。\n])\s+/);
+            const chunks = [];
+            let current = '';
+
+            for (let i = 0; i < rawSentences.length; i++) {
+                const s = rawSentences[i].trim();
+                if (!s) continue;
+                if ((current + ' ' + s).trim().length <= maxLen) {
+                    current = (current ? current + ' ' : '') + s;
+                } else {
+                    if (current) chunks.push(current);
+                    if (s.length > maxLen) {
+                        const sub = s.match(new RegExp('.{1,' + maxLen + '}(?:\\s|$)|.{1,' + maxLen + '}', 'g')) || [s];
+                        sub.forEach(part => { if (part.trim()) chunks.push(part.trim()); });
+                        current = '';
+                    } else {
+                        current = s;
+                    }
+                }
+            }
+            if (current) chunks.push(current);
+            return chunks.length > 0 ? chunks : [cleaned];
+        }
+
+        // Edge 브라우저 자체에 MS Natural 신경망 음성이 내장되어 있는지 검사 (사파리는 null 반환 -> 클라우드 스트림 사용)
+        function findLocalMsNaturalVoice(preset) {
+            if (!('speechSynthesis' in window)) return null;
             const voices = window.speechSynthesis.getVoices() || [];
-            const koVoices = voices.filter(v => /ko[-_]?kr|korean|한국/i.test(v.lang + ' ' + v.name));
-            const pool = koVoices.length > 0 ? koVoices : voices;
-
-            const isNatural = (v) => /natural|online|자연|neural|multilingual/i.test(v.name);
-            const isHeami = (v) => /heami|혜미/i.test(v.name);
-
-            const matchKeywords = (keywords) => {
-                // 1차: Natural/Online 신경망 고품질 음성 우선 탐색
-                const nat = pool.find(v => isNatural(v) && keywords.some(k => v.name.toLowerCase().includes(k)));
-                if (nat) return nat;
-                // 2차: 키워드 일치 음성 탐색
-                return pool.find(v => keywords.some(k => v.name.toLowerCase().includes(k)));
+            const isNatural = (v) => /natural|online|자연/i.test(v.name + ' ' + v.voiceURI);
+            const keywordsMap = {
+                hyunsu: ['hyunsu', '현수'],
+                injoon: ['injoon', '인준'],
+                sunhi:  ['sunhi', '선희']
             };
-
-            let chosen = null;
-            if (preset === 'hyunsu') {
-                chosen = matchKeywords(['hyunsu', '현수']) || matchKeywords(['injoon', '인준']);
-            } else if (preset === 'injoon') {
-                chosen = matchKeywords(['injoon', '인준']) || matchKeywords(['hyunsu', '현수']);
-            } else if (preset === 'sunhi') {
-                chosen = matchKeywords(['sunhi', '선희', 'yuna', '유나', 'sora', '소라']);
-            }
-
-            // 선택 프리셋 음성이 브라우저에 없을 경우: Natural 신경망 한국어 -> Google/Apple 고품질 -> 구형 기계음(Heami) 제외 순으로 자동 매칭
-            if (!chosen) {
-                chosen = pool.find(v => isNatural(v) && !isHeami(v))
-                      || pool.find(v => /google|yuna|sora|siri|유나|소라/i.test(v.name) && !isHeami(v))
-                      || pool.find(v => !isHeami(v))
-                      || pool[0] || null;
-            }
-            return chosen;
+            const targets = keywordsMap[preset] || keywordsMap.hyunsu;
+            return voices.find(v => isNatural(v) && targets.some(k => (v.name + ' ' + v.voiceURI).toLowerCase().includes(k))) || null;
         }
 
-        window.selectAndSpeakLongReader = function(preset) {
+        // [사파리/모바일용] MS Edge Neural TTS 실시간 WebSocket 오디오 합성기 (현수/인준/선희 100% 실제 목소리)
+        async function generateEdgeNeuralAudioBlob(chunkText, preset) {
+            const cfg = EDGE_NEURAL_VOICE_MAP[preset] || EDGE_NEURAL_VOICE_MAP.hyunsu;
+            const escapeXml = (str) => String(str).replace(/[<>&'"]/g, c => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', "'": '&apos;', '"': '&quot;' }[c]));
+
+            // 1차: MS Edge Neural WebSocket 합성 시도 (Sec-MS-GEC 보안 토큰 포함)
+            try {
+                const blob = await synthesizeViaEdgeWss(escapeXml(chunkText), cfg);
+                if (blob && blob.size > 200) return blob;
+            } catch (wssErr) {}
+
+            // 2차: 클라우드 Edge TTS 중계 엔드포인트 폴백 (사파리 방화벽/WebSocket 헤더 제한 대비)
+            const fallbackUrls = [
+                `https://tts.travisvn.com/?text=${encodeURIComponent(chunkText)}&voice=${cfg.voiceName}&rate=${encodeURIComponent(cfg.rate)}&pitch=${encodeURIComponent(cfg.pitch)}`,
+                `https://edge-tts-api.vercel.app/api/tts?text=${encodeURIComponent(chunkText)}&voice=${cfg.voiceName}&rate=${encodeURIComponent(cfg.rate)}`
+            ];
+            for (const url of fallbackUrls) {
+                try {
+                    const res = await fetch(url);
+                    if (res.ok) {
+                        const b = await res.blob();
+                        if (b && b.size > 200) return b;
+                    }
+                } catch (e) {}
+            }
+            throw new Error("Cloud Neural stream unavailable");
+        }
+
+        async function generateSecMsGecToken() {
+            const WIN_EPOCH = 11644473600;
+            const S_TO_NS = 1e9;
+            const TRUSTED_TOKEN = '6A5AA1D4EAFF4E9FB37E23D68491D6F4';
+            let ticks = (Date.now() / 1000) + WIN_EPOCH;
+            ticks -= ticks % 300;
+            ticks *= S_TO_NS / 100;
+            const strToHash = `${ticks.toFixed(0)}${TRUSTED_TOKEN}`;
+            const data = new TextEncoder().encode(strToHash);
+            const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+            return Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('').toUpperCase();
+        }
+
+        function synthesizeViaEdgeWss(escapedText, cfg) {
+            return new Promise(async (resolve, reject) => {
+                let timer = null;
+                try {
+                    const TRUSTED_TOKEN = '6A5AA1D4EAFF4E9FB37E23D68491D6F4';
+                    const secMsGec = await generateSecMsGecToken();
+                    const reqId = (crypto.randomUUID ? crypto.randomUUID() : ('req' + Date.now() + Math.random().toString(16).slice(2))).replace(/-/g, '');
+                    const wsUrl = `wss://speech.platform.bing.com/consumer/speech/synthesize/readaloud/edge/v1?TrustedClientToken=${TRUSTED_TOKEN}&Sec-MS-GEC=${secMsGec}&Sec-MS-GEC-Version=1-130.0.2849.68&ConnectionId=${reqId}`;
+
+                    const ws = new WebSocket(wsUrl);
+                    ws.binaryType = 'arraybuffer';
+                    const audioParts = [];
+
+                    timer = setTimeout(() => {
+                        try { ws.close(); } catch(e) {}
+                        reject(new Error('WSS timeout'));
+                    }, 5500);
+
+                    ws.onopen = () => {
+                        const configMsg = `X-Timestamp:${new Date().toString()}\r\nContent-Type:application/json; charset=utf-8\r\nPath:speech.config\r\n\r\n{"context":{"synthesis":{"audio":{"metadataoptions":{"sentenceBoundaryEnabled":"false","wordBoundaryEnabled":"false"},"outputFormat":"audio-24khz-48kbitrate-mono-mp3"}}}}`;
+                        ws.send(configMsg);
+
+                        const ssml = `<speak version='1.0' xmlns='http://www.w3.org/2001/10/synthesis' xml:lang='ko-KR'><voice name='${cfg.voiceName}'><prosody pitch='${cfg.pitch}' rate='${cfg.rate}' volume='+0%'>${escapedText}</prosody></voice></speak>`;
+                        const ssmlMsg = `X-RequestId:${reqId}\r\nContent-Type:application/ssml+xml\r\nX-Timestamp:${new Date().toString()}Z\r\nPath:ssml\r\n\r\n${ssml}`;
+                        ws.send(ssmlMsg);
+                    };
+
+                    ws.onmessage = (event) => {
+                        if (typeof event.data === 'string') {
+                            if (event.data.includes('Path:turn.end')) {
+                                clearTimeout(timer);
+                                try { ws.close(); } catch(e) {}
+                                resolve(new Blob(audioParts, { type: 'audio/mpeg' }));
+                            }
+                        } else if (event.data instanceof ArrayBuffer) {
+                            const view = new DataView(event.data);
+                            const headerLen = view.getUint16(0);
+                            if (event.data.byteLength > headerLen + 2) {
+                                audioParts.push(event.data.slice(headerLen + 2));
+                            }
+                        }
+                    };
+
+                    ws.onerror = (err) => {
+                        clearTimeout(timer);
+                        reject(err);
+                    };
+                } catch (err) {
+                    if (timer) clearTimeout(timer);
+                    reject(err);
+                }
+            });
+        }
+
+        window.selectAndSpeakLongReader = async function(preset) {
             selectedLongReaderVoicePreset = preset || 'hyunsu';
             updateLongReaderVoiceChipsUI(selectedLongReaderVoicePreset);
             closeLongReaderTTSMenu();
-
-            if (!('speechSynthesis' in window)) {
-                showNotification("현재 브라우저가 음성 합성을 지원하지 않습니다.");
-                return;
-            }
 
             const bodyEl = document.getElementById('long-reader-body');
             const textToSpeak = bodyEl ? bodyEl.innerText.trim() : '';
@@ -2108,49 +2224,149 @@
                 return;
             }
 
-            window.speechSynthesis.cancel();
-            if (window.speechSynthesis.paused) {
-                window.speechSynthesis.resume();
+            stopLongReaderTTS();
+            const currentSession = ++longReaderTtsSessionId;
+            const cfg = EDGE_NEURAL_VOICE_MAP[selectedLongReaderVoicePreset] || EDGE_NEURAL_VOICE_MAP.hyunsu;
+
+            // [사파리 iOS/Mac 오디오 잠금 즉시 해제]: 사용자 터치 이벤트 핸들러 내부에서 Audio 객체 생성 및 언락
+            if (!longReaderAudioPlayer) {
+                longReaderAudioPlayer = new Audio();
+                longReaderAudioPlayer.playsInline = true;
+            }
+            try {
+                longReaderAudioPlayer.src = 'data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA';
+                await longReaderAudioPlayer.play().catch(() => {});
+                longReaderAudioPlayer.pause();
+            } catch (e) {}
+
+            // 1순위: 만약 PC Edge 브라우저여서 로컬에 실제 MS Natural 성우(현수/인준/선희)가 내장되어 있다면 즉시 문장 분할 재생
+            const localNaturalVoice = findLocalMsNaturalVoice(selectedLongReaderVoicePreset);
+            if (localNaturalVoice) {
+                const chunks = splitTextIntoSpeechChunks(textToSpeak, 150);
+                let idx = 0;
+                const speakLocalNext = () => {
+                    if (currentSession !== longReaderTtsSessionId) return;
+                    if (idx >= chunks.length) {
+                        setLongReaderTTSPlayingUI(false, false);
+                        return;
+                    }
+                    const utter = new SpeechSynthesisUtterance(chunks[idx]);
+                    utter.voice = localNaturalVoice;
+                    utter.lang = localNaturalVoice.lang || 'ko-KR';
+                    utter.pitch = 1.0;
+                    utter.rate = (selectedLongReaderVoicePreset === 'sunhi') ? 0.95 : 0.92;
+                    utter.onstart = () => {
+                        if (currentSession !== longReaderTtsSessionId) return;
+                        if (idx === 0) {
+                            setLongReaderTTSPlayingUI(true, false);
+                            showNotification(`🎙️ [${cfg.label}] 신경망 음성으로 낭독을 시작합니다.`);
+                        }
+                    };
+                    utter.onend = () => {
+                        if (currentSession !== longReaderTtsSessionId) return;
+                        idx++;
+                        speakLocalNext();
+                    };
+                    utter.onerror = (e) => {
+                        if (e && (e.error === 'interrupted' || e.error === 'canceled')) return;
+                        setLongReaderTTSPlayingUI(false, false);
+                    };
+                    window.__activeLongReaderUtter = utter;
+                    window.speechSynthesis.speak(utter);
+                };
+                speakLocalNext();
+                return;
             }
 
-            const startSpeak = () => {
-                const utter = new SpeechSynthesisUtterance(textToSpeak);
-                utter.lang = 'ko-KR';
+            // 2순위: 사파리(iOS/Mac) · 크롬 · 모바일 브라우저 -> MS Edge Neural 클라우드 오디오 스트리밍 재생 (현수/인준/선희 100% 실제 목소리)
+            setLongReaderTTSPlayingUI(false, true);
+            const chunks = splitTextIntoSpeechChunks(textToSpeak, 170);
+            const prefetchedBlobs = new Array(chunks.length).fill(null);
 
-                const matchedVoice = pickBestKoreanVoice(selectedLongReaderVoicePreset);
-                const presetLabels = { hyunsu: '현수(남성1)', injoon: '인준(남성2)', sunhi: '선희(여성)' };
-                const label = presetLabels[selectedLongReaderVoicePreset] || '고품질';
-
-                if (matchedVoice) {
-                    utter.voice = matchedVoice;
-                    const isNeuralVoice = /natural|online|현수|인준|선희|hyunsu|injoon|sunhi|google|yuna|sora/i.test(matchedVoice.name);
-                    if (isNeuralVoice) {
-                        // 신경망(Natural) 성우 음성은 pitch를 1.0으로 유지해야 보코더(기계음) 왜곡 없이 엣지 본연의 고품질 육성이 출력됨
-                        utter.pitch = 1.0;
-                        utter.rate = (selectedLongReaderVoicePreset === 'sunhi') ? 0.94 : 0.92;
-                    } else {
-                        utter.pitch = 0.95;
-                        utter.rate = 0.9;
-                    }
-                } else {
-                    utter.pitch = 1.0;
-                    utter.rate = 0.92;
+            const fetchChunkBlob = (index) => {
+                if (index >= chunks.length) return Promise.resolve(null);
+                if (!prefetchedBlobs[index]) {
+                    prefetchedBlobs[index] = generateEdgeNeuralAudioBlob(chunks[index], selectedLongReaderVoicePreset);
                 }
-
-                utter.onstart = () => {
-                    setLongReaderTTSPlayingUI(true);
-                    showNotification(`🎙️ [${label}] 음성으로 차분하게 낭독을 시작합니다.`);
-                };
-                utter.onend = () => { setLongReaderTTSPlayingUI(false); };
-                utter.onerror = () => { setLongReaderTTSPlayingUI(false); };
-
-                window.speechSynthesis.speak(utter);
+                return prefetchedBlobs[index];
             };
 
-            if ((window.speechSynthesis.getVoices() || []).length === 0) {
-                setTimeout(startSpeak, 150);
-            } else {
-                startSpeak();
+            try {
+                // 첫 문장 합성 및 다음 문장 백그라운드 프리페치
+                const firstBlob = await fetchChunkBlob(0);
+                if (currentSession !== longReaderTtsSessionId) return;
+                if (chunks.length > 1) fetchChunkBlob(1).catch(() => {});
+
+                let playIdx = 0;
+                const playCloudNext = async (blobToPlay) => {
+                    if (currentSession !== longReaderTtsSessionId || !blobToPlay) {
+                        setLongReaderTTSPlayingUI(false, false);
+                        return;
+                    }
+                    // 다음 문장 미리 합성 요청
+                    if (playIdx + 1 < chunks.length) {
+                        fetchChunkBlob(playIdx + 1).catch(() => {});
+                    }
+
+                    const blobUrl = URL.createObjectURL(blobToPlay);
+                    longReaderAudioBlobUrls.push(blobUrl);
+                    longReaderAudioPlayer.src = blobUrl;
+
+                    longReaderAudioPlayer.onplay = () => {
+                        if (currentSession !== longReaderTtsSessionId) return;
+                        if (playIdx === 0) {
+                            setLongReaderTTSPlayingUI(true, false);
+                            showNotification(`🎙️ [${cfg.label}] 고품질 신경망 음성으로 낭독합니다.`);
+                        }
+                    };
+
+                    longReaderAudioPlayer.onended = async () => {
+                        if (currentSession !== longReaderTtsSessionId) return;
+                        playIdx++;
+                        if (playIdx < chunks.length) {
+                            try {
+                                const nextB = await fetchChunkBlob(playIdx);
+                                if (currentSession === longReaderTtsSessionId && nextB) {
+                                    await playCloudNext(nextB);
+                                } else {
+                                    setLongReaderTTSPlayingUI(false, false);
+                                }
+                            } catch (err) {
+                                setLongReaderTTSPlayingUI(false, false);
+                            }
+                        } else {
+                            setLongReaderTTSPlayingUI(false, false);
+                        }
+                    };
+
+                    longReaderAudioPlayer.onerror = () => {
+                        if (currentSession !== longReaderTtsSessionId) return;
+                        setLongReaderTTSPlayingUI(false, false);
+                    };
+
+                    await longReaderAudioPlayer.play();
+                };
+
+                await playCloudNext(firstBlob);
+            } catch (cloudErr) {
+                // 오프라인 등 비상 시에만 사파리 내장 음성으로 폴백
+                if (currentSession !== longReaderTtsSessionId) return;
+                if ('speechSynthesis' in window) {
+                    const utter = new SpeechSynthesisUtterance(textToSpeak);
+                    utter.lang = 'ko-KR';
+                    utter.rate = 0.92;
+                    utter.pitch = (selectedLongReaderVoicePreset === 'hyunsu') ? 0.85 : (selectedLongReaderVoicePreset === 'injoon' ? 0.94 : 1.05);
+                    utter.onstart = () => {
+                        setLongReaderTTSPlayingUI(true, false);
+                        showNotification(`🔊 기본 음성으로 낭독을 시작합니다.`);
+                    };
+                    utter.onend = () => setLongReaderTTSPlayingUI(false, false);
+                    utter.onerror = () => setLongReaderTTSPlayingUI(false, false);
+                    window.speechSynthesis.speak(utter);
+                } else {
+                    setLongReaderTTSPlayingUI(false, false);
+                    showNotification("음성 서버에 연결할 수 없습니다.");
+                }
             }
         };
 

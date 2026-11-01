@@ -1334,8 +1334,16 @@
 
             <!-- 하단 닫기 바 -->
             <div class="px-3.5 py-2 border-t border-amber-200/80 bg-white/95 shrink-0 flex items-center justify-between">
-                <span id="long-reader-char-count" class="text-[10px] font-mono text-gray-500 font-bold">0자</span>
-                <button type="button" onclick="closeLongContentReader()" class="py-1.5 px-4 church-primary text-white rounded-xl text-xs font-bold shadow-2xs active:scale-95 transition-all">
+                <span id="long-reader-char-count" class="text-[10px] font-mono text-gray-500 font-bold shrink-0">0자</span>
+                
+                <!-- 신규 추가되는 TTS 음성 읽기 버튼 -->
+                <button type="button" id="long-reader-tts-btn" onclick="toggleLongReaderTTS()" 
+                        class="px-2.5 py-1 rounded-full bg-amber-100/80 hover:bg-amber-200 text-amber-950 border border-amber-300/80 text-[10.5px] font-bold shadow-2xs active:scale-95 transition-all flex items-center space-x-1">
+                    <i id="long-reader-tts-icon" class="fa-solid fa-volume-high text-[11px] text-amber-800"></i>
+                    <span id="long-reader-tts-text">음성 읽기</span>
+                </button>
+                
+                <button type="button" onclick="closeLongContentReader()" class="py-1.5 px-4 church-primary text-white rounded-xl text-xs font-bold shadow-2xs active:scale-95 transition-all shrink-0">
                     닫기
                 </button>
             </div>
@@ -1939,6 +1947,98 @@
             }
         }
 
+        // [긴글읽기 전용 고품질 TTS 음성 엔진 (Microsoft Hyunsu 우선 매칭 & 사파리 Fallback)]
+        let isLongReaderSpeaking = false;
+        if ('speechSynthesis' in window) {
+            window.speechSynthesis.getVoices();
+            window.speechSynthesis.onvoiceschanged = () => {
+                window.speechSynthesis.getVoices();
+            };
+        }
+
+        function setLongReaderTTSPlayingUI(isPlaying) {
+            isLongReaderSpeaking = isPlaying;
+            const btn = document.getElementById('long-reader-tts-btn');
+            const icon = document.getElementById('long-reader-tts-icon');
+            const text = document.getElementById('long-reader-tts-text');
+            if (!btn || !icon || !text) return;
+
+            if (isPlaying) {
+                btn.classList.add('bg-rose-100', 'text-rose-900', 'border-rose-300');
+                btn.classList.remove('bg-amber-100/80', 'text-amber-950', 'border-amber-300/80');
+                icon.className = 'fa-solid fa-stop text-[11px] text-rose-700 animate-pulse';
+                text.innerText = '낭독 멈춤';
+            } else {
+                btn.classList.remove('bg-rose-100', 'text-rose-900', 'border-rose-300');
+                btn.classList.add('bg-amber-100/80', 'text-amber-950', 'border-amber-300/80');
+                icon.className = 'fa-solid fa-volume-high text-[11px] text-amber-800';
+                text.innerText = '음성 읽기';
+            }
+        }
+
+        function stopLongReaderTTS() {
+            if ('speechSynthesis' in window) {
+                try { window.speechSynthesis.cancel(); } catch (e) {}
+            }
+            setLongReaderTTSPlayingUI(false);
+        }
+
+        window.toggleLongReaderTTS = function() {
+            if (!('speechSynthesis' in window)) {
+                showNotification("현재 브라우저가 음성 합성을 지원하지 않습니다.");
+                return;
+            }
+
+            if (window.speechSynthesis.speaking || isLongReaderSpeaking) {
+                stopLongReaderTTS();
+                showNotification("음성 낭독을 멈췄습니다.");
+                return;
+            }
+
+            const bodyEl = document.getElementById('long-reader-body');
+            const textToSpeak = bodyEl ? bodyEl.innerText.trim() : '';
+            if (!textToSpeak) {
+                showNotification("낭독할 글 내용이 없습니다.");
+                return;
+            }
+
+            window.speechSynthesis.cancel();
+            if (window.speechSynthesis.paused) {
+                window.speechSynthesis.resume();
+            }
+
+            const utter = new SpeechSynthesisUtterance(textToSpeak);
+            utter.lang = 'ko-KR';
+            utter.rate = 0.8;  // 요청값: 속도 0.8
+            utter.pitch = 0.8; // 요청값: 음높이 0.8
+
+            // 음성 탐색: Microsoft Hyunsu -> 사파리 한국어 -> 기타 한국어 순
+            const voices = window.speechSynthesis.getVoices();
+            const hyunsuVoice = voices.find(v => v.name.includes('Hyunsu') && (v.lang.includes('ko') || v.lang.includes('KO')));
+            const safariKoVoice = voices.find(v => (v.name.includes('Yuna') || v.name.includes('Sora') || v.name.includes('Siri')) && (v.lang.includes('ko') || v.lang.includes('KO')));
+            const defaultKoVoice = voices.find(v => v.lang.includes('ko') || v.lang.includes('KO'));
+
+            if (hyunsuVoice) {
+                utter.voice = hyunsuVoice;
+            } else if (safariKoVoice) {
+                utter.voice = safariKoVoice;
+            } else if (defaultKoVoice) {
+                utter.voice = defaultKoVoice;
+            }
+
+            utter.onstart = () => {
+                setLongReaderTTSPlayingUI(true);
+                showNotification("긴글 낭독을 시작합니다 (속도 0.8 / 음높이 0.8)");
+            };
+            utter.onend = () => { setLongReaderTTSPlayingUI(false); };
+            utter.onerror = () => { setLongReaderTTSPlayingUI(false); };
+
+            window.speechSynthesis.speak(utter);
+        };
+
+        window.addEventListener('pagehide', stopLongReaderTTS);
+        window.addEventListener('beforeunload', stopLongReaderTTS);
+
         window.openLongContentReader = function(postId, event) {
             if (event) event.stopPropagation();
             const post = cachedPosts.find(p => p.id === postId || String(p.id) === String(postId));
@@ -1946,6 +2046,9 @@
                 showNotification("등록된 긴 글이 없습니다.");
                 return;
             }
+
+            // 이전 음성 낭독 중일 경우 즉시 정지 및 초기화
+            stopLongReaderTTS();
 
             // 열람 즉시 읽음 처리 및 흔들림 해제
             markLongContentAsRead(postId);
@@ -1975,6 +2078,7 @@
         };
 
         window.closeLongContentReader = function() {
+            stopLongReaderTTS();
             activeReaderPostId = null;
             const modal = document.getElementById('long-content-reader-modal');
             if (modal) modal.classList.add('hidden');
@@ -7785,7 +7889,7 @@ window.closeAllPdfPreviewModal = function() {
             const postFontClass = getFontClass(post.fontFamily);
             const hasLong = post.longContent && String(post.longContent).trim().length > 0;
             const isUnreadLong = hasLong && !isLongContentRead(post.id, post);
-            const inlineLongBtn = hasLong ? `<span class="inline-block whitespace-nowrap ml-1"><button type="button" id="long-read-btn-${post.id}" onclick="event.stopPropagation(); openLongContentReader('${post.id}', event)" class="no-export inline-flex items-center space-x-0.5 px-1.5 py-0.5 rounded-full bg-amber-50 hover:bg-amber-100 text-amber-950 border border-amber-300 shadow-2xs text-[10.5px] font-bold active:scale-95 transition-transform align-middle select-none cursor-pointer" title="긴글 읽기"><span id="long-read-icon-${post.id}" class="text-[11px] leading-none ${isUnreadLong ? 'animate-scroll-unread' : ''}">📜</span><span>긴글읽기</span></button></span>` : '';
+            const inlineLongBtn = hasLong ? `<span class="inline-block whitespace-nowrap ml-1"><button type="button" id="long-read-btn-${post.id}" onclick="event.stopPropagation(); openLongContentReader('${post.id}', event)" class="no-export px-2 py-0.5 rounded-full bg-amber-50/90 hover:bg-amber-100 text-amber-950 hover:text-amber-900 border border-amber-200/90 shadow-2xs text-[9.5px] font-medium inline-flex items-center space-x-1 active:scale-95 transition-all align-middle select-none cursor-pointer" title="긴글 읽기"><span id="long-read-icon-${post.id}" class="text-[10px] leading-none ${isUnreadLong ? 'animate-scroll-unread' : ''}">📜</span><span>긴글읽기</span></button></span>` : '';
 
             let formattedContent = '';
             if (post.content && post.content.trim()) {

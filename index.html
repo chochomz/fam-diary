@@ -61,7 +61,29 @@
         }
 
         .gate-exit-active {
-            animation: slideUpGate 0.35s cubic-bezier(0.25, 1, 0.5, 1) forwards !important;
+            animation: slideUpGate 0.55s cubic-bezier(0.22, 1, 0.36, 1) forwards !important;
+            pointer-events: none !important;
+        }
+
+        /* [로그인 즉시 아래에서 함께 따라 올라오는 index2 스테이지] */
+        @keyframes slideUpFollow {
+            0% { transform: translateY(100%); }
+            100% { transform: translateY(0%); }
+        }
+
+        #index2-follow-stage {
+            position: fixed; inset: 0; z-index: 990;
+            width: 100vw; height: 100dvh;
+            background-color: #FFFFFF;
+            transform: translateY(100%);
+            will-change: transform;
+            overflow: hidden;
+            display: none;
+        }
+
+        #index2-follow-stage.follow-enter-active {
+            display: block !important;
+            animation: slideUpFollow 0.55s cubic-bezier(0.22, 1, 0.36, 1) forwards !important;
         }
 
         #auth-gate {
@@ -99,7 +121,7 @@
         #code-auth-box {
             position: absolute;
             left: 50%;
-            bottom: calc(env(safe-area-inset-bottom, 0px) + 33px);
+            bottom: calc(env(safe-area-inset-bottom, 0px) + 35px);
             transform: translateX(-50%);
             z-index: 45;
             opacity: 0;
@@ -197,6 +219,8 @@
 
     <div id="safari-top-edge"></div>
     <div id="safari-bottom-edge"></div>
+
+    <div id="index2-follow-stage"></div>
 
     <div id="auth-gate">
         <div id="monthly-svg-stage"></div>
@@ -630,12 +654,19 @@
                 localStorage.setItem('family_auto_remember', 'true');
             }
 
+            // [핵심] 하트가 뿌려지는 즉시 index2.html이 아래에서 위로 따라 올라오도록 동시 전환
+            const followStage = document.getElementById('index2-follow-stage');
+            if (followStage) {
+                followStage.innerHTML = `<iframe src="index2.html" title="우리 가족 이야기 피드" style="width:100%;height:100%;border:0;display:block;background:#FFFFFF;" allow="clipboard-write"></iframe>`;
+                followStage.classList.add('follow-enter-active');
+            }
+
             authGate.classList.add('gate-exit-active');
 
-            // 0.35초 후 index2.html로 안전하고 부드럽게 직행
+            // 슬라이드업 완료 후 auth-gate만 숨기고 하트 애니메이션은 끝까지 자연스럽게 유지
             setTimeout(() => {
-                window.location.replace('index2.html');
-            }, 350);
+                if (authGate) authGate.style.display = 'none';
+            }, 560);
         }
 
         let adminTapCount = 0;

@@ -74,7 +74,7 @@
         #index2-follow-stage {
             position: fixed; inset: 0; z-index: 990;
             width: 100%; height: 100%;
-            background-color: #F8F9FA;
+            background-color: #FFFFFF;
             transform: translateY(100%);
             will-change: transform;
             overflow: hidden;
@@ -97,18 +97,19 @@
 
         #monthly-svg-stage {
             position: relative;
-            width: 100vw;
-            height: 100dvh;
-            margin: 0; 
-            padding-top: max(env(safe-area-inset-top, 0px), 10px);
-            padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 90px);
+            width: 100%;
+            height: 100%;
+            margin: 0;
+            padding-top: max(env(safe-area-inset-top, 0px), 12px);
+            padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 84px);
+            padding-left: 12px;
+            padding-right: 12px;
             display: flex; align-items: center; justify-content: center;
             pointer-events: none; user-select: none;
             -webkit-user-select: none;
             overflow: hidden;
-            background-color: #FFFFFF;
+            background-color: #FFFFFF !important;
             box-sizing: border-box;
-            transform: translateY(-16px);
         }
 
         #monthly-svg-stage svg.full-bleed-svg {
@@ -266,17 +267,23 @@
         const svgStage = document.getElementById('monthly-svg-stage');
 
         function forceWhiteBar() {
-            document.querySelectorAll('meta[name="theme-color"]').forEach(el => el.remove());
-            const meta = document.createElement('meta');
-            meta.name = 'theme-color';
-            meta.content = '#FFFFFF';
-            document.head.appendChild(meta);
-            document.documentElement.style.backgroundColor = '#FFFFFF';
-            document.body.style.backgroundColor = '#FFFFFF';
+            document.querySelectorAll('meta[name="theme-color"]').forEach(el => {
+                el.setAttribute('content', '#FFFFFF');
+            });
+            if (!document.querySelector('meta[name="theme-color"]')) {
+                const meta = document.createElement('meta');
+                meta.name = 'theme-color';
+                meta.content = '#FFFFFF';
+                document.head.appendChild(meta);
+            }
+            document.documentElement.style.setProperty('background-color', '#FFFFFF', 'important');
+            document.body.style.setProperty('background-color', '#FFFFFF', 'important');
+            if (authGate) authGate.style.setProperty('background-color', '#FFFFFF', 'important');
+            if (svgStage) svgStage.style.setProperty('background-color', '#FFFFFF', 'important');
             const topEdge = document.getElementById('safari-top-edge');
             const bottomEdge = document.getElementById('safari-bottom-edge');
-            if (topEdge) topEdge.style.backgroundColor = '#FFFFFF';
-            if (bottomEdge) bottomEdge.style.backgroundColor = '#FFFFFF';
+            if (topEdge) topEdge.style.setProperty('background-color', '#FFFFFF', 'important');
+            if (bottomEdge) bottomEdge.style.setProperty('background-color', '#FFFFFF', 'important');
         }
         forceWhiteBar();
 
@@ -363,54 +370,59 @@
             const isOddDay = (day % 2 === 1);
 
             const d = MONTHLY_DESIGN_DATA[month] || MONTHLY_DESIGN_DATA[5];
-            const activeBg = isOddDay ? d.oddOuterBg : d.evenBg;
 
-            svgStage.style.backgroundColor = activeBg;
-            if (authGate) authGate.style.backgroundColor = activeBg;
-            document.body.style.backgroundColor = activeBg;
-            document.documentElement.style.backgroundColor = activeBg;
-            const topEdge = document.getElementById('safari-top-edge');
-            const bottomEdge = document.getElementById('safari-bottom-edge');
-            if (topEdge) topEdge.style.backgroundColor = activeBg;
-            if (bottomEdge) bottomEdge.style.backgroundColor = activeBg;
+            // [근본 해결] 상단 배터리 표시 라인과 문서 배경을 절대 SVG 색상으로 덮어쓰지 않고 순백색(#FFFFFF)으로 유지
+            forceWhiteBar();
 
             if (isOddDay) {
                 svgStage.innerHTML = `
                     <svg class="full-bleed-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 270" preserveAspectRatio="xMidYMid meet" role="img">
                         <title>${month}월 · ${d.title}</title>
                         <defs>
+                            <clipPath id="cardClipOdd${month}">
+                                <rect x="0" y="0" width="200" height="270" rx="14"/>
+                            </clipPath>
                             <clipPath id="w${month}">
                                 <path d="M25 167 V99 A75 75 0 0 1 175 99 V167Z"/>
                             </clipPath>
                         </defs>
-                        <rect x="-500" y="-500" width="1200" height="1270" fill="${d.oddOuterBg}"/>
-                        <rect x="6" y="6" width="188" height="258" rx="12" fill="none" stroke="${d.oddStroke}" stroke-width="1" opacity="0.8"/>
-                        <path d="M25 167 V99 A75 75 0 0 1 175 99 V167Z" fill="${d.oddArchBg}"/>
-                        <g clip-path="url(#w${month})">
-                            <g transform="translate(25,-36) scale(0.75)">
-                                ${d.art}
+                        <g clip-path="url(#cardClipOdd${month})">
+                            <rect x="0" y="0" width="200" height="270" rx="14" fill="${d.oddOuterBg}"/>
+                            <rect x="6" y="6" width="188" height="258" rx="12" fill="none" stroke="${d.oddStroke}" stroke-width="1" opacity="0.8"/>
+                            <path d="M25 167 V99 A75 75 0 0 1 175 99 V167Z" fill="${d.oddArchBg}"/>
+                            <g clip-path="url(#w${month})">
+                                <g transform="translate(25,-36) scale(0.75)">
+                                    ${d.art}
+                                </g>
                             </g>
-                        </g>
-                        <path d="M25 167 V99 A75 75 0 0 1 175 99 V167Z" fill="none" stroke="${d.oddStroke}" stroke-width="2"/>
-                        <circle cx="100" cy="176" r="19" fill="${d.oddStroke}" stroke="${d.oddOuterBg}" stroke-width="3"/>
-                        <line x1="84" y1="231" x2="116" y2="231" stroke="${d.oddStroke}" stroke-width="1.5"/>
-                        <g font-family="'Noto Serif KR','Nanum Myeongjo','Apple SD Gothic Neo',serif" text-anchor="middle">
-                            <text x="100" y="180" font-size="12" font-weight="700" fill="#2B2B2B">${month}월</text>
-                            <text x="100" y="222" font-size="20" font-weight="700" fill="${d.oddText}">${d.title}</text>
-                            <text x="100" y="249" font-size="11" fill="${d.oddText}" opacity="0.88">${d.sub}</text>
+                            <path d="M25 167 V99 A75 75 0 0 1 175 99 V167Z" fill="none" stroke="${d.oddStroke}" stroke-width="2"/>
+                            <circle cx="100" cy="176" r="19" fill="${d.oddStroke}" stroke="${d.oddOuterBg}" stroke-width="3"/>
+                            <line x1="84" y1="231" x2="116" y2="231" stroke="${d.oddStroke}" stroke-width="1.5"/>
+                            <g font-family="'Noto Serif KR','Nanum Myeongjo','Apple SD Gothic Neo',serif" text-anchor="middle">
+                                <text x="100" y="180" font-size="12" font-weight="700" fill="#2B2B2B">${month}월</text>
+                                <text x="100" y="222" font-size="20" font-weight="700" fill="${d.oddText}">${d.title}</text>
+                                <text x="100" y="249" font-size="11" fill="${d.oddText}" opacity="0.88">${d.sub}</text>
+                            </g>
                         </g>
                     </svg>
                 `;
             } else {
                 svgStage.innerHTML = `
-                    <svg class="full-bleed-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 270" preserveAspectRatio="xMidYMid slice" role="img">
+                    <svg class="full-bleed-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 270" preserveAspectRatio="xMidYMid meet" role="img">
                         <title>${month}월 · ${d.title}</title>
-                        <rect x="-500" y="-500" width="1200" height="1270" fill="${d.evenBg}"/>
-                        ${d.art}
-                        <g font-family="'Noto Serif KR','Nanum Myeongjo','Apple SD Gothic Neo',serif" text-anchor="middle" fill="${d.evenText}">
-                            <text x="100" y="26" font-size="11" opacity="0.75">${month}월</text>
-                            <text x="100" y="52" font-size="20" font-weight="700">${d.title}</text>
-                            <text x="100" y="72" font-size="11" opacity="0.85">${d.sub}</text>
+                        <defs>
+                            <clipPath id="cardClipEven${month}">
+                                <rect x="0" y="0" width="200" height="270" rx="14"/>
+                            </clipPath>
+                        </defs>
+                        <g clip-path="url(#cardClipEven${month})">
+                            <rect x="0" y="0" width="200" height="270" rx="14" fill="${d.evenBg}"/>
+                            ${d.art}
+                            <g font-family="'Noto Serif KR','Nanum Myeongjo','Apple SD Gothic Neo',serif" text-anchor="middle" fill="${d.evenText}">
+                                <text x="100" y="26" font-size="11" opacity="0.75">${month}월</text>
+                                <text x="100" y="52" font-size="20" font-weight="700">${d.title}</text>
+                                <text x="100" y="72" font-size="11" opacity="0.85">${d.sub}</text>
+                            </g>
                         </g>
                     </svg>
                 `;
@@ -455,231 +467,12 @@
                 }
 
                 if (codeInput) {
-                    setTimeout(() => {
-                        try { codeInput.focus(); } catch(err) {}
-                    }, 120);
-                }
-            } else {
-                clearTimeout(bottomTapTimer);
-                bottomTapTimer = setTimeout(() => {
-                    bottomTapCount = 0;
-                }, 900);
-            }
-        };
-
-        function getStoredAutoName() {
-            try {
-                const isAuto = localStorage.getItem('family_auto_remember') === 'true';
-                if (!isAuto) return '';
-                const saved = localStorage.getItem('family_user_name');
-                return (saved && saved.trim()) ? saved.trim() : '';
-            } catch(e) { return ''; }
-        }
-
-        function initAutoCheckUI() {
-            const chk = document.getElementById('auto-login-check');
-            if (chk) {
-                chk.checked = (localStorage.getItem('family_auto_remember') === 'true');
-            }
-        }
-        setTimeout(initAutoCheckUI, 100);
-
-        window.handleAutoCheckChange = function(el) {
-            try {
-                if (el.checked) {
-                    localStorage.setItem('family_auto_remember', 'true');
-                } else {
-                    localStorage.setItem('family_auto_remember', 'false');
-                }
-            } catch(e) {}
-        };
-
-        window.guardNameInputFocus = function(nameInput) {
-            if (!isCodePassed) {
-                nameInput.blur();
-                const codeInput = document.getElementById('input-family-code');
-                if (codeInput) codeInput.focus();
-            }
-        };
-
-        function setNameInputLocked(locked) {
-            const nameInput = document.getElementById('input-member-name');
-            if (!nameInput) return;
-            if (locked) {
-                isCodePassed = false;
-                nameInput.value = '';
-                nameInput.disabled = true;
-                nameInput.readOnly = true;
-                nameInput.setAttribute('tabindex', '-1');
-            } else {
-                isCodePassed = true;
-                nameInput.disabled = false;
-                nameInput.readOnly = false;
-                nameInput.removeAttribute('tabindex');
-            }
-        }
-
-        window.handleCodeInput = function(input) {
-            let clean = input.value.replace(/[^0-9]/g, '').slice(0, 4);
-            if (input.value !== clean) input.value = clean;
-            
-            let validCode = window.liveFamilyConfig?.familyCode || window.liveFamilyConfig?.mokjangCode || '1111';
-            try {
-                const rawCfg = localStorage.getItem('family_config_backup');
-                if (rawCfg && !window.liveFamilyConfigLoaded) {
-                    const cfg = JSON.parse(rawCfg);
-                    if (cfg.familyCode || cfg.mokjangCode) {
-                        validCode = String(cfg.familyCode || cfg.mokjangCode).trim();
-                    }
-                }
-            } catch(e) {}
-
-            const isCodeCorrect = (clean.length === 4 && (clean === '1111' || clean === validCode));
-
-            if (isCodeCorrect) {
-                setNameInputLocked(false);
-                const storedName = getStoredAutoName();
-                if (storedName) {
-                    const nameInput = document.getElementById('input-member-name');
-                    if (nameInput) nameInput.value = storedName;
-                    checkAutoLogin();
-                    return;
-                }
-
-                if (document.activeElement === input) {
-                    if (navigator.vibrate) {
-                        try { navigator.vibrate(40); } catch(e) {}
-                    }
-                    const nameInput = document.getElementById('input-member-name');
-                    if (nameInput) nameInput.focus();
-                }
-            } else {
-                setNameInputLocked(true);
-            }
-            checkAutoLogin();
-        };
-
-        window.handleNameInput = function(input) {
-            if (!isCodePassed) {
-                setNameInputLocked(true);
-                const codeInput = document.getElementById('input-family-code');
-                if (codeInput) codeInput.focus();
-                return;
-            }
-            let clean = input.value.replace(/[^ㄱ-ㅎㅏ-ㅣ가-힣0-9a-zA-Z]/g, '').slice(0, 6);
-            if (input.value !== clean) input.value = clean;
-            checkAutoLogin();
-        };
-
-        function checkAutoLogin() {
-            if (!isCodePassed || isLoginTransitioning) return;
-            const codeInput = document.getElementById('input-family-code');
-            const nameInput = document.getElementById('input-member-name');
-            const code = codeInput.value.trim();
-            const name = nameInput.value.trim();
-
-            let cfg = window.liveFamilyConfig || {};
-            try {
-                const rawCfg = localStorage.getItem('family_config_backup');
-                if (rawCfg && !window.liveFamilyConfigLoaded) {
-                    cfg = JSON.parse(rawCfg) || {};
-                }
-            } catch(e) {}
-
-            const validCode = (cfg.familyCode || cfg.mokjangCode) ? String(cfg.familyCode || cfg.mokjangCode).trim() : '1111';
-            const rawFamilyTitle = cfg.familyName || cfg.mokjangName || '';
-            const familyShort = rawFamilyTitle ? String(rawFamilyTitle).trim().replace(/^우리\s*가족\s*이야기\s*/, '') : '';
-            const leaderName = (cfg.adminFatherName || cfg.leaderName) ? String(cfg.adminFatherName || cfg.leaderName).trim() : '아빠';
-            const subLeaderName = (cfg.adminMotherName || cfg.subLeaderName || cfg.subleaderName) ? String(cfg.adminMotherName || cfg.subLeaderName || cfg.subleaderName).trim() : '';
-            const subLeaders = Array.isArray(cfg.subLeaders) ? cfg.subLeaders : [];
-            const validMembers = Array.isArray(cfg.members) ? cfg.members.map(m => typeof m === 'object' ? m.name : m) : ['1111'];
-            const memberRoles = (cfg.memberRoles && typeof cfg.memberRoles === 'object') ? cfg.memberRoles : {};
-
-            const isDefaultMatch = (code === '1111' && name === '1111');
-            const isLeaderMatch = (code === validCode && (name === leaderName || memberRoles[name] === 'leader'));
-            const isSubLeaderMatch = (code === validCode && ((subLeaderName && name === subLeaderName) || subLeaders.includes(name) || memberRoles[name] === 'subleader'));
-            const isMemberMatch = (code === validCode && validMembers.includes(name));
-
-            if (code.length === 4 && name.length >= 2 && (isDefaultMatch || isLeaderMatch || isSubLeaderMatch || isMemberMatch)) {
-                let userRole = 'member';
-                let isAdminBool = false;
-
-                if (isLeaderMatch || name === leaderName || name === '아빠' || name === '관리자') {
-                    userRole = 'leader';
-                    isAdminBool = true;
-                } else if (isSubLeaderMatch || name === '엄마') {
-                    userRole = 'subleader';
-                    isAdminBool = true;
-                }
-
-                const isAdminFlag = isAdminBool ? '1' : '0';
-
-                try {
-                    localStorage.setItem('family_user_name', name);
-                    localStorage.setItem('family_user_role', userRole);
-                    localStorage.setItem('family_short_name', familyShort);
-                    localStorage.setItem('family_name', familyShort || '우리 가족 이야기');
-                    localStorage.setItem('family_is_admin', isAdminBool ? 'true' : 'false');
-                } catch(e) {}
-
-                codeInput.blur();
-                nameInput.blur();
-                handleMemberLogin(name, familyShort, isAdminFlag, userRole);
-            }
-        }
-
-        function handleMemberLogin(userName, familyShort = '', isAdminFlag = '0', userRole = 'member') {
-            if (isLoginTransitioning) return;
-            isLoginTransitioning = true;
-
-            const finalName = userName || document.getElementById('input-member-name').value.trim() || '우리가족';
-            const finalFamily = familyShort || '';
-
-            // [핵심 해결] 1회용 통행증을 정확하게 발급하여 index2.html이 유효하게 읽도록 보장
-            try {
-                sessionStorage.setItem('family_entry_pass', JSON.stringify({
-                    target: 'index2.html',
-                    authorizedFromIndex: true,
-                    token: 'tk_' + Date.now() + '_' + Math.random().toString(36).slice(2),
-                    userName: finalName,
-                    familyShort: finalFamily,
-                    mokjangShort: finalFamily,
-                    role: userRole,
-                    isAdmin: isAdminFlag === '1',
-                    issuedAt: Date.now()
-                }));
-            } catch (e) {}
-
-            forceWhiteBar();
-            createHearts();
-
-            const autoChk = document.getElementById('auto-login-check');
-            if (autoChk && autoChk.checked) {
-                localStorage.setItem('family_auto_remember', 'true');
-            }
-
-            // [핵심] 하트가 뿌려지는 즉시 index2.html이 아래에서 위로 따라 올라오도록 동시 전환
-            const followStage = document.getElementById('index2-follow-stage');
-            if (followStage) {
-                followStage.innerHTML = `<iframe src="index2.html" title="우리 가족 이야기 피드" style="width:100%;height:100%;border:0;display:block;background:#FFFFFF;" allow="clipboard-write"></iframe>`;
-                followStage.classList.add('follow-enter-active');
-            }
-
-            authGate.classList.add('gate-exit-active');
-
-            // [패치] index.html의 상·하단 엣지(z-index:10000) 즉시 제거 및 뷰포트 잠식 해제
-            const topEdge = document.getElementById('safari-top-edge');
-            const bottomEdge = document.getElementById('safari-bottom-edge');
-            if (topEdge) topEdge.remove();
-            if (bottomEdge) bottomEdge.remove();
-            const vpMeta = document.querySelector('meta[name="viewport"]');
+                    const vpMeta = document.querySelector('meta[name="viewport"]');
             if (vpMeta) vpMeta.setAttribute('content', 'width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes, viewport-fit=cover');
 
-            // 슬라이드업 완료 후 auth-gate를 DOM에서 완전히 제거하여 색상·크기 잠식 원천 차단
             setTimeout(() => {
                 if (authGate) authGate.remove();
-                document.documentElement.style.backgroundColor = '#F8F9FA';
-                document.body.style.backgroundColor = '#F8F9FA';
+                forceWhiteBar();
             }, 560);
         }
 

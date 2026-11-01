@@ -1333,15 +1333,34 @@
             </div>
 
             <!-- 하단 닫기 바 -->
-            <div class="px-3.5 py-2 border-t border-amber-200/80 bg-white/95 shrink-0 flex items-center justify-between">
+            <div class="px-3.5 py-2 border-t border-amber-200/80 bg-white/95 shrink-0 flex items-center justify-between relative">
                 <span id="long-reader-char-count" class="text-[10px] font-mono text-gray-500 font-bold shrink-0">0자</span>
                 
-                <!-- 신규 추가되는 TTS 음성 읽기 버튼 -->
-                <button type="button" id="long-reader-tts-btn" onclick="toggleLongReaderTTS()" 
-                        class="px-2.5 py-1 rounded-full bg-amber-100/80 hover:bg-amber-200 text-amber-950 border border-amber-300/80 text-[10.5px] font-bold shadow-2xs active:scale-95 transition-all flex items-center space-x-1">
-                    <i id="long-reader-tts-icon" class="fa-solid fa-volume-high text-[11px] text-amber-800"></i>
-                    <span id="long-reader-tts-text">음성 읽기</span>
-                </button>
+                <!-- TTS 음성듣기 & 슬라이드 풀업 성우 선택 메뉴 (남성2: 현수·인준 / 여성1: 선희) -->
+                <div class="relative flex items-center justify-center">
+                    <div id="long-reader-tts-menu" 
+                         style="transform-origin: bottom center;"
+                         class="menu-closed absolute bottom-full mb-2 left-1/2 -translate-x-1/2 bg-[#EBF5EE]/95 backdrop-blur-xs border border-[#CDE5D5] text-[#244E3F] rounded-full shadow-lg py-1 px-2 z-30 flex items-center space-x-1 whitespace-nowrap transition-all duration-200">
+                        <button type="button" onclick="event.stopPropagation(); selectAndSpeakLongReader('hyunsu')" id="tts-voice-chip-hyunsu"
+                                class="px-2 py-0.5 rounded-full text-[10.5px] font-bold bg-white text-emerald-900 border border-emerald-300 shadow-2xs hover:bg-emerald-50 active:scale-95 transition-all flex items-center space-x-1" title="차분한 남성 음성 1 (Microsoft 현수)">
+                            <span>👨</span><span>현수(남1)</span>
+                        </button>
+                        <button type="button" onclick="event.stopPropagation(); selectAndSpeakLongReader('injoon')" id="tts-voice-chip-injoon"
+                                class="px-2 py-0.5 rounded-full text-[10.5px] font-semibold bg-white/70 text-gray-700 border border-emerald-200/80 hover:bg-white active:scale-95 transition-all flex items-center space-x-1" title="따뜻한 남성 음성 2 (Microsoft 인준)">
+                            <span>👨</span><span>인준(남2)</span>
+                        </button>
+                        <button type="button" onclick="event.stopPropagation(); selectAndSpeakLongReader('sunhi')" id="tts-voice-chip-sunhi"
+                                class="px-2 py-0.5 rounded-full text-[10.5px] font-semibold bg-white/70 text-gray-700 border border-emerald-200/80 hover:bg-white active:scale-95 transition-all flex items-center space-x-1" title="자연스러운 여성 음성 (Microsoft 선희)">
+                            <span>👩</span><span>선희(여)</span>
+                        </button>
+                    </div>
+
+                    <button type="button" id="long-reader-tts-btn" onclick="handleLongReaderTTSBtnClick(event)" 
+                            class="px-2.5 py-1 rounded-full bg-amber-100/80 hover:bg-amber-200 text-amber-950 border border-amber-300/80 text-[10.5px] font-bold shadow-2xs active:scale-95 transition-all flex items-center space-x-1">
+                        <i id="long-reader-tts-icon" class="fa-solid fa-volume-high text-[11px] text-amber-800"></i>
+                        <span id="long-reader-tts-text">음성듣기</span>
+                    </button>
+                </div>
                 
                 <button type="button" onclick="closeLongContentReader()" class="py-1.5 px-4 church-primary text-white rounded-xl text-xs font-bold shadow-2xs active:scale-95 transition-all shrink-0">
                     닫기
@@ -1947,14 +1966,67 @@
             }
         }
 
-        // [긴글읽기 전용 고품질 TTS 음성 엔진 (Microsoft Hyunsu 우선 매칭 & 사파리 Fallback)]
+                // [긴글읽기 전용 고품질 TTS 엔진: 슬라이드 성우 선택(남성1 현수, 남성2 인준, 여성1 선희) 및 Natural 원음 보장]
         let isLongReaderSpeaking = false;
+        let selectedLongReaderVoicePreset = 'hyunsu';
+
         if ('speechSynthesis' in window) {
             window.speechSynthesis.getVoices();
             window.speechSynthesis.onvoiceschanged = () => {
                 window.speechSynthesis.getVoices();
             };
         }
+
+        function closeLongReaderTTSMenu() {
+            const menu = document.getElementById('long-reader-tts-menu');
+            if (menu) {
+                menu.classList.remove('menu-open');
+                menu.classList.add('menu-closed');
+            }
+        }
+
+        function updateLongReaderVoiceChipsUI(preset) {
+            ['hyunsu', 'injoon', 'sunhi'].forEach(key => {
+                const chip = document.getElementById('tts-voice-chip-' + key);
+                if (!chip) return;
+                if (key === preset) {
+                    chip.className = "px-2 py-0.5 rounded-full text-[10.5px] font-bold bg-white text-emerald-900 border border-emerald-400 shadow-2xs hover:bg-emerald-50 active:scale-95 transition-all flex items-center space-x-1";
+                } else {
+                    chip.className = "px-2 py-0.5 rounded-full text-[10.5px] font-semibold bg-white/70 text-gray-700 border border-emerald-200/80 hover:bg-white active:scale-95 transition-all flex items-center space-x-1";
+                }
+            });
+        }
+
+        window.handleLongReaderTTSBtnClick = function(event) {
+            if (event) event.stopPropagation();
+            if (!('speechSynthesis' in window)) {
+                showNotification("현재 브라우저가 음성 합성을 지원하지 않습니다.");
+                return;
+            }
+            // 재생 중일 때 누르면 즉시 낭독 멈춤
+            if (window.speechSynthesis.speaking || isLongReaderSpeaking) {
+                stopLongReaderTTS();
+                showNotification("음성 낭독을 멈췄습니다.");
+                return;
+            }
+            // 정지 상태일 때 누르면 슬라이드 성우 선택 메뉴 토글
+            const menu = document.getElementById('long-reader-tts-menu');
+            if (!menu) return;
+            const isOpen = menu.classList.contains('menu-open');
+            if (isOpen) {
+                closeLongReaderTTSMenu();
+            } else {
+                updateLongReaderVoiceChipsUI(selectedLongReaderVoicePreset);
+                menu.classList.remove('menu-closed');
+                menu.classList.add('menu-open');
+            }
+        };
+
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('#long-reader-tts-menu') && !e.target.closest('#long-reader-tts-btn')) {
+                closeLongReaderTTSMenu();
+            }
+        });
 
         function setLongReaderTTSPlayingUI(isPlaying) {
             isLongReaderSpeaking = isPlaying;
@@ -1972,26 +2044,60 @@
                 btn.classList.remove('bg-rose-100', 'text-rose-900', 'border-rose-300');
                 btn.classList.add('bg-amber-100/80', 'text-amber-950', 'border-amber-300/80');
                 icon.className = 'fa-solid fa-volume-high text-[11px] text-amber-800';
-                text.innerText = '음성 읽기';
+                text.innerText = '음성듣기';
             }
         }
 
         function stopLongReaderTTS() {
+            closeLongReaderTTSMenu();
             if ('speechSynthesis' in window) {
                 try { window.speechSynthesis.cancel(); } catch (e) {}
             }
             setLongReaderTTSPlayingUI(false);
         }
 
-        window.toggleLongReaderTTS = function() {
-            if (!('speechSynthesis' in window)) {
-                showNotification("현재 브라우저가 음성 합성을 지원하지 않습니다.");
-                return;
+        function pickBestKoreanVoice(preset) {
+            const voices = window.speechSynthesis.getVoices() || [];
+            const koVoices = voices.filter(v => /ko[-_]?kr|korean|한국/i.test(v.lang + ' ' + v.name));
+            const pool = koVoices.length > 0 ? koVoices : voices;
+
+            const isNatural = (v) => /natural|online|자연|neural|multilingual/i.test(v.name);
+            const isHeami = (v) => /heami|혜미/i.test(v.name);
+
+            const matchKeywords = (keywords) => {
+                // 1차: Natural/Online 신경망 고품질 음성 우선 탐색
+                const nat = pool.find(v => isNatural(v) && keywords.some(k => v.name.toLowerCase().includes(k)));
+                if (nat) return nat;
+                // 2차: 키워드 일치 음성 탐색
+                return pool.find(v => keywords.some(k => v.name.toLowerCase().includes(k)));
+            };
+
+            let chosen = null;
+            if (preset === 'hyunsu') {
+                chosen = matchKeywords(['hyunsu', '현수']) || matchKeywords(['injoon', '인준']);
+            } else if (preset === 'injoon') {
+                chosen = matchKeywords(['injoon', '인준']) || matchKeywords(['hyunsu', '현수']);
+            } else if (preset === 'sunhi') {
+                chosen = matchKeywords(['sunhi', '선희', 'yuna', '유나', 'sora', '소라']);
             }
 
-            if (window.speechSynthesis.speaking || isLongReaderSpeaking) {
-                stopLongReaderTTS();
-                showNotification("음성 낭독을 멈췄습니다.");
+            // 선택 프리셋 음성이 브라우저에 없을 경우: Natural 신경망 한국어 -> Google/Apple 고품질 -> 구형 기계음(Heami) 제외 순으로 자동 매칭
+            if (!chosen) {
+                chosen = pool.find(v => isNatural(v) && !isHeami(v))
+                      || pool.find(v => /google|yuna|sora|siri|유나|소라/i.test(v.name) && !isHeami(v))
+                      || pool.find(v => !isHeami(v))
+                      || pool[0] || null;
+            }
+            return chosen;
+        }
+
+        window.selectAndSpeakLongReader = function(preset) {
+            selectedLongReaderVoicePreset = preset || 'hyunsu';
+            updateLongReaderVoiceChipsUI(selectedLongReaderVoicePreset);
+            closeLongReaderTTSMenu();
+
+            if (!('speechSynthesis' in window)) {
+                showNotification("현재 브라우저가 음성 합성을 지원하지 않습니다.");
                 return;
             }
 
@@ -2007,34 +2113,48 @@
                 window.speechSynthesis.resume();
             }
 
-            const utter = new SpeechSynthesisUtterance(textToSpeak);
-            utter.lang = 'ko-KR';
-            utter.rate = 0.8;  // 요청값: 속도 0.8
-            utter.pitch = 0.8; // 요청값: 음높이 0.8
+            const startSpeak = () => {
+                const utter = new SpeechSynthesisUtterance(textToSpeak);
+                utter.lang = 'ko-KR';
 
-            // 음성 탐색: Microsoft Hyunsu -> 사파리 한국어 -> 기타 한국어 순
-            const voices = window.speechSynthesis.getVoices();
-            const hyunsuVoice = voices.find(v => v.name.includes('Hyunsu') && (v.lang.includes('ko') || v.lang.includes('KO')));
-            const safariKoVoice = voices.find(v => (v.name.includes('Yuna') || v.name.includes('Sora') || v.name.includes('Siri')) && (v.lang.includes('ko') || v.lang.includes('KO')));
-            const defaultKoVoice = voices.find(v => v.lang.includes('ko') || v.lang.includes('KO'));
+                const matchedVoice = pickBestKoreanVoice(selectedLongReaderVoicePreset);
+                const presetLabels = { hyunsu: '현수(남성1)', injoon: '인준(남성2)', sunhi: '선희(여성)' };
+                const label = presetLabels[selectedLongReaderVoicePreset] || '고품질';
 
-            if (hyunsuVoice) {
-                utter.voice = hyunsuVoice;
-            } else if (safariKoVoice) {
-                utter.voice = safariKoVoice;
-            } else if (defaultKoVoice) {
-                utter.voice = defaultKoVoice;
-            }
+                if (matchedVoice) {
+                    utter.voice = matchedVoice;
+                    const isNeuralVoice = /natural|online|현수|인준|선희|hyunsu|injoon|sunhi|google|yuna|sora/i.test(matchedVoice.name);
+                    if (isNeuralVoice) {
+                        // 신경망(Natural) 성우 음성은 pitch를 1.0으로 유지해야 보코더(기계음) 왜곡 없이 엣지 본연의 고품질 육성이 출력됨
+                        utter.pitch = 1.0;
+                        utter.rate = (selectedLongReaderVoicePreset === 'sunhi') ? 0.94 : 0.92;
+                    } else {
+                        utter.pitch = 0.95;
+                        utter.rate = 0.9;
+                    }
+                } else {
+                    utter.pitch = 1.0;
+                    utter.rate = 0.92;
+                }
 
-            utter.onstart = () => {
-                setLongReaderTTSPlayingUI(true);
-                showNotification("긴글 낭독을 시작합니다 (속도 0.8 / 음높이 0.8)");
+                utter.onstart = () => {
+                    setLongReaderTTSPlayingUI(true);
+                    showNotification(`🎙️ [${label}] 음성으로 차분하게 낭독을 시작합니다.`);
+                };
+                utter.onend = () => { setLongReaderTTSPlayingUI(false); };
+                utter.onerror = () => { setLongReaderTTSPlayingUI(false); };
+
+                window.speechSynthesis.speak(utter);
             };
-            utter.onend = () => { setLongReaderTTSPlayingUI(false); };
-            utter.onerror = () => { setLongReaderTTSPlayingUI(false); };
 
-            window.speechSynthesis.speak(utter);
+            if ((window.speechSynthesis.getVoices() || []).length === 0) {
+                setTimeout(startSpeak, 150);
+            } else {
+                startSpeak();
+            }
         };
+
+        window.toggleLongReaderTTS = window.handleLongReaderTTSBtnClick;
 
         window.addEventListener('pagehide', stopLongReaderTTS);
         window.addEventListener('beforeunload', stopLongReaderTTS);

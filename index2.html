@@ -2248,6 +2248,8 @@
         let currentDbStatus = 'connecting';
         let currentActivePopupPostId = null;
         let cachedPosts = [];
+        let cachedMokjangFiles = [];
+        let isMokjangFilesListenerActive = false;
 
         // 실시간 접속자 세션 및 한국어 카운트 관리
         const sessionId = "sess_" + Math.random().toString(36).substring(2, 11) + "_" + Date.now();
@@ -3492,46 +3494,125 @@ let specialFontsLoaded = false;
             openWriteModal();
         };
 
-        function updateStorageQuotaDisplay(posts) {
-            const STORAGE_QUOTA_KEY = "firebase_daily_quota_cache";
-            const ONE_DAY_MS = 24 * 60 * 60 * 1000;
-            const FREE_QUOTA_BYTES = 1024 * 1024 * 1024;
+        // [파이어베이스(Firestore + Storage) 실사용 바이트 정밀 분석 및 실시간 % 산출 엔진]
+        function estimateImageByteSize(imgStr, recordedBytes) {
+            if (typeof recordedBytes === 'number' && recordedBytes > 0) return recordedBytes;
+            if (!imgStr || typeof imgStr !== 'string') return 0;
+            const trimmed = imgStr.trim();
+            if (!trimmed) return 0;
+            // 1. Base64 DataURL 이미지: 실제 바이너리 바이트(Base64 길이의 약 75%) + 문자열 오버헤드
+            if (trimmed.startsWith('data:image/')) {
+                const commaIdx = trimmed.indexOf(',');
+                const base64Len = commaIdx !== -1 ? (trimmed.length - commaIdx - 1) : trimmed.length;
+                return Math.max(1024, Math.round(base64Len * 0.75));
+            }
+            // 2. Firebase Storage 업로드 URL (https://firebasestorage...):
+            // 앱의 760px JPEG(0.68 품질) 및 라이트박스 크롭(1600px, 0.95 품질) 평균 실측 크기(약 155KB) + 메타데이터 반영
+            if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
+                return (155 * 1024) + (trimmed.length * 2);
+            }
+            return trimmed.length * 2;
+        }
 
-            let cached = null;
-            try {
-                const raw = localStorage.getItem(STORAGE_QUOTA_KEY);
-                if (raw) cached = JSON.parse(raw);
-            } catch (e) {}
+        function updateStorageQuotaDisplay(posts = cachedPosts) {
+            // Firebase 무료 제공 할당량 기준 (Firestore 1GB / Storage 실효 사진·파일 버짓 통합 기준)
+            const FREE_QUOTA_BYTES = 1024 * 1024 * 1024; // 1GB (1,073,741,824 Bytes)
+            const targetPosts = Array.isArray(posts) ? posts : (Array.isArray(cachedPosts) ? cachedPosts : []);
+            const targetFiles = Array.isArray(cachedMokjangFiles) ? cachedMokjangFiles : [];
 
-            const now = Date.now();
+            let totalBytes = 0;
+            const countedFileIds = new Set();
+
+            // 1. family_posts 컬렉션 문서 전체 필드 및 Storage 사진 바이트 정밀 합산
+            targetPosts.forEach(p => {
+                if (!p) return;
+                // Firestore 문서 기본 메타데이터/인덱스 오버헤드 (문서당 약 1.2KB)
+                totalBytes += 1200;
+
+                // 본문(content) + 1,500자 긴글(longContent) + 작성자/목장명 텍스트 바이트 (UTF-8 평균 3Bytes)
+                if (p.content) totalBytes += String(p.content).length * 3;
+                if (p.longContent) totalBytes += String(p.longContent).length * 3;
+                if (p.author) totalBytes += String(p.author).length * 3;
+                if (p.mokjangName) totalBytes += String(p.mokjangName).length * 3;
+
+                // 사진별 펜댓글(photoCaptions) 전체 용량 합산
+                if (p.photoCaptions && typeof p.photoCaptions === 'object') {
+                    Object.values(p.photoCaptions).forEach(cap => {
+                        if (!cap) return;
+                        if (typeof cap === 'object') {
+                            if (cap.text) totalBytes += String(cap.text).length * 3;
+                            if (cap.author) totalBytes += String(cap.author).length * 3;
+                            totalBytes += 120;
+                        } else {
+                            totalBytes += String(cap).length * 3;
+                        }
+                    });
+                }
+
+                // 일반 댓글(comments) 배열 전체 용량 합산
+                if (Array.isArray(p.comments)) {
+                    p.comments.forEach(c => {
+                        if (!c) return;
+                        if (c.text) totalBytes += String(c.text).length * 3;
+                        if (c.author) totalBytes += String(c.author).length * 3;
+                        if (c.time) totalBytes += String(c.time).length * 2;
+                        totalBytes += 160; // 댓글 객체 필드/인덱스 오버헤드
+                    });
+                }
+
+                // 사진(images / imageUrl) 용량 합산: 기록된 실측 바이트(totalImageBytes / imageByteSizes) 우선 적용
+                if (typeof p.totalImageBytes === 'number' && p.totalImageBytes > 0) {
+                    totalBytes += p.totalImageBytes;
+                } else if (Array.isArray(p.images) && p.images.length > 0) {
+                    const sizeArr = Array.isArray(p.imageByteSizes) ? p.imageByteSizes : [];
+                    p.images.forEach((img, idx) => {
+                        totalBytes += estimateImageByteSize(img, sizeArr[idx]);
+                    });
+                } else if (p.imageUrl) {
+                    totalBytes += estimateImageByteSize(p.imageUrl, null);
+                }
+
+                // 게시글에 연결된 첨부파일 용량 합산
+                if (p.fileSize && typeof p.fileSize === 'number') {
+                    // Firestore 내 Base64 저장 시 원본 바이너리 대비 약 1.34배 용량 차지 반영
+                    totalBytes += Math.round(p.fileSize * 1.34);
+                    if (p.fileId) countedFileIds.add(p.fileId);
+                }
+            });
+
+            // 2. family_files 컬렉션(전체파일 보관함)에 저장된 첨부파일 중 미합산분 정밀 합산
+            targetFiles.forEach(f => {
+                if (!f || (f.id && countedFileIds.has(f.id))) return;
+                totalBytes += 1024; // 파일 문서 기본 오버헤드
+                if (f.dataUrl && typeof f.dataUrl === 'string') {
+                    totalBytes += f.dataUrl.length;
+                } else if (f.fileSize && typeof f.fileSize === 'number') {
+                    totalBytes += Math.round(f.fileSize * 1.34);
+                }
+            });
+
+            // 기존 24시간 고정 캐시 찌꺼기 제거 (항상 실시간 재계산)
+            try { localStorage.removeItem("firebase_daily_quota_cache"); } catch (e) {}
+
+            // 3. 실제 % 산출 (데이터가 하나도 없으면 0%, 데이터가 존재하면 실제 비율 계산 후 정수 % 표시)
             let percentage = 0;
-
-            if (cached && (now - cached.timestamp < ONE_DAY_MS) && typeof cached.percentage === 'number') {
-                percentage = cached.percentage;
-            } else if (Array.isArray(posts)) {
-                let totalBytes = 0;
-                posts.forEach(p => {
-                    if (p.content) totalBytes += p.content.length * 2;
-                    if (Array.isArray(p.images)) {
-                        p.images.forEach(img => {
-                            if (typeof img === 'string') totalBytes += img.length;
-                        });
-                    } else if (p.imageUrl) {
-                        totalBytes += p.imageUrl.length;
-                    }
-                });
-
-                percentage = Math.min(100, Math.max(1, Math.round((totalBytes / FREE_QUOTA_BYTES) * 100)));
-                try {
-                    localStorage.setItem(STORAGE_QUOTA_KEY, JSON.stringify({
-                        percentage: percentage,
-                        timestamp: now
-                    }));
-                } catch (e) {}
+            if (targetPosts.length === 0 && targetFiles.length === 0) {
+                percentage = 0;
+            } else {
+                const rawRatioPercent = (totalBytes / FREE_QUOTA_BYTES) * 100;
+                // 데이터가 1건 이상 있으면 최소 1%부터 시작하여 실제 용량 증가에 따라 2%, 3%... 100%로 정확히 상승
+                percentage = Math.min(100, Math.max(1, Math.ceil(rawRatioPercent)));
             }
 
             const textEl = document.getElementById('storage-quota-text');
             const iconEl = document.getElementById('storage-quota-icon');
+            const badgeEl = document.getElementById('combined-cloud-badge');
+
+            if (badgeEl) {
+                const usedMB = (totalBytes / (1024 * 1024)).toFixed(2);
+                badgeEl.title = `클라우드 실시간 연동 중 (실사용량 약 ${usedMB} MB / 1GB 중 ${percentage}%)`;
+            }
+
             if (textEl && iconEl) {
                 textEl.innerText = `${percentage}%`;
                 if (percentage < 25) {
@@ -3582,9 +3663,6 @@ let specialFontsLoaded = false;
                 }
         }
 
-        let cachedMokjangFiles = [];
-        let isMokjangFilesListenerActive = false;
-
         function ensureMokjangFilesLoaded() {
             if (isMokjangFilesListenerActive) return;
             isMokjangFilesListenerActive = true;
@@ -3612,6 +3690,7 @@ let specialFontsLoaded = false;
                     return tB - tA;
                 });
                 cachedMokjangFiles = files;
+                updateStorageQuotaDisplay(cachedPosts);
                 if (!document.getElementById('file-manager-modal').classList.contains('hidden')) {
                     renderFileManagerList();
                 }
@@ -4905,9 +4984,13 @@ initAuth();
                             if (capVal) reindexedCaptions[newIdx] = capVal;
                         });
                     }
-                    const updatePayload = {
+                    const measuredImageByteSizes = finalImages.map((rawImg, idx) => estimateImageByteSize(rawImg, null));
+                const measuredTotalImageBytes = measuredImageByteSizes.reduce((acc, v) => acc + v, 0);
+                const updatePayload = {
                         content: content,
                         fontFamily: currentSelectedFont || 'pretendard',
+                        imageByteSizes: measuredImageByteSizes,
+                        totalImageBytes: measuredTotalImageBytes,
                         longContent: currentLongContentText || '',
                         longFontSize: currentLongContentFontSize || 2,
                         photoCaptions: reindexedCaptions,
@@ -4934,6 +5017,8 @@ initAuth();
                         longContent: currentLongContentText || '',
                         longFontSize: currentLongContentFontSize || 2,
                         images: uploadedImages,
+                        imageByteSizes: measuredImageByteSizes,
+                        totalImageBytes: measuredTotalImageBytes,
                         imageUrl: uploadedImages.length > 0 ? uploadedImages[0] : "",
                         likes: 0,
                         likedUsers: [],

@@ -25,6 +25,36 @@
                         window.__FAMILY_VERIFIED_PASS__ = pass;
                     }
                 }
+
+                // [방식 A: 카톡 공유 링크(?kakao_post=게시글ID&fk=fam_...) 클릭 시 로그인 자동 패스]
+                if (!isAllowed && window.location.search) {
+                    var urlParams = new URLSearchParams(window.location.search);
+                    var kakaoPostId = urlParams.get('kakao_post');
+                    var fkToken = urlParams.get('fk');
+                    if (kakaoPostId && kakaoPostId.trim().length > 0 && fkToken && fkToken.indexOf('fam_') === 0) {
+                        isAllowed = true;
+                        window.__KAKAO_DEEP_LINK_POST_ID__ = kakaoPostId.trim();
+                        var savedUser = '우리가족';
+                        var savedRole = 'member';
+                        var savedAdmin = 'false';
+                        var savedShort = '';
+                        try {
+                            savedUser = localStorage.getItem('family_user_name') || '우리가족';
+                            savedRole = localStorage.getItem('family_user_role') || 'member';
+                            savedAdmin = localStorage.getItem('family_is_admin') || 'false';
+                            savedShort = localStorage.getItem('family_short_name') || '';
+                        } catch (err) {}
+                        window.__FAMILY_VERIFIED_PASS__ = {
+                            target: REQUIRED_TARGET,
+                            token: fkToken,
+                            issuedAt: Date.now(),
+                            userName: savedUser,
+                            role: savedRole,
+                            isAdmin: (savedAdmin === 'true' || savedAdmin === '1'),
+                            mokjangShort: savedShort
+                        };
+                    }
+                }
             } catch (e) {
                 isAllowed = false;
             }
@@ -151,26 +181,7 @@
             will-change: transform, opacity;
             line-height: 1;
         }
-        @keyframes runToChurchMotion {
-            0%, 100% { transform: translateX(-4px) translateY(0px); }
-            50% { transform: translateX(4px) translateY(-2.5px); }
-        }
-        .animate-run-to-church {
-            display: inline-flex;
-            align-items: center;
-            animation: runToChurchMotion 0.65s ease-in-out infinite;
-        }
-
-        @keyframes swayWelcome {
-            0%, 100% { transform: rotate(0deg) translateY(0); }
-            25% { transform: rotate(-2deg) translateY(-0.5px); }
-            75% { transform: rotate(2deg) translateY(0.5px); }
-        }
-        .animate-sway-welcome {
-            display: inline-block;
-            animation: swayWelcome 3.5s ease-in-out infinite;
-            transform-origin: center center;
-        }
+        
 
         /* [긴글읽기 미열람 시 두루마리 이모지 살짝 흔들림 애니메이션] */
         @keyframes scrollWiggle {
@@ -476,10 +487,7 @@
             .no-print, .no-export { display: none !important; }
         }
     
-        @keyframes fluorescentPulse {
-            0%, 100% { background-color: rgba(254, 240, 138, 0.95); box-shadow: 0 0 10px rgba(250, 204, 21, 0.7); }
-            50% { background-color: rgba(253, 224, 71, 0.85); box-shadow: 0 0 16px rgba(250, 204, 21, 0.9); }
-        }
+        
         [id^="feed-comment-"] {
             transition: background-color 1.2s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 1.2s cubic-bezier(0.2, 0.8, 0.2, 1);
         }
@@ -1663,31 +1671,72 @@
             }
         };
 
-        // [카톡방 공유 팝업 및 최적화 전송 시스템 (카카오 SDK 카드 & Web Share 지원)]
+        // [카톡방 공유 팝업 및 최적화 전송 시스템 (사진+내용 미리보기 & 클릭 시 로그인 패스 직행 링크)]
         let pendingKakaoShareText = "";
         let pendingKakaoShareData = null;
 
-        window.openKakaoShareModal = function(authorName, postIndex, postContent = '', postFirstImage = '') {
+        function extractCleanShareSummary(rawContent, maxLen = 65) {
+            if (!rawContent) return "";
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = String(rawContent)
+                .replace(/<br\s*\/?>/gi, ' ')
+                .replace(/<\/div>/gi, ' ')
+                .replace(/<\/p>/gi, ' ');
+            const plain = (tempDiv.textContent || tempDiv.innerText || '')
+                .replace(/\u200B/g, '')
+                .replace(/\s+/g, ' ')
+                .trim();
+            if (!plain) return "";
+            return plain.length > maxLen ? plain.substring(0, maxLen).trim() + "..." : plain;
+        }
+
+        window.openKakaoShareModal = function(authorName, postIndex, postContent = '', postFirstImage = '', postId = '') {
             const author = authorName || currentUser || '우리가족';
             const countText = `${postIndex}번째`;
+            const cleanSummary = extractCleanShareSummary(postContent, 65);
+            const summaryForCard = cleanSummary || `${author}님이 가족 이야기를 올렸습니다.`;
+
+            const baseDir = `${window.location.origin}${window.location.pathname.replace(/\/[^/]*$/, '')}`;
+            const fkToken = 'fam_' + Date.now().toString(36);
+            const deepLinkUrl = postId
+                ? `${baseDir}/index2.html?kakao_post=${encodeURIComponent(postId)}&fk=${encodeURIComponent(fkToken)}`
+                : `${baseDir}/index.html`;
 
             pendingKakaoShareData = {
                 author: author,
                 postIndex: postIndex,
                 countText: countText,
-                imageUrl: postFirstImage || ""
+                summary: summaryForCard,
+                cleanSummary: cleanSummary,
+                imageUrl: postFirstImage || "",
+                postId: postId || "",
+                deepLinkUrl: deepLinkUrl
             };
 
-            const appUrl = `${window.location.origin}${window.location.pathname.replace(/\/[^/]*$/, '/index.html')}`;
-            const shareText = `우리 가족 아름다운 이야기를\n${author}님이 ${countText} 올렸어요\n\n👉 보러가기 :\n${appUrl}`;
-
+            const shareText = `📖 우리 가족 이야기 (${author}님 ${countText} 글)\n${cleanSummary ? `"${cleanSummary}"\n\n` : '\n'}👉 바로 보러가기 :\n${deepLinkUrl}`;
             pendingKakaoShareText = shareText;
 
             const previewEl = document.getElementById('kakao-share-preview-text');
             if (previewEl) {
+                const hasPreviewImg = postFirstImage && (postFirstImage.startsWith('http://') || postFirstImage.startsWith('https://') || postFirstImage.startsWith('data:image/'));
                 previewEl.innerHTML = `
-                    <div class="py-1 text-center">
-                        <p class="font-bold text-gray-800 text-xs">${author}님이 <span class="text-emerald-800">${countText}</span> 아름다운 이야기를 올렸습니다.</p>
+                    <div class="flex flex-col space-y-2 text-left">
+                        <div class="flex items-center space-x-2.5">
+                            ${hasPreviewImg ? `
+                                <img src="${postFirstImage}" alt="공유 사진" class="w-14 h-14 rounded-lg object-cover border border-yellow-300 shrink-0 bg-white shadow-2xs">
+                            ` : `
+                                <div class="w-12 h-12 rounded-lg bg-white border border-yellow-300 flex items-center justify-center shrink-0 shadow-2xs">
+                                    <img src="flogo.png" alt="로고" class="w-8 h-8 object-contain">
+                                </div>
+                            `}
+                            <div class="flex-1 min-w-0">
+                                <p class="font-bold text-gray-900 text-xs truncate">📖 ${escapeHtml(author)}님의 ${escapeHtml(countText)} 이야기</p>
+                                <p class="text-[11px] text-gray-700 line-clamp-2 mt-0.5 leading-snug break-words">${cleanSummary ? escapeHtml(cleanSummary) : '사진과 함께 따뜻한 가족 이야기를 올렸습니다.'}</p>
+                            </div>
+                        </div>
+                        <div class="text-[10px] text-emerald-800 bg-emerald-50/90 border border-emerald-200/80 rounded-lg px-2 py-1 text-center font-semibold">
+                            ✨ 카톡에서 클릭 시 로그인 없이 이 글로 바로 이동합니다
+                        </div>
                     </div>
                 `;
             }
@@ -1728,27 +1777,37 @@
                 }
             } catch (err) {}
 
-            const appUrl = `${window.location.origin}${window.location.pathname.replace(/\/[^/]*$/, '/index.html')}`;
-            const logoUrl = `${window.location.origin}${window.location.pathname.replace(/\/[^/]*$/, '/flogo.png')}`;
-            const hasValidImage = data.imageUrl && (data.imageUrl.startsWith('http://') || data.imageUrl.startsWith('https://'));
-            const finalImgUrl = hasValidImage ? data.imageUrl : logoUrl;
+            const baseDir = `${window.location.origin}${window.location.pathname.replace(/\/[^/]*$/, '')}`;
+            const targetDeepLink = data.deepLinkUrl || `${baseDir}/index.html`;
+            const logoUrl = `${baseDir}/flogo.png`;
+            const hasValidHttpImage = data.imageUrl && (data.imageUrl.startsWith('http://') || data.imageUrl.startsWith('https://'));
+            const finalImgUrl = hasValidHttpImage ? data.imageUrl : logoUrl;
 
-            // 2-A. 카카오 JavaScript SDK 키가 등록된 경우: 방안 B(최소 높이 슬림 썸네일 + 3줄 카드) 발송
+            // 2-A. 카카오 JavaScript SDK 카드 전송 (업로드된 실제 사진 + 글 요약 + 로그인 패스 딥링크)
             if (window.Kakao && window.Kakao.isInitialized && window.Kakao.isInitialized()) {
                 try {
                     window.Kakao.Share.sendDefault({
                         objectType: 'feed',
                         content: {
-                            title: '우리 가족 이야기',
-                            description: `${data.author || '우리가족'}님이 ${data.countText || ''} 아름다운 이야기를 올렸습니다.`,
-                            imageUrl: logoUrl,
-                            imageWidth: 200,
-                            imageHeight: 200,
+                            title: `📖 ${data.author || '우리가족'}님의 가족 이야기 (${data.countText || ''})`,
+                            description: data.summary || `${data.author || '우리가족'}님이 아름다운 이야기를 올렸습니다.`,
+                            imageUrl: finalImgUrl,
+                            imageWidth: hasValidHttpImage ? 800 : 200,
+                            imageHeight: hasValidHttpImage ? 400 : 200,
                             link: {
-                                mobileWebUrl: appUrl,
-                                webUrl: appUrl
+                                mobileWebUrl: targetDeepLink,
+                                webUrl: targetDeepLink
                             }
-                        }
+                        },
+                        buttons: [
+                            {
+                                title: '이야기 바로 보기',
+                                link: {
+                                    mobileWebUrl: targetDeepLink,
+                                    webUrl: targetDeepLink
+                                }
+                            }
+                        ]
                     });
                     showNotification("카카오톡 가족 단톡방을 선택해 주세요.");
                     return;
@@ -1757,12 +1816,13 @@
                 }
             }
 
-            // 2-B. 모바일 Web Share API 지원 환경 (OS 공유창 -> 카카오톡 선택)
+            // 2-B. 모바일 Web Share API 지원 환경
             if (navigator.share) {
                 try {
                     await navigator.share({
                         title: '우리 가족 이야기',
-                        text: textToShare
+                        text: textToShare,
+                        url: targetDeepLink
                     });
                     showNotification("가족 단톡방을 선택하여 공유해 주세요.");
                     return;
@@ -1772,7 +1832,7 @@
             }
 
             // 2-C. PC 브라우저 또는 Web Share 미지원 환경
-            showNotification("공유 문구가 복사되었습니다! 카톡 단톡방에 붙여넣기(Ctrl+V) 해주세요.");
+            showNotification("공유 문구와 바로가기 링크가 복사되었습니다! 카톡방에 붙여넣기 해주세요.");
         };
 
         // [긴글쓰기 1,500자 상태 및 5단계 글자 크기 프리셋: 14px, 16px, 18px, 20px, 22px]
@@ -3578,7 +3638,6 @@ let specialFontsLoaded = false;
                 initBookmarkCalendarDrag();
                 initRecentCommentsNavigatorDrag();
                 initPostLayoutObserver();
-                initFeedPinchZoom();
                 initPullToRefresh();
             } catch (e) {
                 console.warn("익명 인증 경고:", e);
@@ -3590,8 +3649,7 @@ let specialFontsLoaded = false;
                     loadSpecialFonts();
                 }, 2500);
                 initPresenceSystem();
-                initFeedPinchZoom();
-            }
+                }
         }
 
         let cachedMokjangFiles = [];
@@ -3881,28 +3939,7 @@ let specialFontsLoaded = false;
             if (modal) modal.classList.add('hidden');
         };
 
-        window.downloadFileById = function(fileId) {
-            const fileObj = cachedMokjangFiles.find(f => f.id === fileId);
-            if (fileObj && fileObj.dataUrl) {
-                downloadFileFromData(fileObj.fileName, fileObj.dataUrl);
-            } else {
-                showNotification("파일을 불러오는 중이거나 다운로드할 수 없습니다.");
-            }
-        };
-
-        window.downloadFileFromData = function(fileName, dataUrl) {
-            if (!dataUrl) {
-                showNotification("파일 데이터가 유효하지 않습니다.");
-                return;
-            }
-            const link = document.createElement('a');
-            link.download = fileName || `첨부파일_${Date.now()}`;
-            link.href = dataUrl;
-            document.body.appendChild(link);
-            link.click();
-            link.remove();
-            showNotification(`'${fileName}' 다운로드를 시작합니다.`);
-        };
+        
 
         window.deleteFileById = async function(fileId, fileName) {
             const fileObj = cachedMokjangFiles.find(f => f.id === fileId);
@@ -4099,9 +4136,7 @@ function ensurePullRefreshIndicator() {
             }, { passive: true });
         }
 
-        function initFeedPinchZoom() {
-            // 모바일 자체 브라우저 확대/축소 사용
-        }
+        
 
 initAuth();
 
@@ -5014,7 +5049,7 @@ initAuth();
                     setTimeout(() => {
                         const currentCount = (cachedPosts && cachedPosts.length > 0) ? cachedPosts.length : 1;
                         const firstImg = (uploadedImages && uploadedImages.length > 0) ? uploadedImages[0] : '';
-                        openKakaoShareModal(currentUser, currentCount, content, firstImg);
+                        openKakaoShareModal(currentUser, currentCount, content || currentLongContentText, firstImg, targetScrollId);
                     }, 650);
                 }
             } catch (err) {
@@ -8192,8 +8227,24 @@ window.closeAllPdfPreviewModal = function() {
                     renderBookmarkCalendar(calendarCurrentYear, calendarCurrentMonth);
                 }
 
+                // [방식 A: 카톡 공유 링크로 입장한 경우 해당 게시글이 포함되도록 표시 범위 자동 확장]
+                if (window.__KAKAO_DEEP_LINK_POST_ID__) {
+                    const deepIdx = posts.findIndex(p => p.id === window.__KAKAO_DEEP_LINK_POST_ID__ || String(p.id) === String(window.__KAKAO_DEEP_LINK_POST_ID__));
+                    if (deepIdx !== -1 && deepIdx >= displayedFeedCount) {
+                        displayedFeedCount = Math.min(posts.length, deepIdx + FEED_BATCH_SIZE);
+                    }
+                }
                 displayedFeedCount = Math.max(INITIAL_FEED_LIMIT, Math.min(displayedFeedCount, posts.length || INITIAL_FEED_LIMIT));
                 renderFeedList();
+
+                // [카톡 공유 딥링크 게시글로 즉시 스크롤 이동 및 초록 테두리 하이라이트]
+                if (window.__KAKAO_DEEP_LINK_POST_ID__ && posts.length > 0) {
+                    const targetDeepPostId = window.__KAKAO_DEEP_LINK_POST_ID__;
+                    window.__KAKAO_DEEP_LINK_POST_ID__ = null;
+                    setTimeout(() => {
+                        scrollToPost(targetDeepPostId, true);
+                    }, 180);
+                }
 
                 if (posts.some(p => p.fontFamily && p.fontFamily !== 'pretendard')) {
                     loadSpecialFonts();

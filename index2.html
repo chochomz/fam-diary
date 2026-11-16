@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes, viewport-fit=cover">
     <title>우리 가족 이야기</title>
-    <!-- [작업 4-나: 오직 index.html을 통해서만 입장 가능하도록 직접 링크 호출 시 index.html로 리다이렉트 & 주소 가림 + 카톡 딥링크 404 방지 및 로그인 패스] -->
+    <!-- [작업 4-나: 오직 index.html을 통해서만 입장 가능하도록 직접 링크 호출 시 index.html로 리다이렉트 & 주소 가림 + GitHub Pages 404 원천 차단 및 카톡 로그인 패스] -->
     <script>
         (function() {
             var REQUIRED_TARGET = 'index2.html';
@@ -12,10 +12,10 @@
             try {
                 if (!window.location || window.location.protocol === 'blob:' || !window.location.href) return;
 
-                // [404 에러 원천 차단]: replaceState로 주소창을 가리기 전에 실제 웹북 폴더 경로를 정확히 캡처하여 보존
-                var rawPath = window.location.pathname || '/';
-                var baseDirPath = rawPath.replace(/\/?(index1|index2|index)\.html.*$/i, '').replace(/\/+$/, '');
-                window.__APP_BASE_URL__ = window.location.origin + baseDirPath;
+                // [GitHub.io 404 원천 차단]: 주소창에서 파일명만 제거하고 하위 저장소 폴더 경로(/repo/)는 100% 보존
+                var fullHrefNoHash = window.location.href.split('#')[0].split('?')[0];
+                var baseDirUrl = fullHrefNoHash.replace(/\/(index1|index2|index)\.html$/i, '').replace(/\/+$/, '');
+                window.__APP_BASE_URL__ = baseDirUrl;
 
                 // 1. 1회용 통행증을 읽자마자 0.001초 즉시 소각(삭제)하여 재사용 및 주소창 직접 입력 원천 차단
                 var passRaw = sessionStorage.getItem('family_entry_pass');
@@ -25,19 +25,17 @@
                 if (passRaw) {
                     var pass = JSON.parse(passRaw);
                     var elapsed = Date.now() - (pass.issuedAt || 0);
-                    // 목적지(target)가 정확히 일치하고, 발급 후 5초(5000ms) 이내인 유효한 1회용 토큰만 허용
                     if (pass && pass.target === REQUIRED_TARGET && pass.token && elapsed >= 0 && elapsed < 5000) {
                         isAllowed = true;
                         window.__FAMILY_VERIFIED_PASS__ = pass;
                     }
                 }
 
-                // [방식 A: 카톡 공유 링크(?kakao_post=게시글ID&fk=fam_...) 클릭 시 로그인 자동 패스]
+                // [방식 A: 카톡 공유 링크(?kakao_post=게시글ID) 클릭 시 로그인 자동 패스]
                 if (!isAllowed && window.location.search) {
                     var urlParams = new URLSearchParams(window.location.search);
                     var kakaoPostId = urlParams.get('kakao_post');
-                    var fkToken = urlParams.get('fk');
-                    if (kakaoPostId && kakaoPostId.trim().length > 0 && fkToken && fkToken.indexOf('fam_') === 0) {
+                    if (kakaoPostId && kakaoPostId.trim().length > 0) {
                         isAllowed = true;
                         window.__KAKAO_DEEP_LINK_POST_ID__ = kakaoPostId.trim();
                         var savedUser = '우리가족';
@@ -52,7 +50,7 @@
                         } catch (err) {}
                         window.__FAMILY_VERIFIED_PASS__ = {
                             target: REQUIRED_TARGET,
-                            token: fkToken,
+                            token: 'fam_kakao_' + Date.now(),
                             issuedAt: Date.now(),
                             userName: savedUser,
                             role: savedRole,
@@ -66,7 +64,6 @@
             }
 
             if (!isAllowed) {
-                // 비정상 직접 링크 입력 시 화면이 0.1초도 노출되지 않도록 즉시 숨김 후 index.html로 강제 이동
                 try { document.documentElement.style.display = 'none'; } catch (e) {}
                 try {
                     window.location.replace((window.__APP_BASE_URL__ || '') + '/index.html');
@@ -76,12 +73,12 @@
                 return;
             }
 
-            // 2. 정상 진입 시 브라우저 주소창에서 index1.html / index2.html 파일명 및 파라미터 즉시 가림
+            // 2. 정상 진입 시 브라우저 주소창에서 index2.html 파일명 및 파라미터만 깔끔하게 가림 (하위 폴더 경로는 유지!)
             try {
                 if (window.history && typeof window.history.replaceState === 'function') {
-                    var cleanPath = window.location.pathname.replace(/\/?(index1|index2|index)\.html.*$/i, '/');
-                    if (!cleanPath.startsWith('/')) cleanPath = '/' + cleanPath;
-                    window.history.replaceState(null, document.title, cleanPath);
+                    var cleanDirPath = window.location.pathname.replace(/(index1|index2|index)\.html$/i, '');
+                    if (!cleanDirPath.startsWith('/')) cleanDirPath = '/' + cleanDirPath;
+                    window.history.replaceState(null, document.title, cleanDirPath);
                 }
             } catch (e) {}
 
@@ -1046,19 +1043,19 @@
     </div>
 
     
-    <!-- [카톡방 공유 확인 모달 (상단 타이틀 로고 제거 + 1~4장 둥근 바둑판 사진 + 최대 5줄 미리보기)] -->
+    <!-- [카톡방 공유 확인 모달 (바둑판 사진 + 5줄 본문 통합 베이킹 이미지 미리보기)] -->
     <div id="kakao-share-confirm-modal" class="fixed inset-0 z-[70] bg-black/60 backdrop-blur-xs flex items-center justify-center p-3 hidden" style="touch-action: none;">
-        <div class="bg-white rounded-2xl w-full max-w-xs p-4 shadow-2xl border church-border text-center space-y-3 animate-sway-gentle">
-            <!-- 상단 로고 제거 후 그 자리에 첨부 사진(1~4장 둥근 바둑판) 및 5줄 본문이 들어가는 영역 -->
-            <div id="kakao-share-preview-text" class="w-full"></div>
-            <p class="text-[12px] text-gray-800 font-bold pt-0.5">올린 글을 카톡방에 공유할까요?</p>
+        <div class="bg-white rounded-2xl w-full max-w-xs p-3.5 shadow-2xl border church-border text-center space-y-2.5 animate-sway-gentle">
+            <!-- 구워진 통합 카드 이미지(바둑판 사진 1~4장 + 5줄 본문)가 그대로 표시되는 영역 -->
+            <div id="kakao-share-preview-text" class="w-full overflow-hidden rounded-xl border border-gray-200 shadow-xs bg-[#F8FAF9]"></div>
+            <p class="text-[12px] text-gray-800 font-bold pt-0.5">위 카드 이미지 그대로 카톡방에 공유할까요?</p>
             <div class="grid grid-cols-2 gap-2 pt-0.5">
                 <button type="button" onclick="closeKakaoShareModal()" class="py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl text-xs font-semibold active:scale-95 transition-all">
                     아니요
                 </button>
                 <button type="button" id="kakao-share-confirm-yes-btn" onclick="executeKakaoShare()" class="py-2.5 bg-[#FEE500] hover:bg-[#FDD800] text-[#3C1E1E] font-bold rounded-xl text-xs shadow-xs active:scale-95 transition-all flex items-center justify-center space-x-1.5">
                     <i class="fa-solid fa-share-nodes text-xs"></i>
-                    <span>이야기 바로보기 공유</span>
+                    <span>예 (카톡 공유)</span>
                 </button>
             </div>
         </div>
@@ -1670,70 +1667,41 @@
             }
         };
 
-        // [카톡방 공유 팝업 및 최적화 전송 시스템 (로고 제거 + 1~4장 둥근 바둑판 합성 + 5줄 표시 + 404 방지 딥링크)]
+        // [카톡방 공유 팝업 및 최적화 전송 시스템 (바둑판 1~4장 사진 + 5줄 본문 통합 이미지 베이킹 & 404 완벽 차단)]
         let pendingKakaoShareText = "";
         let pendingKakaoShareData = null;
 
         function getAppBaseUrl() {
             if (window.__APP_BASE_URL__) return window.__APP_BASE_URL__;
-            const rawPath = window.location.pathname || '/';
-            const cleanDir = rawPath.replace(/\/?(index1|index2|index)\.html.*$/i, '').replace(/\/+$/, '');
-            return window.location.origin + cleanDir;
+            const fullNoQuery = window.location.href.split('#')[0].split('?')[0];
+            return fullNoQuery.replace(/\/(index1|index2|index)\.html$/i, '').replace(/\/+$/, '');
         }
 
-        // 본문을 최대 5줄(줄바꿈 보존 및 자동 줄바꿈 고려)로 정제하고 나머지는 ... 처리
-        function extractFiveLineShareText(rawContent) {
-            if (!rawContent) return { fullFiveLines: "", titlePart: "", descPart: "" };
-            const tempDiv = document.createElement('div');
-            tempDiv.innerHTML = String(rawContent)
-                .replace(/<br\s*\/?>/gi, '\n')
-                .replace(/<\/div>/gi, '\n')
-                .replace(/<\/p>/gi, '\n');
-            const rawText = (tempDiv.textContent || tempDiv.innerText || '')
-                .replace(/\u200B/g, '')
-                .replace(/\r/g, '')
-                .trim();
+        // 카톡 카드 전용 Firebase Storage 업로더 (기존 2.5초 폴백 차단을 무시하고 최대 8초간 끝까지 업로드하여 https:// URL 확보)
+        async function uploadKakaoCardToStorage(dataUrl) {
+            if (!dataUrl || !storage) return "";
+            if (dataUrl.startsWith('http://') || dataUrl.startsWith('https://')) return dataUrl;
 
-            if (!rawText) return { fullFiveLines: "", titlePart: "", descPart: "" };
+            const timeoutPromise = new Promise((_, reject) =>
+                setTimeout(() => reject(new Error("Kakao card upload timeout")), 8000)
+            );
+            const uploadPromise = (async () => {
+                const uniqueFileName = 'card_' + Date.now() + '_' + Math.random().toString(36).substring(2, 8) + '.jpg';
+                const fileRef = storageRef(storage, 'kakao_cards/' + uniqueFileName);
+                await uploadString(fileRef, dataUrl, 'data_url');
+                return await getDownloadURL(fileRef);
+            })();
 
-            // 1줄당 약 22자 기준으로 줄 분할하여 최대 5줄 생성
-            const rawLines = rawText.split(/\n+/).map(l => l.trim()).filter(Boolean);
-            const visualLines = [];
-            const lineCharLimit = 22;
-
-            for (let line of rawLines) {
-                while (line.length > lineCharLimit) {
-                    visualLines.push(line.slice(0, lineCharLimit));
-                    line = line.slice(lineCharLimit).trim();
-                }
-                if (line) visualLines.push(line);
+            try {
+                return await Promise.race([uploadPromise, timeoutPromise]);
+            } catch (err) {
+                console.warn("카톡 카드 Storage 업로드 실패:", err);
+                return "";
             }
-
-            const isTruncated = visualLines.length > 5;
-            const fiveLines = visualLines.slice(0, 5);
-            if (isTruncated && fiveLines.length > 0) {
-                let lastLine = fiveLines[4];
-                if (lastLine.length > lineCharLimit - 2) {
-                    lastLine = lastLine.slice(0, lineCharLimit - 2).trim();
-                }
-                fiveLines[4] = lastLine + "...";
-            }
-
-            const fullFiveLines = fiveLines.join('\n');
-            // 카카오톡 피드 말풍선에서 최대 5줄이 보이도록 상단(1~2줄)과 하단(3~5줄)으로 자연스럽게 배분
-            const titlePart = fiveLines.slice(0, 2).join('\n');
-            const descPart = fiveLines.slice(2, 5).join('\n');
-
-            return {
-                fullFiveLines,
-                titlePart,
-                descPart
-            };
         }
 
-        // 둥근 사각형 클리핑 헬퍼
-        function drawRoundedImageCover(ctx, img, x, y, w, h, r) {
-            ctx.save();
+        // 둥근 모서리 사각형 그리기 헬퍼
+        function drawRoundRectPath(ctx, x, y, w, h, r) {
             ctx.beginPath();
             ctx.moveTo(x + r, y);
             ctx.arcTo(x + w, y, x + w, y + h, r);
@@ -1741,6 +1709,12 @@
             ctx.arcTo(x, y + h, x, y, r);
             ctx.arcTo(x, y, x + w, y, r);
             ctx.closePath();
+        }
+
+        // 둥근 모서리 사진 Cover 렌더링
+        function drawRoundedPhotoCover(ctx, img, x, y, w, h, r) {
+            ctx.save();
+            drawRoundRectPath(ctx, x, y, w, h, r);
             ctx.clip();
 
             const imgW = img.naturalWidth || img.width || w;
@@ -1749,33 +1723,67 @@
             const drawW = imgW * scale;
             const drawH = imgH * scale;
             const offsetX = x + (w - drawW) / 2;
-            const offsetY = y + (h - drawH) / 2;
+            const offsetY = y + (h - drawH) * 0.25; // 인물 얼굴이 잘리지 않도록 상단 25% 기준 정렬
 
             ctx.drawImage(img, offsetX, offsetY, drawW, drawH);
 
-            // 은은한 라운드 테두리
             ctx.strokeStyle = 'rgba(0, 0, 0, 0.08)';
             ctx.lineWidth = 2;
             ctx.stroke();
             ctx.restore();
         }
 
-        // 사진 1~4장을 카톡 상단 크기 안에 바둑판식(1장 중앙, 2장 조금 더 크게, 3~4장 바둑판)으로 둥글게 합성
-        async function buildKakaoCollageDataUrl(imgSources, fallbackText = "") {
+        // 캔버스 픽셀 폭 기준으로 정확히 최대 5줄로 줄바꿈하고 5줄 초과 시 마지막 줄 끝에 '...' 부여
+        function wrapCanvasFiveLines(ctx, rawContent, maxWidth) {
+            if (!rawContent) return [];
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = String(rawContent)
+                .replace(/<br\s*\/?>/gi, '\n')
+                .replace(/<\/div>/gi, '\n')
+                .replace(/<\/p>/gi, '\n');
+            const cleanText = (tempDiv.textContent || tempDiv.innerText || '')
+                .replace(/\u200B/g, '')
+                .replace(/\r/g, '')
+                .trim();
+
+            if (!cleanText) return [];
+
+            const paragraphs = cleanText.split(/\n+/).map(p => p.trim()).filter(Boolean);
+            const allLines = [];
+
+            for (const para of paragraphs) {
+                let currentLine = "";
+                for (let i = 0; i < para.length; i++) {
+                    const ch = para[i];
+                    const testLine = currentLine + ch;
+                    if (ctx.measureText(testLine).width > maxWidth && currentLine.length > 0) {
+                        allLines.push(currentLine);
+                        currentLine = ch;
+                    } else {
+                        currentLine = testLine;
+                    }
+                }
+                if (currentLine) allLines.push(currentLine);
+            }
+
+            if (allLines.length <= 5) {
+                return allLines;
+            }
+
+            const five = allLines.slice(0, 5);
+            let last = five[4];
+            while (last.length > 0 && ctx.measureText(last + "...").width > maxWidth) {
+                last = last.slice(0, -1).trim();
+            }
+            five[4] = last + "...";
+            return five;
+        }
+
+        // [핵심] 상단(1~4장 둥근 바둑판 사진) + 하단(최대 5줄 본문 + 작성자 배지)을 1장의 고화질 카드 이미지로 통째로 굽기
+        async function bakeFullKakaoCardDataUrl(imgSources, rawContent, authorName, countText) {
             const validSrcs = (Array.isArray(imgSources) ? imgSources : (imgSources ? [imgSources] : []))
                 .filter(s => typeof s === 'string' && s.trim().length > 0)
                 .slice(0, 4);
-
-            const canvas = document.createElement('canvas');
-            const cw = 600;
-            const ch = 340;
-            canvas.width = cw;
-            canvas.height = ch;
-            const ctx = canvas.getContext('2d');
-
-            // 깨끗한 배경
-            ctx.fillStyle = '#F8FAF9';
-            ctx.fillRect(0, 0, cw, ch);
 
             const loadImg = (src) => new Promise((resolve) => {
                 const im = new Image();
@@ -1786,114 +1794,126 @@
             });
 
             const loadedImgs = (await Promise.all(validSrcs.map(loadImg))).filter(Boolean);
-            const count = loadedImgs.length;
+            const photoCount = loadedImgs.length;
 
-            if (count === 0) {
-                // 사진이 없는 글일 때도 로고(flogo.png) 없이 깔끔한 라운드 텍스트 카드로 생성
-                ctx.save();
-                const pad = 24;
-                const r = 24;
-                ctx.fillStyle = '#E8F0EC';
-                ctx.beginPath();
-                ctx.moveTo(pad + r, pad);
-                ctx.arcTo(cw - pad, pad, cw - pad, ch - pad, r);
-                ctx.arcTo(cw - pad, ch - pad, pad, ch - pad, r);
-                ctx.arcTo(pad, ch - pad, pad, pad, r);
-                ctx.arcTo(pad, pad, cw - pad, pad, r);
-                ctx.closePath();
-                ctx.fill();
+            // 카톡 피드에서 가장 선명하고 잘리지 않는 800 x 720 비율 (사진 없을 땐 800 x 440)
+            const cw = 800;
+            const ch = photoCount > 0 ? 720 : 440;
+            const canvas = document.createElement('canvas');
+            canvas.width = cw;
+            canvas.height = ch;
+            const ctx = canvas.getContext('2d');
 
-                ctx.fillStyle = '#244E3F';
-                ctx.font = 'bold 26px Pretendard, sans-serif';
-                ctx.textAlign = 'center';
-                ctx.textBaseline = 'middle';
-                const snippet = (fallbackText || '우리 가족의 따뜻한 이야기').split('\n')[0].slice(0, 18);
-                ctx.fillText(snippet, cw / 2, ch / 2);
-                ctx.restore();
-                return canvas.toDataURL('image/jpeg', 0.86);
+            // 1. 전체 카드 배경
+            ctx.fillStyle = '#F4F7F5';
+            ctx.fillRect(0, 0, cw, ch);
+
+            // 바깥 카드 테두리 라운드 흰색 프레임
+            ctx.save();
+            drawRoundRectPath(ctx, 16, 16, cw - 32, ch - 32, 32);
+            ctx.fillStyle = '#FFFFFF';
+            ctx.fill();
+            ctx.strokeStyle = '#DCE5E0';
+            ctx.lineWidth = 3;
+            ctx.stroke();
+            ctx.restore();
+
+            let textSectionTop = 36;
+
+            // 2. 상단 사진 영역 (로고 완전 제거, 1장 중앙 / 2장 확대 / 3~4장 바둑판식, 모서리 둥글게)
+            if (photoCount > 0) {
+                const photoAreaTop = 34;
+                const photoAreaH = 380;
+
+                if (photoCount === 1) {
+                    // 1장: 중앙에 단정하게 배치 (모서리 둥글게 28px)
+                    const w = 440;
+                    const h = 364;
+                    const x = Math.round((cw - w) / 2);
+                    const y = photoAreaTop + Math.round((photoAreaH - h) / 2);
+                    drawRoundedPhotoCover(ctx, loadedImgs[0], x, y, w, h, 28);
+                } else if (photoCount === 2) {
+                    // 2장: 조금 더 커져서 좌·우 나란히 배치 (모서리 둥글게 26px)
+                    const gap = 16;
+                    const w = 348;
+                    const h = 364;
+                    const startX = Math.round((cw - (w * 2 + gap)) / 2);
+                    const y = photoAreaTop + Math.round((photoAreaH - h) / 2);
+                    drawRoundedPhotoCover(ctx, loadedImgs[0], startX, y, w, h, 26);
+                    drawRoundedPhotoCover(ctx, loadedImgs[1], startX + w + gap, y, w, h, 26);
+                } else if (photoCount === 3) {
+                    // 3장: 바둑판식 (상단 2장 + 하단 중앙 1장, 모서리 둥글게 22px)
+                    const gap = 12;
+                    const cellW = 348;
+                    const cellH = 176;
+                    const startX = Math.round((cw - (cellW * 2 + gap)) / 2);
+                    const startY = photoAreaTop + 6;
+                    drawRoundedPhotoCover(ctx, loadedImgs[0], startX, startY, cellW, cellH, 22);
+                    drawRoundedPhotoCover(ctx, loadedImgs[1], startX + cellW + gap, startY, cellW, cellH, 22);
+                    drawRoundedPhotoCover(ctx, loadedImgs[2], Math.round((cw - cellW) / 2), startY + cellH + gap, cellW, cellH, 22);
+                } else {
+                    // 4장: 2x2 바둑판식 배치 (각 사진 사각 모서리 둥글게 22px)
+                    const gap = 12;
+                    const cellW = 348;
+                    const cellH = 176;
+                    const startX = Math.round((cw - (cellW * 2 + gap)) / 2);
+                    const startY = photoAreaTop + 6;
+                    drawRoundedPhotoCover(ctx, loadedImgs[0], startX, startY, cellW, cellH, 22);
+                    drawRoundedPhotoCover(ctx, loadedImgs[1], startX + cellW + gap, startY, cellW, cellH, 22);
+                    drawRoundedPhotoCover(ctx, loadedImgs[2], startX, startY + cellH + gap, cellW, cellH, 22);
+                    drawRoundedPhotoCover(ctx, loadedImgs[3], startX + cellW + gap, startY + cellH + gap, cellW, cellH, 22);
+                }
+
+                textSectionTop = 428;
             }
 
-            if (count === 1) {
-                // 1장일 때: 중앙에 단정하게 배치 + 모서리 둥글게
-                const boxW = 300;
-                const boxH = 292;
-                const x = Math.round((cw - boxW) / 2);
-                const y = Math.round((ch - boxH) / 2);
-                drawRoundedImageCover(ctx, loadedImgs[0], x, y, boxW, boxH, 26);
-            } else if (count === 2) {
-                // 2장일 때: 조금 더 커져서 좌우 나란히 배치 + 각 모서리 둥글게
-                const gap = 14;
-                const boxW = 266;
-                const boxH = 296;
-                const startX = Math.round((cw - (boxW * 2 + gap)) / 2);
-                const y = Math.round((ch - boxH) / 2);
-                drawRoundedImageCover(ctx, loadedImgs[0], startX, y, boxW, boxH, 24);
-                drawRoundedImageCover(ctx, loadedImgs[1], startX + boxW + gap, y, boxW, boxH, 24);
-            } else if (count === 3) {
-                // 3장일 때: 2x2 바둑판 기준 상단 2장 + 하단 중앙 1장 (모서리 둥글게)
-                const gap = 10;
-                const cellW = 250;
-                const cellH = 148;
-                const startX = Math.round((cw - (cellW * 2 + gap)) / 2);
-                const startY = Math.round((ch - (cellH * 2 + gap)) / 2);
-                drawRoundedImageCover(ctx, loadedImgs[0], startX, startY, cellW, cellH, 18);
-                drawRoundedImageCover(ctx, loadedImgs[1], startX + cellW + gap, startY, cellW, cellH, 18);
-                drawRoundedImageCover(ctx, loadedImgs[2], Math.round((cw - cellW) / 2), startY + cellH + gap, cellW, cellH, 18);
-            } else {
-                // 4장일 때: 2x2 바둑판식 배치 + 각 사진 사각 모서리 둥글게
-                const gap = 10;
-                const cellW = 250;
-                const cellH = 148;
-                const startX = Math.round((cw - (cellW * 2 + gap)) / 2);
-                const startY = Math.round((ch - (cellH * 2 + gap)) / 2);
-                drawRoundedImageCover(ctx, loadedImgs[0], startX, startY, cellW, cellH, 18);
-                drawRoundedImageCover(ctx, loadedImgs[1], startX + cellW + gap, startY, cellW, cellH, 18);
-                drawRoundedImageCover(ctx, loadedImgs[2], startX, startY + cellH + gap, cellW, cellH, 18);
-                drawRoundedImageCover(ctx, loadedImgs[3], startX + cellW + gap, startY + cellH + gap, cellW, cellH, 18);
-            }
+            // 3. 하단 본문 5줄 박스 영역
+            const boxX = 38;
+            const boxY = textSectionTop;
+            const boxW = cw - 76;
+            const boxH = ch - boxY - 34;
 
-            return canvas.toDataURL('image/jpeg', 0.86);
-        }
+            ctx.save();
+            drawRoundRectPath(ctx, boxX, boxY, boxW, boxH, 24);
+            ctx.fillStyle = '#FAF8F5';
+            ctx.fill();
+            ctx.strokeStyle = '#E6E1D6';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+            ctx.restore();
 
-        // 모달 내부 HTML에서도 1~4장 바둑판식(1장 중앙, 2장 확대, 3~4장 바둑판) 렌더링
-        function buildModalPhotoGridHtml(images) {
-            const list = (Array.isArray(images) ? images : (images ? [images] : []))
-                .filter(s => typeof s === 'string' && s.trim().length > 0)
-                .slice(0, 4);
-            const cnt = list.length;
-            if (cnt === 0) return '';
+            // 본문 최대 5줄 렌더링
+            ctx.save();
+            ctx.font = '600 25px Pretendard, -apple-system, BlinkMacSystemFont, sans-serif';
+            ctx.fillStyle = '#1F2937';
+            ctx.textBaseline = 'top';
 
-            if (cnt === 1) {
-                return `
-                    <div class="w-full flex justify-center py-1">
-                        <img src="${list[0]}" alt="사진 1" class="w-32 h-32 object-cover rounded-2xl border border-gray-200 shadow-xs">
-                    </div>
-                `;
-            }
-            if (cnt === 2) {
-                return `
-                    <div class="grid grid-cols-2 gap-2 w-full px-1 py-1">
-                        <img src="${list[0]}" alt="사진 1" class="w-full h-28 object-cover rounded-2xl border border-gray-200 shadow-xs">
-                        <img src="${list[1]}" alt="사진 2" class="w-full h-28 object-cover rounded-2xl border border-gray-200 shadow-xs">
-                    </div>
-                `;
-            }
-            if (cnt === 3) {
-                return `
-                    <div class="grid grid-cols-2 gap-1.5 w-full px-2 py-1">
-                        <img src="${list[0]}" alt="사진 1" class="w-full h-20 object-cover rounded-xl border border-gray-200 shadow-2xs">
-                        <img src="${list[1]}" alt="사진 2" class="w-full h-20 object-cover rounded-xl border border-gray-200 shadow-2xs">
-                        <img src="${list[2]}" alt="사진 3" class="col-span-2 w-1/2 mx-auto h-20 object-cover rounded-xl border border-gray-200 shadow-2xs">
-                    </div>
-                `;
-            }
-            return `
-                <div class="grid grid-cols-2 gap-1.5 w-full px-2 py-1">
-                    ${list.map((src, idx) => `
-                        <img src="${src}" alt="사진 ${idx + 1}" class="w-full h-20 object-cover rounded-xl border border-gray-200 shadow-2xs">
-                    `).join('')}
-                </div>
-            `;
+            const textMaxW = boxW - 56;
+            const fiveLines = wrapCanvasFiveLines(ctx, rawContent, textMaxW);
+            const displayLines = fiveLines.length > 0 ? fiveLines : [`${authorName}님이 따뜻한 가족 이야기를 올렸습니다.`];
+
+            const lineHeight = 38;
+            const totalTextH = displayLines.length * lineHeight;
+            const availableH = boxH - 52;
+            let startTextY = boxY + Math.max(20, Math.round((availableH - totalTextH) / 2));
+
+            displayLines.forEach((line, idx) => {
+                ctx.fillText(line, boxX + 28, startTextY + idx * lineHeight);
+            });
+
+            // 우측 하단 작성자 및 N번째 이야기 표시
+            ctx.font = 'bold 21px Pretendard, sans-serif';
+            ctx.fillStyle = '#3B5D50';
+            ctx.textAlign = 'right';
+            ctx.fillText(`- ${authorName} (${countText} 이야기)`, boxX + boxW - 26, boxY + boxH - 36);
+            ctx.restore();
+
+            return {
+                dataUrl: canvas.toDataURL('image/jpeg', 0.88),
+                width: cw,
+                height: ch,
+                lines: displayLines
+            };
         }
 
         window.openKakaoShareModal = async function(authorName, postIndex, postContent = '', postImagesOrFirst = [], postId = '', localRawImages = []) {
@@ -1906,41 +1926,19 @@
                 ? localRawImages.filter(Boolean).slice(0, 4)
                 : imgs;
 
-            const fiveLineInfo = extractFiveLineShareText(postContent);
-            const displayFiveLines = fiveLineInfo.fullFiveLines || `${author}님이 따뜻한 가족 이야기를 올렸습니다.`;
-
+            // GitHub Pages (https://아이디.github.io) 하위 경로 보존 딥링크 생성
             const baseDir = getAppBaseUrl();
             const fkToken = 'fam_' + Date.now().toString(36);
             const deepLinkUrl = postId
                 ? `${baseDir}/index2.html?kakao_post=${encodeURIComponent(postId)}&fk=${encodeURIComponent(fkToken)}`
                 : `${baseDir}/index.html`;
 
-            pendingKakaoShareData = {
-                author: author,
-                postIndex: postIndex,
-                countText: countText,
-                fiveLineInfo: fiveLineInfo,
-                displayFiveLines: displayFiveLines,
-                images: imgs,
-                rawForCanvas: rawForCanvas,
-                collageUrl: "",
-                postId: postId || "",
-                deepLinkUrl: deepLinkUrl
-            };
-
-            const shareText = `${displayFiveLines}\n\n👉 이야기 바로보기 :\n${deepLinkUrl}`;
-            pendingKakaoShareText = shareText;
-
             const previewEl = document.getElementById('kakao-share-preview-text');
             if (previewEl) {
-                const gridHtml = buildModalPhotoGridHtml(rawForCanvas);
                 previewEl.innerHTML = `
-                    <div class="flex flex-col space-y-2 bg-gray-50/90 p-2.5 rounded-2xl border border-gray-200/90">
-                        ${gridHtml}
-                        <div class="text-left px-1 pt-0.5">
-                            <p class="text-[12px] text-gray-800 font-medium leading-snug whitespace-pre-line line-clamp-5 break-words">${escapeHtml(displayFiveLines)}</p>
-                            <p class="text-[10.5px] text-emerald-800 font-bold mt-1.5 text-right">- ${escapeHtml(author)} (${escapeHtml(countText)} 이야기)</p>
-                        </div>
+                    <div class="py-8 text-xs text-gray-500 flex flex-col items-center justify-center space-y-2">
+                        <i class="fa-solid fa-spinner fa-spin text-emerald-700 text-base"></i>
+                        <span>카톡 공유용 카드 이미지를 굽는 중...</span>
                     </div>
                 `;
             }
@@ -1950,14 +1948,36 @@
                 modal.classList.remove('hidden');
             }
 
-            // 백그라운드에서 즉시 1~4장 둥근 바둑판 이미지를 합성하여 클라우드 URL 준비
+            // 즉시 1장의 통합 카드 이미지(바둑판 사진 + 5줄 본문)로 굽기
+            const baked = await bakeFullKakaoCardDataUrl(rawForCanvas, postContent, author, countText);
+            const plainFiveLines = (baked.lines || []).join('\n');
+
+            pendingKakaoShareData = {
+                author: author,
+                postIndex: postIndex,
+                countText: countText,
+                plainFiveLines: plainFiveLines,
+                bakedDataUrl: baked.dataUrl,
+                bakedWidth: baked.width,
+                bakedHeight: baked.height,
+                uploadedCardUrl: "",
+                postId: postId || "",
+                deepLinkUrl: deepLinkUrl
+            };
+
+            pendingKakaoShareText = `${plainFiveLines}\n\n👉 이야기 바로보기 :\n${deepLinkUrl}`;
+
+            if (previewEl && baked.dataUrl) {
+                previewEl.innerHTML = `
+                    <img src="${baked.dataUrl}" alt="카톡 공유 카드 미리보기" class="w-full h-auto block object-contain rounded-xl">
+                `;
+            }
+
+            // 모달이 떠 있는 동안 백그라운드에서 Firebase Storage에 즉시 업로드
             try {
-                const collageDataUrl = await buildKakaoCollageDataUrl(rawForCanvas, displayFiveLines);
-                if (collageDataUrl && pendingKakaoShareData) {
-                    const uploadedCollage = await uploadPhotoToStorage(collageDataUrl, 'kakao_collages');
-                    if (pendingKakaoShareData && uploadedCollage && (uploadedCollage.startsWith('http://') || uploadedCollage.startsWith('https://'))) {
-                        pendingKakaoShareData.collageUrl = uploadedCollage;
-                    }
+                const uploadedUrl = await uploadKakaoCardToStorage(baked.dataUrl);
+                if (pendingKakaoShareData && uploadedUrl) {
+                    pendingKakaoShareData.uploadedCardUrl = uploadedUrl;
                 }
             } catch (e) {}
         };
@@ -1972,88 +1992,55 @@
         };
 
         window.executeKakaoShare = async function() {
-            if (!pendingKakaoShareText) return;
+            if (!pendingKakaoShareData) return;
+            const data = pendingKakaoShareData;
             const textToShare = pendingKakaoShareText;
-            const data = pendingKakaoShareData || {};
 
             const yesBtn = document.getElementById('kakao-share-confirm-yes-btn');
             if (yesBtn) {
                 yesBtn.disabled = true;
-                yesBtn.innerHTML = `<i class="fa-solid fa-spinner fa-spin text-xs"></i><span>준비 중...</span>`;
+                yesBtn.innerHTML = `<i class="fa-solid fa-spinner fa-spin text-xs"></i><span>이미지 전송 중...</span>`;
             }
 
-            // 바둑판 합성 이미지가 아직 업로드 중이면 최대 1.8초 대기 후 전송
-            let finalCardImageUrl = data.collageUrl || "";
-            if (!finalCardImageUrl && data.rawForCanvas && data.rawForCanvas.length > 0) {
-                try {
-                    const collageDataUrl = await buildKakaoCollageDataUrl(data.rawForCanvas, data.displayFiveLines);
-                    const uploaded = await uploadPhotoToStorage(collageDataUrl, 'kakao_collages');
-                    if (uploaded && (uploaded.startsWith('http://') || uploaded.startsWith('https://'))) {
-                        finalCardImageUrl = uploaded;
-                    }
-                } catch (e) {}
-            }
-            if (!finalCardImageUrl && Array.isArray(data.images) && data.images[0] && data.images[0].startsWith('http')) {
-                finalCardImageUrl = data.images[0];
+            // 아직 Storage 업로드가 안 끝났다면 완료될 때까지 대기
+            let finalCardImageUrl = data.uploadedCardUrl || "";
+            if (!finalCardImageUrl && data.bakedDataUrl) {
+                finalCardImageUrl = await uploadKakaoCardToStorage(data.bakedDataUrl);
             }
 
             if (yesBtn) {
                 yesBtn.disabled = false;
-                yesBtn.innerHTML = `<i class="fa-solid fa-share-nodes text-xs"></i><span>이야기 바로보기 공유</span>`;
+                yesBtn.innerHTML = `<i class="fa-solid fa-share-nodes text-xs"></i><span>예 (카톡 공유)</span>`;
             }
             closeKakaoShareModal();
 
-            // 1. 클립보드 복사 백업
+            // 클립보드 백업 복사
             try {
                 if (navigator.clipboard && navigator.clipboard.writeText) {
                     await navigator.clipboard.writeText(textToShare);
-                } else {
-                    const ta = document.createElement('textarea');
-                    ta.value = textToShare;
-                    ta.style.position = 'fixed';
-                    ta.style.left = '-9999px';
-                    document.body.appendChild(ta);
-                    ta.select();
-                    document.execCommand('copy');
-                    document.body.removeChild(ta);
                 }
             } catch (err) {}
 
             const baseDir = getAppBaseUrl();
             const targetDeepLink = data.deepLinkUrl || `${baseDir}/index.html`;
 
-            // 5줄 본문을 카톡 말풍선 title(1~2줄)과 description(3~5줄)에 이어서 배치
-            const info = data.fiveLineInfo || { titlePart: "", descPart: "" };
-            const cardTitle = info.titlePart || `${data.author || '우리가족'}님의 이야기`;
-            const cardDesc = info.descPart
-                ? `${info.descPart}\n(${data.author || '우리가족'} · ${data.countText || ''})`
-                : `${data.author || '우리가족'}님의 ${data.countText || ''} 가족 이야기`;
-
-            // 2-A. 카카오 JavaScript SDK 전송 (flogo.png 완전 배제, 바둑판 합성 사진 + 최대 5줄 본문 + '이야기 바로보기')
-            if (window.Kakao && window.Kakao.isInitialized && window.Kakao.isInitialized()) {
+            // 1순위: 구워진 이미지가 Storage에 정상 업로드되어 https:// URL이 확보된 경우 -> 카카오톡 피드 말풍선으로 전송
+            // (이때 글자 5줄은 이미 이미지 안에 선명하게 구워져 있으므로, 카톡 텍스트 칸에는 중간 '...'이 절대 생기지 않게 1줄 안내만 넣음!)
+            if (finalCardImageUrl && window.Kakao && window.Kakao.isInitialized && window.Kakao.isInitialized()) {
                 try {
-                    const contentPayload = {
-                        title: cardTitle,
-                        description: cardDesc,
-                        link: {
-                            mobileWebUrl: targetDeepLink,
-                            webUrl: targetDeepLink
-                        }
-                    };
-                    if (finalCardImageUrl) {
-                        contentPayload.imageUrl = finalCardImageUrl;
-                        contentPayload.imageWidth = 600;
-                        contentPayload.imageHeight = 340;
-                    } else {
-                        // 사진이 없고 클라우드 업로드도 불가할 때만 투명/단색 1x1 대체가 아닌 최소 이미지 지정
-                        contentPayload.imageUrl = 'https://t1.kakaocdn.net/kakao_js_sdk/docs/thumb.png';
-                        contentPayload.imageWidth = 600;
-                        contentPayload.imageHeight = 340;
-                    }
-
                     window.Kakao.Share.sendDefault({
                         objectType: 'feed',
-                        content: contentPayload,
+                        content: {
+                            title: `${data.author}님의 ${data.countText} 가족 이야기`,
+                            description: '아래 [이야기 바로보기]를 누르면 해당 글로 바로 이동합니다.',
+                            imageUrl: finalCardImageUrl,
+                            imageWidth: data.bakedWidth || 800,
+                            imageHeight: data.bakedHeight || 720,
+                            link: {
+                                mobileWebUrl: targetDeepLink,
+                                webUrl: targetDeepLink
+                            }
+                        },
                         buttons: [
                             {
                                 title: '이야기 바로보기',
@@ -2067,27 +2054,38 @@
                     showNotification("카카오톡 가족 단톡방을 선택해 주세요.");
                     return;
                 } catch (kakaoErr) {
-                    console.warn("Kakao SDK 전송 실패, 브라우저 공유로 전환:", kakaoErr);
+                    console.warn("Kakao SDK 전송 오류, 이미지 파일 직접 공유로 전환:", kakaoErr);
                 }
             }
 
-            // 2-B. 모바일 Web Share API 지원 환경
-            if (navigator.share) {
+            // 2순위: 만약 Firebase Storage 용량/권한 문제로 URL 생성이 안 되었더라도 사진이 빠지지 않도록 구워진 이미지 파일 자체를 카톡으로 직접 공유!
+            if (data.bakedDataUrl && navigator.share) {
                 try {
+                    const blob = dataUrlToBlob(data.bakedDataUrl);
+                    if (blob) {
+                        const file = new File([blob], `가족이야기_${data.postIndex || 1}.jpg`, { type: 'image/jpeg' });
+                        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                            await navigator.share({
+                                files: [file],
+                                title: `${data.author}님의 가족 이야기`,
+                                text: `👉 이야기 바로보기 : ${targetDeepLink}`
+                            });
+                            showNotification("카카오톡 단톡방을 선택하면 카드 이미지와 링크가 함께 전송됩니다.");
+                            return;
+                        }
+                    }
                     await navigator.share({
-                        title: cardTitle,
+                        title: `${data.author}님의 가족 이야기`,
                         text: textToShare,
                         url: targetDeepLink
                     });
-                    showNotification("가족 단톡방을 선택하여 공유해 주세요.");
                     return;
                 } catch (err) {
                     if (err.name === 'AbortError') return;
                 }
             }
 
-            // 2-C. PC 브라우저 폴백
-            showNotification("공유 문구와 바로보기 링크가 복사되었습니다! 카톡방에 붙여넣기 해주세요.");
+            showNotification("공유 링크가 복사되었습니다! 카톡방에 붙여넣기 해주세요.");
         };
 
         // [긴글쓰기 1,500자 상태 및 5단계 글자 크기 프리셋: 14px, 16px, 18px, 20px, 22px]

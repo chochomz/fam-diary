@@ -1555,7 +1555,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, initializeFirestore, persistentLocalCache, persistentSingleTabManager, memoryLocalCache, collection, addDoc, onSnapshot, updateDoc, deleteDoc, doc, arrayUnion, arrayRemove, increment, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, initializeFirestore, persistentLocalCache, persistentSingleTabManager, memoryLocalCache, collection, addDoc, onSnapshot, updateDoc, deleteDoc, doc, arrayUnion, setDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
         import { getStorage, ref as storageRef, uploadString, getDownloadURL } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-storage.js";
 
         // [작업 4-가, 나, 다, 라: 로그인 세션 기반 사용자 이름 및 목자/부목자/일반목원 권한 체계 초기화]
@@ -4975,6 +4975,9 @@ initAuth();
                 // [5단계: 5. 문서 저장 (100%)]
                 setUploadProgressStage(5, false);
 
+                const measuredImageByteSizes = finalImages.map((rawImg, idx) => estimateImageByteSize(rawImg, null));
+                const measuredTotalImageBytes = measuredImageByteSizes.reduce((acc, v) => acc + v, 0);
+
                 let targetScrollId = postId;
                 if (postId) {
                     const reindexedCaptions = {};
@@ -4984,8 +4987,6 @@ initAuth();
                             if (capVal) reindexedCaptions[newIdx] = capVal;
                         });
                     }
-                    const measuredImageByteSizes = finalImages.map((rawImg, idx) => estimateImageByteSize(rawImg, null));
-                const measuredTotalImageBytes = measuredImageByteSizes.reduce((acc, v) => acc + v, 0);
                 const updatePayload = {
                         content: content,
                         fontFamily: currentSelectedFont || 'pretendard',

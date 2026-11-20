@@ -1687,84 +1687,160 @@
 
         // 게시글에서 첫 번째 사진을 추출 (모달 미리보기용 previewThumb + 카톡 서버 전송용 kakaoThumb 분리)
         function extractPostThumbnailPair(post, fallbackLogoUrl) {
-            let firstImg = "";
+            let rawImg = "";
+            let cachedHttpThumb = "";
             if (post) {
                 if (typeof post.kakaoThumbUrl === 'string' && /^https?:\/\//i.test(post.kakaoThumbUrl.trim())) {
-                    firstImg = post.kakaoThumbUrl.trim();
+                    cachedHttpThumb = post.kakaoThumbUrl.trim();
                 }
-                if (!firstImg && Array.isArray(post.images) && post.images.length > 0) {
+                if (Array.isArray(post.images) && post.images.length > 0) {
                     const found = post.images.find(img => typeof img === 'string' && img.trim().length > 0);
-                    if (found) firstImg = found.trim();
+                    if (found) rawImg = found.trim();
                 }
-                if (!firstImg && typeof post.imageUrl === 'string' && post.imageUrl.trim().length > 0) {
-                    firstImg = post.imageUrl.trim();
+                if (!rawImg && typeof post.imageUrl === 'string' && post.imageUrl.trim().length > 0) {
+                    rawImg = post.imageUrl.trim();
                 }
             }
+            const firstImg = rawImg || cachedHttpThumb;
             const previewThumb = firstImg || fallbackLogoUrl;
-            const kakaoThumb = (firstImg && /^https?:\/\//i.test(firstImg)) ? firstImg : fallbackLogoUrl;
+            let kakaoThumb = fallbackLogoUrl;
+            if (cachedHttpThumb) {
+                kakaoThumb = cachedHttpThumb;
+            } else if (rawImg && /^https?:\/\//i.test(rawImg)) {
+                kakaoThumb = rawImg;
+            }
             return {
                 rawFirstImg: firstImg,
                 previewThumb: previewThumb,
                 kakaoThumb: kakaoThumb,
+                hasHttpThumb: Boolean(cachedHttpThumb || (rawImg && /^https?:\/\//i.test(rawImg))),
                 hasPhoto: Boolean(firstImg)
             };
         }
 
-        // 게시글 사진이 data:image(Base64)인 경우 카톡 서버가 썸네일로 읽을 수 있도록 240x240 초경량 이미지로 변환 후 Storage https URL 획득
+        // DataURL 이미지를 320x320 정방형 JPEG Blob으로 압축 변환 (카톡 리스트 우측 썸네일 최적 규격)
+        function createSquareThumbBlobFromDataUrl(srcDataUrl) {
+            return new Promise((resolve) => {
+                const img = new Image();
+                img.crossOrigin = 'anonymous';
+                img.onload = () => {
+                    try {
+                        const canvas = document.createElement('canvas');
+                        const size = 320;
+                        canvas.width = size;
+                        canvas.height = size;
+                        const ctx = canvas.getContext('2d');
+                        ctx.fillStyle = '#ffffff';
+                        ctx.fillRect(0, 0, size, size);
+                        const minSide = Math.min(img.width || size, img.height || size);
+                        const sx = Math.max(0, ((img.width || size) - minSide) / 2);
+                        const sy = Math.max(0, ((img.height || size) - minSide) / 2);
+                        ctx.drawImage(img, sx, sy, minSide, minSide, 0, 0, size, size);
+                        const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.82);
+                        const blob = dataUrlToBlob(compressedDataUrl);
+                        resolve({ blob: blob, dataUrl: compressedDataUrl });
+                    } catch (err) {
+                        resolve({ blob: dataUrlToBlob(srcDataUrl), dataUrl: srcDataUrl });
+                    }
+                };
+                img.onerror = () => resolve({ blob: dataUrlToBlob(srcDataUrl), dataUrl: srcDataUrl });
+                img.src = srcDataUrl;
+            });
+        }
+
+        // [핵심] 1순위: 카카오 공식 이미지 서버(Kakao.Share.uploadImage) / 2순위: Firebase Storage 로 https 썸네일 URL 즉시 확보
         async function ensureKakaoHttpThumbnail(item) {
             if (!item || !item.rawFirstImg) return item ? item.imageUrl : '';
+            if (item.hasHttpThumb && /^https?:\/\//i.test(item.imageUrl) && !item.imageUrl.endsWith('ksharelogo.png')) {
+                return item.imageUrl;
+            }
             if (/^https?:\/\//i.test(item.rawFirstImg)) {
                 item.imageUrl = item.rawFirstImg;
+                item.hasHttpThumb = true;
                 return item.imageUrl;
             }
-            if (!item.rawFirstImg.startsWith('data:image/') || !storage) {
+            if (!item.rawFirstImg.startsWith('data:image/')) {
                 return item.imageUrl;
             }
-            try {
-                const thumbDataUrl = await new Promise((resolve) => {
-                    const img = new Image();
-                    img.onload = () => {
+            if (item._uploadingPromise) {
+                return item._uploadingPromise;
+            }
+
+            item._uploadingPromise = (async () => {
+                let uploadedHttpsUrl = '';
+                try {
+                    const { blob, dataUrl } = await createSquareThumbBlobFromDataUrl(item.rawFirstImg);
+
+                    // 1순위: 카카오 공식 이미지 업로드 서버 (Kakao.Share.uploadImage -> https://k.kakaocdn.net/...)
+                    initKakaoSDK();
+                    if (blob && window.Kakao && window.Kakao.isInitialized && window.Kakao.isInitialized() && window.Kakao.Share && typeof window.Kakao.Share.uploadImage === 'function') {
                         try {
-                            const canvas = document.createElement('canvas');
-                            const size = 240;
-                            canvas.width = size;
-                            canvas.height = size;
-                            const ctx = canvas.getContext('2d');
-                            ctx.fillStyle = '#ffffff';
-                            ctx.fillRect(0, 0, size, size);
-                            const minSide = Math.min(img.width, img.height);
-                            const sx = Math.max(0, (img.width - minSide) / 2);
-                            const sy = Math.max(0, (img.height - minSide) / 2);
-                            ctx.drawImage(img, sx, sy, minSide, minSide, 0, 0, size, size);
-                            resolve(canvas.toDataURL('image/jpeg', 0.78));
-                        } catch (err) {
-                            resolve(item.rawFirstImg);
-                        }
-                    };
-                    img.onerror = () => resolve(item.rawFirstImg);
-                    img.src = item.rawFirstImg;
-                });
-
-                const fileName = 'kthumb_' + (item.postId || Date.now()) + '_' + Math.random().toString(36).substring(2, 6) + '.jpg';
-                const fileRef = storageRef(storage, 'family_kakao_thumbs/' + fileName);
-                await uploadString(fileRef, thumbDataUrl, 'data_url');
-                const httpsUrl = await getDownloadURL(fileRef);
-
-                if (httpsUrl && /^https?:\/\//i.test(httpsUrl)) {
-                    item.imageUrl = httpsUrl;
-                    item.previewThumbUrl = httpsUrl;
-                    if (item.postId && Array.isArray(cachedPosts)) {
-                        const targetPost = cachedPosts.find(p => p && String(p.id) === String(item.postId));
-                        if (targetPost) targetPost.kakaoThumbUrl = httpsUrl;
-                        if (db) {
-                            updateDoc(getPostDocRef(item.postId), { kakaoThumbUrl: httpsUrl }).catch(() => {});
+                            const fileObj = new File([blob], 'family_thumb_' + (item.postId || Date.now()) + '.jpg', { type: 'image/jpeg' });
+                            const res = await window.Kakao.Share.uploadImage({ file: [fileObj] });
+                            if (res && res.infos && res.infos.original && res.infos.original.url) {
+                                uploadedHttpsUrl = res.infos.original.url;
+                            }
+                        } catch (kakaoUpErr) {
+                            console.warn('Kakao.Share.uploadImage 경고:', kakaoUpErr);
                         }
                     }
+
+                    // 2순위: Firebase Storage 폴백 업로드
+                    if (!uploadedHttpsUrl && storage && dataUrl) {
+                        try {
+                            const fileName = 'kthumb_' + (item.postId || Date.now()) + '_' + Math.random().toString(36).substring(2, 6) + '.jpg';
+                            const fileRef = storageRef(storage, 'family_kakao_thumbs/' + fileName);
+                            await uploadString(fileRef, dataUrl, 'data_url');
+                            uploadedHttpsUrl = await getDownloadURL(fileRef);
+                        } catch (storageUpErr) {
+                            console.warn('Firebase Storage 썸네일 업로드 경고:', storageUpErr);
+                        }
+                    }
+
+                    if (uploadedHttpsUrl && /^https?:\/\//i.test(uploadedHttpsUrl)) {
+                        item.imageUrl = uploadedHttpsUrl;
+                        item.hasHttpThumb = true;
+                        if (item.postId && Array.isArray(cachedPosts)) {
+                            const targetPost = cachedPosts.find(p => p && String(p.id) === String(item.postId));
+                            if (targetPost) targetPost.kakaoThumbUrl = uploadedHttpsUrl;
+                            if (db) {
+                                updateDoc(getPostDocRef(item.postId), { kakaoThumbUrl: uploadedHttpsUrl }).catch(() => {});
+                            }
+                        }
+                    }
+                } catch (e) {
+                    console.warn('썸네일 HTTPS 변환 오류:', e);
+                } finally {
+                    item._uploadingPromise = null;
                 }
-            } catch (e) {
-                console.warn("카톡 썸네일 HTTPS 변환 경고:", e);
+                return item.imageUrl;
+            })();
+
+            return item._uploadingPromise;
+        }
+
+        let kakaoThumbsReadyPromise = Promise.resolve();
+
+        function prepareAllKakaoListThumbnails(listItems) {
+            if (!Array.isArray(listItems) || listItems.length === 0) return Promise.resolve();
+            const needUploadItems = listItems.filter(it => it && it.hasPhoto && !it.hasHttpThumb);
+            if (needUploadItems.length === 0) return Promise.resolve();
+
+            const yesBtn = document.getElementById('kakao-share-confirm-yes-btn');
+            if (yesBtn && currentKakaoShareMode === 'list') {
+                yesBtn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin text-xs"></i><span>사진 준비 중...</span>';
             }
-            return item.imageUrl;
+
+            kakaoThumbsReadyPromise = Promise.all(needUploadItems.map(it => ensureKakaoHttpThumbnail(it))).then(() => {
+                if (yesBtn) {
+                    yesBtn.innerHTML = '<i class="fa-solid fa-share-nodes text-xs"></i><span>예 (카톡 공유)</span>';
+                }
+            }).catch(() => {
+                if (yesBtn) {
+                    yesBtn.innerHTML = '<i class="fa-solid fa-share-nodes text-xs"></i><span>예 (카톡 공유)</span>';
+                }
+            });
+            return kakaoThumbsReadyPromise;
         }
 
         // 1~3줄까지 중복 없는 서로 다른 최근 피드글 3건 구성 + 각 게시글 사진 썸네일 매핑
@@ -1816,6 +1892,7 @@
                     rawFirstImg: thumbInfo.rawFirstImg,
                     previewThumbUrl: thumbInfo.previewThumb,
                     imageUrl: thumbInfo.kakaoThumb,
+                    hasHttpThumb: thumbInfo.hasHttpThumb,
                     hasPhoto: thumbInfo.hasPhoto,
                     deepLinkUrl: itemLink
                 });
@@ -1833,6 +1910,7 @@
                     rawFirstImg: "",
                     previewThumbUrl: shareLogoUrl,
                     imageUrl: shareLogoUrl,
+                    hasHttpThumb: true,
                     hasPhoto: false,
                     deepLinkUrl: firstLink
                 });
@@ -1846,6 +1924,7 @@
                     rawFirstImg: "",
                     previewThumbUrl: shareLogoUrl,
                     imageUrl: shareLogoUrl,
+                    hasHttpThumb: true,
                     hasPhoto: false,
                     deepLinkUrl: items[0].deepLinkUrl
                 });
@@ -1871,6 +1950,9 @@
                 if (feedBtn) feedBtn.className = "py-1.5 px-2 rounded-lg text-[11px] font-semibold transition-all text-gray-500 hover:text-gray-800 flex items-center justify-center space-x-1";
                 if (listBox) listBox.classList.remove('hidden');
                 if (feedBox) feedBox.classList.add('hidden');
+                if (pendingKakaoShareData && Array.isArray(pendingKakaoShareData.listItems)) {
+                    prepareAllKakaoListThumbnails(pendingKakaoShareData.listItems);
+                }
             }
         };
 
@@ -1902,11 +1984,8 @@
 
             pendingKakaoShareText = messageTitle + '\n\n👉 보러가기 :\n' + deepLinkUrl;
 
-            listItems.forEach(item => {
-                if (item.rawFirstImg && item.rawFirstImg.startsWith('data:image/')) {
-                    ensureKakaoHttpThumbnail(item);
-                }
-            });
+            // 모달이 열리는 즉시 백그라운드에서 카카오 CDN 이미지 서버(Kakao.Share.uploadImage)로 1~3번 사진 썸네일 사전 업로드 시작
+            prepareAllKakaoListThumbnails(listItems);
 
             const previewEl = document.getElementById('kakao-share-preview-text');
             if (previewEl) {
@@ -1965,13 +2044,24 @@
             const targetDeepLink = data.deepLinkUrl || (baseDir + '/index.html');
             const targetImageUrl = data.imageUrl || resolveAbsoluteAssetUrl('ksharelogo.png');
 
+            // 리스트형 선택 시 아직 카카오 CDN 업로드 중인 사진이 있다면 완료될 때까지 대기 후 전송
             if (selectedMode === 'list' && Array.isArray(data.listItems)) {
-                try {
-                    await Promise.race([
-                        Promise.all(data.listItems.map(it => ensureKakaoHttpThumbnail(it))),
-                        new Promise(res => setTimeout(res, 2500))
-                    ]);
-                } catch (e) {}
+                const pendingUploads = data.listItems.filter(it => it && it.hasPhoto && !it.hasHttpThumb);
+                if (pendingUploads.length > 0) {
+                    const yesBtn = document.getElementById('kakao-share-confirm-yes-btn');
+                    if (yesBtn) {
+                        yesBtn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin text-xs"></i><span>사진 전송 중...</span>';
+                    }
+                    try {
+                        await Promise.race([
+                            Promise.all(pendingUploads.map(it => ensureKakaoHttpThumbnail(it))),
+                            new Promise(res => setTimeout(res, 3500))
+                        ]);
+                    } catch (e) {}
+                    if (yesBtn) {
+                        yesBtn.innerHTML = '<i class="fa-solid fa-share-nodes text-xs"></i><span>예 (카톡 공유)</span>';
+                    }
+                }
             }
 
             const textToShare = (selectedMode === 'list' && Array.isArray(data.listItems))
@@ -1980,12 +2070,7 @@
 
             closeKakaoShareModal();
 
-            try {
-                if (navigator.clipboard && navigator.clipboard.writeText) {
-                    await navigator.clipboard.writeText(textToShare);
-                }
-            } catch (err) {}
-
+            initKakaoSDK();
             if (window.Kakao && window.Kakao.isInitialized && window.Kakao.isInitialized()) {
                 try {
                     if (selectedMode === 'list' && Array.isArray(data.listItems) && data.listItems.length >= 2) {
@@ -2048,6 +2133,12 @@
                     console.warn("Kakao SDK 전송 오류, 기본 공유로 전환:", kakaoErr);
                 }
             }
+
+            try {
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    await navigator.clipboard.writeText(textToShare);
+                }
+            } catch (err) {}
 
             if (navigator.share) {
                 try {

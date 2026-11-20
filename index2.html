@@ -17,6 +17,33 @@
                 var baseDirUrl = fullHrefNoHash.replace(/\/(index1|index2|index)\.html$/i, '').replace(/\/+$/, '');
                 window.__APP_BASE_URL__ = baseDirUrl;
 
+                // [카톡방 공유 링크(카드형/리스트형) 클릭 시 카톡 인앱에서 실행하지 않고 외부 브라우저 새 창으로 즉시 호출 & 카톡방 유지]
+                var ua = navigator.userAgent || '';
+                if (/KAKAOTALK/i.test(ua)) {
+                    var targetExternalUrl = window.location.href;
+                    try { document.documentElement.style.display = 'none'; } catch (e) {}
+                    if (/Android/i.test(ua)) {
+                        // 안드로이드: 카카오톡 공식 외부 브라우저 스킴 호출 및 기본 브라우저 새 창(Intent) 실행 후 카톡 인앱 창 즉시 닫기
+                        location.href = 'kakaotalk://web/openExternal?url=' + encodeURIComponent(targetExternalUrl);
+                        setTimeout(function() {
+                            location.href = 'kakaotalk://inappbrowser/close';
+                            window.close();
+                        }, 120);
+                        return;
+                    } else if (/iPhone|iPad|iPod/i.test(ua)) {
+                        // 아이폰(iOS): 사파리(Safari) 외부 브라우저 새 창으로 열기 후 카톡 인앱 창 즉시 닫아 카톡방 유지
+                        location.href = 'kakaotalk://web/openExternal?url=' + encodeURIComponent(targetExternalUrl);
+                        setTimeout(function() {
+                            location.href = 'kakaotalk://inappbrowser/close';
+                            location.href = 'kakaoweb://closeBrowser';
+                            window.close();
+                        }, 150);
+                        return;
+                    }
+                }
+
+
+
                 // 1. 1회용 통행증을 읽자마자 0.001초 즉시 소각(삭제)하여 재사용 및 주소창 직접 입력 원천 차단
                 var passRaw = sessionStorage.getItem('family_entry_pass');
                 sessionStorage.removeItem('family_entry_pass');

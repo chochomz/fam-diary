@@ -1045,20 +1045,41 @@
     
     <!-- [카톡방 공유 확인 모달 (초경량 텍스트 + 보러가기 방식)] -->
     <div id="kakao-share-confirm-modal" class="fixed inset-0 z-[70] bg-black/60 backdrop-blur-xs flex items-center justify-center p-3 hidden" style="touch-action: none;">
-        <div class="bg-white rounded-2xl w-full max-w-xs p-4 shadow-2xl border church-border text-center space-y-3 animate-sway-gentle">
-            <div class="w-11 h-11 bg-[#FEE500] text-[#3C1E1E] rounded-full flex items-center justify-center mx-auto text-lg shadow-2xs">
+        <div class="bg-white rounded-2xl w-full max-w-xs p-4 shadow-2xl border church-border text-center space-y-2.5 animate-sway-gentle">
+            <div class="w-10 h-10 bg-[#FEE500] text-[#3C1E1E] rounded-full flex items-center justify-center mx-auto text-base shadow-2xs">
                 <i class="fa-solid fa-comment"></i>
             </div>
-            <div class="space-y-1.5">
+            <div class="space-y-2">
                 <h4 class="text-sm font-bold text-gray-800">카톡방에 소식 알리기</h4>
-                <div class="w-full rounded-xl border border-amber-200/90 bg-amber-50/50 overflow-hidden shadow-2xs text-left">
+                <!-- 2가지 공유 스타일 선택 탭 (카드형 피드 vs 최근글 리스트형) -->
+                <div class="grid grid-cols-2 gap-1 bg-gray-100 p-1 rounded-xl border border-gray-200/80 select-none">
+                    <button type="button" id="kakao-mode-feed-btn" onclick="switchKakaoShareMode('feed')" class="py-1.5 px-2 rounded-lg text-[11px] font-bold transition-all bg-white text-gray-900 shadow-2xs flex items-center justify-center space-x-1">
+                        <span>🖼️</span>
+                        <span>카드형 피드</span>
+                    </button>
+                    <button type="button" id="kakao-mode-list-btn" onclick="switchKakaoShareMode('list')" class="py-1.5 px-2 rounded-lg text-[11px] font-semibold transition-all text-gray-500 hover:text-gray-800 flex items-center justify-center space-x-1">
+                        <span>📋</span>
+                        <span>최근글 리스트형</span>
+                    </button>
+                </div>
+
+                <!-- [미리보기 1: 카드형 피드 (800x400 ksharelogo.png + 문구)] -->
+                <div id="kakao-preview-feed-box" class="w-full rounded-xl border border-amber-200/90 bg-amber-50/50 overflow-hidden shadow-2xs text-left">
                     <div class="w-full aspect-[2/1] bg-emerald-900/5 overflow-hidden border-b border-amber-200/60 flex items-center justify-center">
                         <img id="kakao-share-preview-img" src="ksharelogo.png" alt="우리 가족 이야기" onerror="this.parentElement.style.display='none'" class="w-full h-full object-cover block">
                     </div>
                     <div id="kakao-share-preview-text" class="w-full py-2.5 px-3 text-xs font-bold text-gray-800 leading-relaxed break-keep text-center"></div>
                 </div>
+
+                <!-- [미리보기 2: 리스트형 피드 (최근 소식 최대 3건 목록)] -->
+                <div id="kakao-preview-list-box" class="hidden w-full rounded-xl border border-amber-200/90 bg-white overflow-hidden shadow-2xs text-left">
+                    <div id="kakao-list-preview-header" class="px-3 py-1.5 bg-amber-50/80 border-b border-amber-200/70 text-[11px] font-extrabold text-amber-950 truncate">
+                        우리 가족 이야기 새 소식
+                    </div>
+                    <div id="kakao-list-preview-items" class="divide-y divide-gray-100 max-h-[168px] overflow-y-auto"></div>
+                </div>
             </div>
-            <p class="text-[11.5px] text-gray-600 font-medium">가족 카톡방에 공유할까요?</p>
+            <p class="text-[11.5px] text-gray-600 font-medium pt-0.5">선택한 스타일로 가족 카톡방에 공유할까요?</p>
             <div class="grid grid-cols-2 gap-2 pt-0.5">
                 <button type="button" onclick="closeKakaoShareModal()" class="py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl text-xs font-semibold active:scale-95 transition-all">
                     아니요
@@ -1679,12 +1700,114 @@
         // [카톡방 공유 팝업 및 초경량 전송 시스템 ('00님이 00번째 글을 올렸습니다' + 보러가기)]
         let pendingKakaoShareText = "";
         let pendingKakaoShareData = null;
+        let currentKakaoShareMode = "feed"; // 'feed' (카드형 800x400) | 'list' (최근글 리스트형)
 
         function getAppBaseUrl() {
             if (window.__APP_BASE_URL__) return window.__APP_BASE_URL__;
             const fullNoQuery = window.location.href.split('#')[0].split('?')[0];
             return fullNoQuery.replace(/\/(index1|index2|index)\.html$/i, '').replace(/\/+$/, '');
         }
+
+        function extractPlainSummaryForKakao(post) {
+            if (!post) return "따뜻한 가족 이야기를 확인해 보세요.";
+            let raw = "";
+            if (post.content && String(post.content).trim()) {
+                raw = String(post.content)
+                    .replace(/<br\s*\/?>/gi, ' ')
+                    .replace(/<[^>]+>/g, ' ')
+                    .replace(/&nbsp;/gi, ' ')
+                    .replace(/\s+/g, ' ')
+                    .trim();
+            } else if (post.longContent && String(post.longContent).trim()) {
+                raw = String(post.longContent).replace(/\s+/g, ' ').trim();
+            } else if (post.fileTitle || post.fileName) {
+                raw = `첨부파일: ${post.fileTitle || post.fileName}`;
+            } else if (Array.isArray(post.images) && post.images.length > 0) {
+                raw = `사진 ${post.images.length}장이 등록되었습니다.`;
+            }
+            if (!raw) return "따뜻한 가족 이야기를 확인해 보세요.";
+            return raw.length > 36 ? raw.substring(0, 36) + "..." : raw;
+        }
+
+        function buildKakaoListItems(baseDir, fallbackAuthor, fallbackCount, fallbackPostId) {
+            const shareLogoUrl = `${baseDir}/ksharelogo.png`;
+            const totalPosts = (Array.isArray(cachedPosts) && cachedPosts.length > 0) ? cachedPosts.length : fallbackCount;
+            const recentSlice = (Array.isArray(cachedPosts) && cachedPosts.length > 0) ? cachedPosts.slice(0, 3) : [];
+            const items = [];
+
+            recentSlice.forEach((p, idx) => {
+                const seqNum = Math.max(1, totalPosts - idx);
+                const pAuthor = (p.author && String(p.author).trim()) ? String(p.author).trim() : fallbackAuthor;
+                const titleStr = `${pAuthor}님이 ${seqNum}번째 글을 올렸습니다.`;
+                const descStr = extractPlainSummaryForKakao(p);
+
+                // Storage에 올라간 https 이미지가 있으면 썸네일로 사용하고, 없으면 ksharelogo.png 사용
+                let thumbUrl = shareLogoUrl;
+                if (Array.isArray(p.images) && p.images.length > 0 && typeof p.images[0] === 'string' && p.images[0].startsWith('http')) {
+                    thumbUrl = p.images[0];
+                } else if (typeof p.imageUrl === 'string' && p.imageUrl.startsWith('http')) {
+                    thumbUrl = p.imageUrl;
+                }
+
+                const fkToken = 'fam_' + Date.now().toString(36) + '_' + idx;
+                const itemLink = p.id
+                    ? `${baseDir}/index2.html?kakao_post=${encodeURIComponent(p.id)}&fk=${encodeURIComponent(fkToken)}`
+                    : `${baseDir}/index.html`;
+
+                items.push({
+                    title: titleStr,
+                    description: descStr,
+                    imageUrl: thumbUrl,
+                    deepLinkUrl: itemLink
+                });
+            });
+
+            // 아직 캐시에 반영되기 전이거나 빈 경우 현재 작성 글로 1번 항목 보장
+            if (items.length === 0) {
+                const fkToken = 'fam_' + Date.now().toString(36);
+                const firstLink = fallbackPostId
+                    ? `${baseDir}/index2.html?kakao_post=${encodeURIComponent(fallbackPostId)}&fk=${encodeURIComponent(fkToken)}`
+                    : `${baseDir}/index.html`;
+                items.push({
+                    title: `${fallbackAuthor}님이 ${fallbackCount}번째 글을 올렸습니다.`,
+                    description: "새로운 가족 이야기가 등록되었습니다.",
+                    imageUrl: shareLogoUrl,
+                    deepLinkUrl: firstLink
+                });
+            }
+
+            // 카카오톡 리스트형(objectType: 'list')은 최소 2개 항목이 필수이므로 1개뿐일 때 보조 항목 자동 추가
+            if (items.length === 1) {
+                items.push({
+                    title: `${currentMokjang || '우리 가족 이야기'} 앨범 전체보기`,
+                    description: "가족들과 함께 나눈 따뜻한 추억과 사진 모음",
+                    imageUrl: shareLogoUrl,
+                    deepLinkUrl: items[0].deepLinkUrl
+                });
+            }
+
+            return items.slice(0, 3);
+        }
+
+        window.switchKakaoShareMode = function(mode) {
+            currentKakaoShareMode = (mode === 'list') ? 'list' : 'feed';
+            const feedBtn = document.getElementById('kakao-mode-feed-btn');
+            const listBtn = document.getElementById('kakao-mode-list-btn');
+            const feedBox = document.getElementById('kakao-preview-feed-box');
+            const listBox = document.getElementById('kakao-preview-list-box');
+
+            if (currentKakaoShareMode === 'feed') {
+                if (feedBtn) feedBtn.className = "py-1.5 px-2 rounded-lg text-[11px] font-bold transition-all bg-white text-gray-900 shadow-2xs flex items-center justify-center space-x-1";
+                if (listBtn) listBtn.className = "py-1.5 px-2 rounded-lg text-[11px] font-semibold transition-all text-gray-500 hover:text-gray-800 flex items-center justify-center space-x-1";
+                if (feedBox) feedBox.classList.remove('hidden');
+                if (listBox) listBox.classList.add('hidden');
+            } else {
+                if (listBtn) listBtn.className = "py-1.5 px-2 rounded-lg text-[11px] font-bold transition-all bg-white text-gray-900 shadow-2xs flex items-center justify-center space-x-1";
+                if (feedBtn) feedBtn.className = "py-1.5 px-2 rounded-lg text-[11px] font-semibold transition-all text-gray-500 hover:text-gray-800 flex items-center justify-center space-x-1";
+                if (listBox) listBox.classList.remove('hidden');
+                if (feedBox) feedBox.classList.add('hidden');
+            }
+        };
 
         window.openKakaoShareModal = function(authorName, postIndex, postId = '') {
             const author = authorName || currentUser || '우리가족';
@@ -1696,28 +1819,57 @@
             const deepLinkUrl = postId
                 ? `${baseDir}/index2.html?kakao_post=${encodeURIComponent(postId)}&fk=${encodeURIComponent(fkToken)}`
                 : `${baseDir}/index.html`;
-
             const shareLogoUrl = `${baseDir}/ksharelogo.png`;
+
+            const listItems = buildKakaoListItems(baseDir, author, countNum, postId);
+            const headerTitle = `${currentMokjang || '우리 가족 이야기'} 새 소식`;
+
             pendingKakaoShareData = {
                 author: author,
                 postIndex: countNum,
                 messageTitle: messageTitle,
                 postId: postId || "",
                 deepLinkUrl: deepLinkUrl,
-                imageUrl: shareLogoUrl
+                imageUrl: shareLogoUrl,
+                headerTitle: headerTitle,
+                listItems: listItems
             };
+
+            pendingKakaoShareText = `${messageTitle}\n\n👉 보러가기 :\n${deepLinkUrl}`;
+
+            // 1. 카드형 미리보기 업데이트
+            const previewEl = document.getElementById('kakao-share-preview-text');
+            if (previewEl) {
+                previewEl.textContent = messageTitle;
+            }
             const previewImgEl = document.getElementById('kakao-share-preview-img');
             if (previewImgEl) {
                 if (previewImgEl.parentElement) previewImgEl.parentElement.style.display = '';
                 previewImgEl.src = 'ksharelogo.png';
             }
 
-            pendingKakaoShareText = `${messageTitle}\n\n👉 보러가기 :\n${deepLinkUrl}`;
-
-            const previewEl = document.getElementById('kakao-share-preview-text');
-            if (previewEl) {
-                previewEl.textContent = messageTitle;
+            // 2. 리스트형 미리보기 업데이트
+            const listHeaderEl = document.getElementById('kakao-list-preview-header');
+            if (listHeaderEl) {
+                listHeaderEl.textContent = headerTitle;
             }
+            const listItemsEl = document.getElementById('kakao-list-preview-items');
+            if (listItemsEl) {
+                listItemsEl.innerHTML = listItems.map((item, idx) => `
+                    <div class="px-2.5 py-2 flex items-center justify-between space-x-2">
+                        <div class="min-w-0 flex-1">
+                            <p class="text-[11px] font-bold text-gray-800 truncate">${idx + 1}. ${escapeHtml(item.title)}</p>
+                            <p class="text-[10px] text-gray-500 truncate mt-0.5">${escapeHtml(item.description)}</p>
+                        </div>
+                        <div class="w-9 h-9 rounded-lg bg-amber-50 border border-gray-200 overflow-hidden shrink-0 flex items-center justify-center">
+                            <img src="${escapeHtml(item.imageUrl)}" alt="썸네일" onerror="this.src='flogo.png'" class="w-full h-full object-cover">
+                        </div>
+                    </div>
+                `).join('');
+            }
+
+            // 기본 탭은 카드형 피드로 표시 (사용자가 탭 클릭으로 즉시 전환 가능)
+            switchKakaoShareMode('feed');
 
             const modal = document.getElementById('kakao-share-confirm-modal');
             if (modal) {
@@ -1737,9 +1889,14 @@
         window.executeKakaoShare = async function() {
             if (!pendingKakaoShareData) return;
             const data = pendingKakaoShareData;
-            const textToShare = pendingKakaoShareText;
+            const selectedMode = currentKakaoShareMode;
             const baseDir = getAppBaseUrl();
             const targetDeepLink = data.deepLinkUrl || `${baseDir}/index.html`;
+            const targetImageUrl = data.imageUrl || `${baseDir}/ksharelogo.png`;
+
+            const textToShare = (selectedMode === 'list' && Array.isArray(data.listItems))
+                ? `[${data.headerTitle}]\n` + data.listItems.map((it, i) => `${i + 1}. ${it.title}\n   ${it.description}`).join('\n') + `\n\n👉 보러가기 :\n${targetDeepLink}`
+                : pendingKakaoShareText;
 
             closeKakaoShareModal();
 
@@ -1750,32 +1907,62 @@
                 }
             } catch (err) {}
 
-            // 1순위: 카카오톡 공식 SDK 초경량 Text 템플릿 ('00님이 00번째 글을 올렸습니다.' + '보러가기' 버튼)
+            // 1순위: 카카오톡 공식 SDK 전송 (선택한 모드에 따라 'feed' 또는 'list' 전송)
             if (window.Kakao && window.Kakao.isInitialized && window.Kakao.isInitialized()) {
                 try {
-                    const targetImageUrl = data.imageUrl || `${baseDir}/ksharelogo.png`;
-                    window.Kakao.Share.sendDefault({
-                        objectType: 'feed',
-                        content: {
-                            title: data.messageTitle,
-                            imageUrl: targetImageUrl,
-                            imageWidth: 800,
-                            imageHeight: 400,
-                            link: {
+                    if (selectedMode === 'list' && Array.isArray(data.listItems) && data.listItems.length >= 2) {
+                        window.Kakao.Share.sendDefault({
+                            objectType: 'list',
+                            headerTitle: data.headerTitle || '우리 가족 이야기 새 소식',
+                            headerLink: {
                                 mobileWebUrl: targetDeepLink,
                                 webUrl: targetDeepLink
-                            }
-                        },
-                        buttons: [
-                            {
-                                title: '보러가기',
+                            },
+                            contents: data.listItems.map(item => ({
+                                title: item.title,
+                                description: item.description,
+                                imageUrl: item.imageUrl || targetImageUrl,
+                                imageWidth: 800,
+                                imageHeight: 400,
+                                link: {
+                                    mobileWebUrl: item.deepLinkUrl || targetDeepLink,
+                                    webUrl: item.deepLinkUrl || targetDeepLink
+                                }
+                            })),
+                            buttons: [
+                                {
+                                    title: '보러가기',
+                                    link: {
+                                        mobileWebUrl: targetDeepLink,
+                                        webUrl: targetDeepLink
+                                    }
+                                }
+                            ]
+                        });
+                    } else {
+                        window.Kakao.Share.sendDefault({
+                            objectType: 'feed',
+                            content: {
+                                title: data.messageTitle,
+                                imageUrl: targetImageUrl,
+                                imageWidth: 800,
+                                imageHeight: 400,
                                 link: {
                                     mobileWebUrl: targetDeepLink,
                                     webUrl: targetDeepLink
                                 }
-                            }
-                        ]
-                    });
+                            },
+                            buttons: [
+                                {
+                                    title: '보러가기',
+                                    link: {
+                                        mobileWebUrl: targetDeepLink,
+                                        webUrl: targetDeepLink
+                                    }
+                                }
+                            ]
+                        });
+                    }
                     showNotification("카카오톡 가족 단톡방을 선택해 주세요.");
                     return;
                 } catch (kakaoErr) {
@@ -1788,7 +1975,7 @@
                 try {
                     await navigator.share({
                         title: '우리 가족 이야기',
-                        text: data.messageTitle,
+                        text: selectedMode === 'list' ? textToShare : data.messageTitle,
                         url: targetDeepLink
                     });
                     return;

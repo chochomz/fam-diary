@@ -1049,9 +1049,14 @@
             <div class="w-11 h-11 bg-[#FEE500] text-[#3C1E1E] rounded-full flex items-center justify-center mx-auto text-lg shadow-2xs">
                 <i class="fa-solid fa-comment"></i>
             </div>
-            <div class="space-y-1">
+            <div class="space-y-1.5">
                 <h4 class="text-sm font-bold text-gray-800">카톡방에 소식 알리기</h4>
-                <div id="kakao-share-preview-text" class="w-full py-2.5 px-3 rounded-xl border border-amber-200/80 bg-amber-50/60 text-xs font-bold text-gray-800 leading-relaxed break-keep"></div>
+                <div class="w-full rounded-xl border border-amber-200/90 bg-amber-50/50 overflow-hidden shadow-2xs text-left">
+                    <div class="w-full aspect-[2/1] bg-emerald-900/5 overflow-hidden border-b border-amber-200/60 flex items-center justify-center">
+                        <img id="kakao-share-preview-img" src="ksharelogo.png" alt="우리 가족 이야기" onerror="this.parentElement.style.display='none'" class="w-full h-full object-cover block">
+                    </div>
+                    <div id="kakao-share-preview-text" class="w-full py-2.5 px-3 text-xs font-bold text-gray-800 leading-relaxed break-keep text-center"></div>
+                </div>
             </div>
             <p class="text-[11.5px] text-gray-600 font-medium">가족 카톡방에 공유할까요?</p>
             <div class="grid grid-cols-2 gap-2 pt-0.5">
@@ -1692,13 +1697,20 @@
                 ? `${baseDir}/index2.html?kakao_post=${encodeURIComponent(postId)}&fk=${encodeURIComponent(fkToken)}`
                 : `${baseDir}/index.html`;
 
+            const shareLogoUrl = `${baseDir}/ksharelogo.png`;
             pendingKakaoShareData = {
                 author: author,
                 postIndex: countNum,
                 messageTitle: messageTitle,
                 postId: postId || "",
-                deepLinkUrl: deepLinkUrl
+                deepLinkUrl: deepLinkUrl,
+                imageUrl: shareLogoUrl
             };
+            const previewImgEl = document.getElementById('kakao-share-preview-img');
+            if (previewImgEl) {
+                if (previewImgEl.parentElement) previewImgEl.parentElement.style.display = '';
+                previewImgEl.src = 'ksharelogo.png';
+            }
 
             pendingKakaoShareText = `${messageTitle}\n\n👉 보러가기 :\n${deepLinkUrl}`;
 
@@ -1741,14 +1753,28 @@
             // 1순위: 카카오톡 공식 SDK 초경량 Text 템플릿 ('00님이 00번째 글을 올렸습니다.' + '보러가기' 버튼)
             if (window.Kakao && window.Kakao.isInitialized && window.Kakao.isInitialized()) {
                 try {
+                    const targetImageUrl = data.imageUrl || `${baseDir}/ksharelogo.png`;
                     window.Kakao.Share.sendDefault({
-                        objectType: 'text',
-                        text: data.messageTitle,
-                        link: {
-                            mobileWebUrl: targetDeepLink,
-                            webUrl: targetDeepLink
+                        objectType: 'feed',
+                        content: {
+                            title: data.messageTitle,
+                            imageUrl: targetImageUrl,
+                            imageWidth: 800,
+                            imageHeight: 400,
+                            link: {
+                                mobileWebUrl: targetDeepLink,
+                                webUrl: targetDeepLink
+                            }
                         },
-                        buttonTitle: '보러가기'
+                        buttons: [
+                            {
+                                title: '보러가기',
+                                link: {
+                                    mobileWebUrl: targetDeepLink,
+                                    webUrl: targetDeepLink
+                                }
+                            }
+                        ]
                     });
                     showNotification("카카오톡 가족 단톡방을 선택해 주세요.");
                     return;

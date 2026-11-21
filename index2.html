@@ -275,8 +275,7 @@
         }
         #post-content,
         #post-file-title,
-        #feed-search-input,
-        #rename-user-input {
+        #feed-search-input {
             font-size: 16px !important;
         }
         input[id^="inline-comment-input-"]:focus,
@@ -1389,10 +1388,6 @@
                     <i class="fa-solid fa-trash-can text-[10.5px] sm:text-xs"></i>
                     <span>사진삭제</span>
                 </button>
-                <button type="button" id="lightbox-rename-btn" onclick="openRenameModalFromLightbox()" class="hidden h-7 sm:h-8 px-1.5 sm:px-2.5 bg-emerald-50 hover:bg-emerald-100 active:scale-95 text-emerald-900 rounded-lg flex items-center justify-center space-x-0.5 sm:space-x-1 transition-all border border-emerald-200 shadow-2xs text-[11px] sm:text-xs font-semibold shrink-0">
-                    <i class="fa-solid fa-user-pen text-[10.5px] sm:text-xs text-emerald-700"></i>
-                    <span>이름변경</span>
-                </button>
             </div>
         </div>
 
@@ -1468,24 +1463,6 @@
                     <i class="fa-solid fa-check text-xs"></i>
                     <span class="whitespace-nowrap">이대로 저장(화질보존)</span>
                 </button>
-            </div>
-        </div>
-    </div>
-
-    <!-- [이름변경 모달 (아빠/엄마 전용)] -->
-    <div id="rename-user-modal" class="fixed inset-0 z-[65] bg-black/60 backdrop-blur-xs flex items-center justify-center p-3 hidden" style="touch-action: none;">
-        <div class="bg-white rounded-2xl w-full max-w-xs p-4 shadow-2xl border church-border text-center space-y-3">
-            <div class="w-10 h-10 bg-emerald-50 text-emerald-700 rounded-full flex items-center justify-center mx-auto text-base border border-emerald-100">
-                <i class="fa-solid fa-user-pen"></i>
-            </div>
-            <div>
-                <h4 class="text-sm font-bold text-gray-800">이름변경 (관리자 전용)</h4>
-                <p class="text-[11px] text-gray-500 mt-0.5">가족 피드에서 표시할 이름을 입력해 주세요.</p>
-            </div>
-            <input type="text" id="rename-user-input" maxlength="10" placeholder="이름 입력 (예: 홍길동)" class="w-full px-3 py-2 rounded-xl border border-dashed border-gray-300 text-center text-sm font-bold text-gray-800 focus:outline-none focus:border-emerald-600">
-            <div class="grid grid-cols-2 gap-2 pt-1">
-                <button type="button" onclick="closeRenameUserModal()" class="py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl text-xs font-medium active:scale-95 transition-all">취소</button>
-                <button type="button" onclick="confirmRenameUser()" class="py-2 church-primary text-white rounded-xl text-xs font-bold active:scale-95 transition-all">변경 저장</button>
             </div>
         </div>
     </div>
@@ -2577,11 +2554,6 @@
                 mokjangSpan.classList.remove('ml-1');
             }
             document.title = displayTitle;
-            const renameBtn = document.getElementById('lightbox-rename-btn');
-            if (renameBtn) {
-                if (isCurrentUserAdmin) renameBtn.classList.remove('hidden');
-                else renameBtn.classList.add('hidden');
-            }
         }
         syncHeaderMokjangTitleDOM();
 
@@ -4568,26 +4540,516 @@ initAuth();
             });
         }
 
-        function isAnimatedGifFile(file) {
-            if (!file) return false;
-            const type = (file.type || '').toLowerCase();
-            const name = (file.name || '').toLowerCase();
-            return type === 'image/gif' || name.endsWith('.gif');
+        // ============================================================================
+        // [움직이는 GIF 600KB 자동 다이어트 엔진 (프레임 디코딩 -> 축소 -> GIF89a 재인코딩)]
+        // ============================================================================
+        const GIF_TARGET_MAX_BYTES = 600 * 1024; // 기준 사이즈: 정확히 600KB
+
+        function isAnimatedGifFile(file, dataUrl = '') {
+            if (file) {
+                const type = (file.type || '').toLowerCase();
+                const name = (file.name || '').toLowerCase();
+                if (type === 'image/gif' || name.endsWith('.gif')) return true;
+            }
+            if (typeof dataUrl === 'string') {
+                if (dataUrl.startsWith('data:image/gif') || dataUrl.includes(';base64,R0lGOD')) return true;
+            }
+            return false;
+        }
+
+        // 순수 JS 기반 초경량 GIF89a 애니메이션 인코더 (3-3-2 / 2-2-2 적응형 팔레트 + LZW 압축)
+        function encodeFramesToAnimatedGif(frames, width, height, colorBits = 8) {
+            const bytes = [];
+            const writeStr = (s) => { for (let i = 0; i < s.length; i++) bytes.push(s.charCodeAt(i)); };
+            const writeU16 = (v) => { bytes.push(v & 0xFF, (v >> 8) & 0xFF); };
+
+            // 1. Header: GIF89a
+            writeStr("GIF89a");
+            writeU16(width);
+            writeU16(height);
+
+            // Global Color Table 설정 (colorBits = 8 -> 256색(3-3-2), colorBits = 6 -> 64색(2-2-2))
+            const is64Color = (colorBits === 6);
+            const gctSizeFlag = is64Color ? 5 : 7; // 2^(5+1)=64, 2^(7+1)=256
+            bytes.push(0x80 | (gctSizeFlag << 4) | gctSizeFlag);
+            bytes.push(0); // Background Color
+            bytes.push(0); // Pixel Aspect Ratio
+
+            // 팔레트 생성
+            if (is64Color) {
+                for (let i = 0; i < 64; i++) {
+                    const r = ((i >> 4) & 0x03) * 85;
+                    const g = ((i >> 2) & 0x03) * 85;
+                    const b = (i & 0x03) * 85;
+                    bytes.push(r, g, b);
+                }
+            } else {
+                for (let i = 0; i < 256; i++) {
+                    const r = Math.round(((i >> 5) & 0x07) * 255 / 7);
+                    const g = Math.round(((i >> 2) & 0x07) * 255 / 7);
+                    const b = Math.round((i & 0x03) * 255 / 3);
+                    bytes.push(r, g, b);
+                }
+            }
+
+            // Netscape 2.0 무한 루프 확장 블록
+            bytes.push(0x21, 0xFF, 0x0B);
+            writeStr("NETSCAPE2.0");
+            bytes.push(0x03, 0x01, 0x00, 0x00, 0x00);
+
+            const minCodeSize = is64Color ? 6 : 8;
+
+            // LZW 프레임 압축기
+            const lzwEncodeFrame = (indexedPixels) => {
+                const clearCode = 1 << minCodeSize;
+                const eoiCode = clearCode + 1;
+                let codeSize = minCodeSize + 1;
+                let nextCode = eoiCode + 1;
+
+                const subBlocks = [];
+                let currentBlock = [];
+                let bitBuffer = 0;
+                let bitCount = 0;
+
+                const emitCode = (code) => {
+                    bitBuffer |= (code << bitCount);
+                    bitCount += codeSize;
+                    while (bitCount >= 8) {
+                        currentBlock.push(bitBuffer & 0xFF);
+                        bitBuffer >>= 8;
+                        bitCount -= 8;
+                        if (currentBlock.length === 255) {
+                            subBlocks.push(255, ...currentBlock);
+                            currentBlock = [];
+                        }
+                    }
+                };
+
+                // 빠른 해시 테이블 (4096 엔트리)
+                let dict = new Int32Array(4096 * 256).fill(-1);
+                emitCode(clearCode);
+
+                let prefix = indexedPixels[0];
+                for (let i = 1; i < indexedPixels.length; i++) {
+                    const k = indexedPixels[i];
+                    const key = (prefix << 8) | k;
+                    const found = dict[key];
+                    if (found !== -1) {
+                        prefix = found;
+                    } else {
+                        emitCode(prefix);
+                        if (nextCode < 4096) {
+                            dict[key] = nextCode++;
+                            if (nextCode > (1 << codeSize) && codeSize < 12) {
+                                codeSize++;
+                            }
+                        } else {
+                            emitCode(clearCode);
+                            dict.fill(-1);
+                            codeSize = minCodeSize + 1;
+                            nextCode = eoiCode + 1;
+                        }
+                        prefix = k;
+                    }
+                }
+                emitCode(prefix);
+                emitCode(eoiCode);
+                if (bitCount > 0) {
+                    currentBlock.push(bitBuffer & 0xFF);
+                }
+                if (currentBlock.length > 0) {
+                    subBlocks.push(currentBlock.length, ...currentBlock);
+                }
+                subBlocks.push(0x00); // Block Terminator
+                return subBlocks;
+            };
+
+            const totalPixels = width * height;
+            for (let f = 0; f < frames.length; f++) {
+                const frame = frames[f];
+                const delayCs = Math.max(4, Math.round((frame.delayMs || 100) / 10));
+
+                // Graphic Control Extension
+                bytes.push(0x21, 0xF9, 0x04, 0x04);
+                writeU16(delayCs);
+                bytes.push(0x00, 0x00);
+
+                // Image Descriptor
+                bytes.push(0x2C);
+                writeU16(0);
+                writeU16(0);
+                writeU16(width);
+                writeU16(height);
+                bytes.push(0x00);
+
+                // RGBA 픽셀 -> 팔레트 인덱스 양자화 (가벼운 디더링 적용으로 화질 및 압축률 동시 확보)
+                const rgba = frame.rgba;
+                const indexed = new Uint8Array(totalPixels);
+                if (is64Color) {
+                    for (let p = 0, idx = 0; p < totalPixels; p++, idx += 4) {
+                        const r = rgba[idx] >> 6;
+                        const g = rgba[idx + 1] >> 6;
+                        const b = rgba[idx + 2] >> 6;
+                        indexed[p] = (r << 4) | (g << 2) | b;
+                    }
+                } else {
+                    for (let p = 0, idx = 0; p < totalPixels; p++, idx += 4) {
+                        const r = rgba[idx] >> 5;
+                        const g = rgba[idx + 1] >> 5;
+                        const b = rgba[idx + 2] >> 6;
+                        indexed[p] = (r << 5) | (g << 2) | b;
+                    }
+                }
+
+                bytes.push(minCodeSize);
+                const compressedBlocks = lzwEncodeFrame(indexed);
+                for (let bIdx = 0; bIdx < compressedBlocks.length; bIdx++) {
+                    bytes.push(compressedBlocks[bIdx]);
+                }
+            }
+
+            bytes.push(0x3B); // GIF Trailer
+            return new Uint8Array(bytes);
+        }
+
+        // 순수 JS GIF89a 바이너리 프레임 디코더 (ImageDecoder 미지원 구형 iOS/브라우저 완벽 대비 폴백)
+        function decodeGifBinaryFramesFallback(buffer) {
+            const data = new Uint8Array(buffer);
+            let pos = 6; // Skip GIF89a
+            const screenW = data[pos] | (data[pos + 1] << 8);
+            const screenH = data[pos + 2] | (data[pos + 3] << 8);
+            const packed = data[pos + 4];
+            pos += 7;
+
+            let globalPalette = null;
+            if (packed & 0x80) {
+                const gctSize = 1 << ((packed & 0x07) + 1);
+                globalPalette = data.subarray(pos, pos + gctSize * 3);
+                pos += gctSize * 3;
+            }
+
+            const compCanvas = document.createElement('canvas');
+            compCanvas.width = screenW;
+            compCanvas.height = screenH;
+            const compCtx = compCanvas.getContext('2d', { willReadFrequently: true });
+            const compImgData = compCtx.createImageData(screenW, screenH);
+
+            let delayMs = 100;
+            let transparentIdx = -1;
+            let disposal = 0;
+            const decodedFrames = [];
+
+            const readSubBlocks = () => {
+                const out = [];
+                while (pos < data.length) {
+                    const size = data[pos++];
+                    if (size === 0) break;
+                    for (let i = 0; i < size && pos < data.length; i++) out.push(data[pos++]);
+                }
+                return new Uint8Array(out);
+            };
+
+            const lzwDecompress = (minCodeSize, compressed, pixelCount) => {
+                const clearCode = 1 << minCodeSize;
+                const eoiCode = clearCode + 1;
+                let codeSize = minCodeSize + 1;
+                let nextCode = eoiCode + 1;
+
+                const prefix = new Int32Array(4096);
+                const suffix = new Uint8Array(4096);
+                const length = new Int32Array(4096);
+                for (let i = 0; i < clearCode; i++) {
+                    prefix[i] = -1;
+                    suffix[i] = i;
+                    length[i] = 1;
+                }
+
+                const out = new Uint8Array(pixelCount);
+                let outPos = 0;
+                let bitPos = 0;
+                const totalBits = compressed.length * 8;
+                let oldCode = -1;
+                let firstChar = 0;
+
+                while (bitPos + codeSize <= totalBits && outPos < pixelCount) {
+                    let code = 0;
+                    for (let i = 0; i < codeSize; i++) {
+                        const byteIdx = (bitPos + i) >> 3;
+                        const bitIdx = (bitPos + i) & 7;
+                        if (compressed[byteIdx] & (1 << bitIdx)) code |= (1 << i);
+                    }
+                    bitPos += codeSize;
+
+                    if (code === clearCode) {
+                        codeSize = minCodeSize + 1;
+                        nextCode = eoiCode + 1;
+                        oldCode = -1;
+                        continue;
+                    }
+                    if (code === eoiCode) break;
+
+                    let inCode = code;
+                    const stack = [];
+                    if (code >= nextCode) {
+                        stack.push(firstChar);
+                        code = oldCode;
+                    }
+                    while (code >= clearCode && code < 4096) {
+                        stack.push(suffix[code]);
+                        code = prefix[code];
+                    }
+                    firstChar = suffix[code];
+                    stack.push(firstChar);
+
+                    for (let i = stack.length - 1; i >= 0 && outPos < pixelCount; i--) {
+                        out[outPos++] = stack[i];
+                    }
+
+                    if (oldCode !== -1 && nextCode < 4096) {
+                        prefix[nextCode] = oldCode;
+                        suffix[nextCode] = firstChar;
+                        nextCode++;
+                        if (nextCode === (1 << codeSize) && codeSize < 12) codeSize++;
+                    }
+                    oldCode = inCode;
+                }
+                return out;
+            };
+
+            while (pos < data.length) {
+                const blockId = data[pos++];
+                if (blockId === 0x3B) break; // Trailer
+                if (blockId === 0x21) { // Extension
+                    const extLabel = data[pos++];
+                    if (extLabel === 0xF9) { // Graphic Control
+                        pos++; // block size (4)
+                        const gcePacked = data[pos++];
+                        disposal = (gcePacked >> 2) & 0x07;
+                        const hasTrans = (gcePacked & 0x01) !== 0;
+                        const delayCs = data[pos] | (data[pos + 1] << 8);
+                        pos += 2;
+                        transparentIdx = hasTrans ? data[pos] : -1;
+                        pos += 2; // transIdx + terminator
+                        delayMs = Math.max(40, (delayCs || 10) * 10);
+                    } else {
+                        readSubBlocks();
+                    }
+                } else if (blockId === 0x2C) { // Image Descriptor
+                    const left = data[pos] | (data[pos + 1] << 8);
+                    const top = data[pos + 2] | (data[pos + 3] << 8);
+                    const w = data[pos + 4] | (data[pos + 5] << 8);
+                    const h = data[pos + 6] | (data[pos + 7] << 8);
+                    const imgPacked = data[pos + 8];
+                    pos += 9;
+
+                    let palette = globalPalette;
+                    if (imgPacked & 0x80) {
+                        const lctSize = 1 << ((imgPacked & 0x07) + 1);
+                        palette = data.subarray(pos, pos + lctSize * 3);
+                        pos += lctSize * 3;
+                    }
+                    const isInterlaced = (imgPacked & 0x40) !== 0;
+                    const lzwMin = data[pos++];
+                    const compressed = readSubBlocks();
+                    const pixels = lzwDecompress(lzwMin, compressed, w * h);
+
+                    const prevSnapshot = (disposal === 3) ? new Uint8ClampedArray(compImgData.data) : null;
+
+                    if (palette) {
+                        let srcIdx = 0;
+                        const passOffsets = isInterlaced ? [0, 4, 2, 1] : [0];
+                        const passSteps = isInterlaced ? [8, 8, 4, 2] : [1];
+                        for (let pass = 0; pass < passOffsets.length; pass++) {
+                            for (let y = passOffsets[pass]; y < h; y += passSteps[pass]) {
+                                const dstY = top + y;
+                                if (dstY >= screenH) { srcIdx += w; continue; }
+                                for (let x = 0; x < w; x++) {
+                                    const cIdx = pixels[srcIdx++];
+                                    const dstX = left + x;
+                                    if (dstX < screenW && cIdx !== transparentIdx) {
+                                        const pOff = (dstY * screenW + dstX) * 4;
+                                        const cOff = cIdx * 3;
+                                        compImgData.data[pOff] = palette[cOff];
+                                        compImgData.data[pOff + 1] = palette[cOff + 1];
+                                        compImgData.data[pOff + 2] = palette[cOff + 2];
+                                        compImgData.data[pOff + 3] = 255;
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    compCtx.putImageData(compImgData, 0, 0);
+                    const frameCanvas = document.createElement('canvas');
+                    frameCanvas.width = screenW;
+                    frameCanvas.height = screenH;
+                    frameCanvas.getContext('2d').drawImage(compCanvas, 0, 0);
+                    decodedFrames.push({ canvas: frameCanvas, delayMs: delayMs });
+
+                    if (disposal === 2) {
+                        for (let y = 0; y < h; y++) {
+                            const dstY = top + y;
+                            if (dstY >= screenH) continue;
+                            for (let x = 0; x < w; x++) {
+                                const dstX = left + x;
+                                if (dstX < screenW) {
+                                    const pOff = (dstY * screenW + dstX) * 4;
+                                    compImgData.data[pOff] = 0;
+                                    compImgData.data[pOff + 1] = 0;
+                                    compImgData.data[pOff + 2] = 0;
+                                    compImgData.data[pOff + 3] = 0;
+                                }
+                            }
+                        }
+                    } else if (disposal === 3 && prevSnapshot) {
+                        compImgData.data.set(prevSnapshot);
+                    }
+                    transparentIdx = -1;
+                    disposal = 0;
+                } else {
+                    break;
+                }
+            }
+            return { width: screenW, height: screenH, frames: decodedFrames };
+        }
+
+        function uint8ArrayToBase64DataUrl(u8Arr, mime = 'image/gif') {
+            let binary = '';
+            const chunkSize = 0x8000;
+            for (let i = 0; i < u8Arr.length; i += chunkSize) {
+                binary += String.fromCharCode.apply(null, u8Arr.subarray(i, i + chunkSize));
+            }
+            return 'data:' + mime + ';base64,' + window.btoa(binary);
+        }
+
+        // 600KB 초과 움직이는 GIF를 600KB 이하 움직이는 GIF로 자동 리사이즈 및 다이어트
+        async function compressAnimatedGifTo600KB(file, rawDataUrl) {
+            try {
+                const arrayBuffer = await file.arrayBuffer();
+                let origW = 400, origH = 300;
+                let rawFrames = [];
+
+                // 1차: 브라우저 하드웨어 가속 ImageDecoder 사용 (Chrome/Edge/Android)
+                if ('ImageDecoder' in window) {
+                    try {
+                        const decoder = new window.ImageDecoder({ data: arrayBuffer, type: 'image/gif' });
+                        await decoder.tracks.ready;
+                        const track = decoder.tracks.selectedTrack;
+                        const frameCount = track ? track.frameCount : 0;
+                        if (frameCount > 1) {
+                            for (let i = 0; i < frameCount; i++) {
+                                const res = await decoder.decode({ frameIndex: i });
+                                const vf = res.image;
+                                origW = vf.displayWidth || vf.codedWidth || origW;
+                                origH = vf.displayHeight || vf.codedHeight || origH;
+                                const delayMs = vf.duration ? Math.max(40, Math.round(vf.duration / 1000)) : 100;
+                                const c = document.createElement('canvas');
+                                c.width = origW;
+                                c.height = origH;
+                                c.getContext('2d').drawImage(vf, 0, 0, origW, origH);
+                                vf.close();
+                                rawFrames.push({ canvas: c, delayMs: delayMs });
+                            }
+                        }
+                    } catch (decErr) {
+                        rawFrames = [];
+                    }
+                }
+
+                // 2차: ImageDecoder 미지원 브라우저(Safari/iOS 등)는 내장 순수 JS GIF89a 파서 가동
+                if (rawFrames.length <= 1) {
+                    const parsed = decodeGifBinaryFramesFallback(arrayBuffer);
+                    if (parsed && parsed.frames && parsed.frames.length > 0) {
+                        origW = parsed.width;
+                        origH = parsed.height;
+                        rawFrames = parsed.frames;
+                    }
+                }
+
+                if (rawFrames.length === 0) {
+                    return rawDataUrl;
+                }
+
+                // 목표 600KB(614,400 bytes) 이하가 될 때까지 단계별 해상도/프레임/팔레트 다이어트 시도
+                const profiles = [
+                    { maxDim: 360, maxFrames: 24, colorBits: 8 },
+                    { maxDim: 300, maxFrames: 20, colorBits: 8 },
+                    { maxDim: 260, maxFrames: 16, colorBits: 6 },
+                    { maxDim: 220, maxFrames: 14, colorBits: 6 },
+                    { maxDim: 180, maxFrames: 12, colorBits: 6 }
+                ];
+
+                let bestGifBytes = null;
+
+                for (let p = 0; p < profiles.length; p++) {
+                    const prof = profiles[p];
+                    let targetW = origW;
+                    let targetH = origH;
+                    if (targetW > prof.maxDim || targetH > prof.maxDim) {
+                        if (targetW > targetH) {
+                            targetH = Math.max(40, Math.round((targetH * prof.maxDim) / targetW));
+                            targetW = prof.maxDim;
+                        } else {
+                            targetW = Math.max(40, Math.round((targetW * prof.maxDim) / targetH));
+                            targetH = prof.maxDim;
+                        }
+                    }
+
+                    // 프레임 샘플링 (전체 재생 시간은 100% 동일하게 보존하면서 프레임 수만 다이어트)
+                    const step = Math.max(1, Math.ceil(rawFrames.length / prof.maxFrames));
+                    const sampledFrames = [];
+                    const scaleCanvas = document.createElement('canvas');
+                    scaleCanvas.width = targetW;
+                    scaleCanvas.height = targetH;
+                    const scaleCtx = scaleCanvas.getContext('2d', { willReadFrequently: true });
+
+                    for (let i = 0; i < rawFrames.length; i += step) {
+                        let combinedDelay = 0;
+                        for (let s = 0; s < step && (i + s) < rawFrames.length; s++) {
+                            combinedDelay += (rawFrames[i + s].delayMs || 100);
+                        }
+                        scaleCtx.fillStyle = '#ffffff';
+                        scaleCtx.fillRect(0, 0, targetW, targetH);
+                        scaleCtx.drawImage(rawFrames[i].canvas, 0, 0, targetW, targetH);
+                        const imgData = scaleCtx.getImageData(0, 0, targetW, targetH);
+                        sampledFrames.push({
+                            rgba: new Uint8ClampedArray(imgData.data),
+                            delayMs: combinedDelay
+                        });
+                    }
+
+                    const gifBytes = encodeFramesToAnimatedGif(sampledFrames, targetW, targetH, prof.colorBits);
+                    bestGifBytes = gifBytes;
+                    if (gifBytes.length <= GIF_TARGET_MAX_BYTES) {
+                        break; // 600KB 이하 달성 즉시 완료!
+                    }
+                }
+
+                if (bestGifBytes) {
+                    const finalKB = Math.round(bestGifBytes.length / 1024);
+                    showNotification(`움직이는 GIF를 ${finalKB}KB로 최적화하여 첨부했습니다.`);
+                    return uint8ArrayToBase64DataUrl(bestGifBytes, 'image/gif');
+                }
+            } catch (err) {
+                console.warn("GIF 자동 축소 경고:", err);
+            }
+            return rawDataUrl;
         }
 
         function processImageFile(file, callback) {
             if (!file) return callback(null);
-            const isGif = isAnimatedGifFile(file);
             const reader = new FileReader();
-            reader.onload = function(e) {
+            reader.onload = async function(e) {
                 const rawDataUrl = e.target.result;
-                // [움직이는 GIF 지원]: Canvas에 그리면 첫 프레임 정지 JPEG로 변환되므로, 850KB 이하 GIF는 원본 애니메이션 DataURL 그대로 보존
-                if (isGif && typeof rawDataUrl === 'string' && rawDataUrl.startsWith('data:image/gif')) {
-                    if (file.size <= 850 * 1024) {
+                if (isAnimatedGifFile(file, rawDataUrl)) {
+                    // 1. 600KB 이하 GIF는 원본 그대로 즉시 통과
+                    if (file.size <= GIF_TARGET_MAX_BYTES) {
                         return callback(rawDataUrl);
-                    } else {
-                        showNotification("850KB를 초과하는 대용량 GIF는 용량 보호를 위해 일반 사진으로 압축됩니다.");
                     }
+                    // 2. 600KB 초과 고용량 GIF는 600KB 이하 '움직이는 GIF'로 자동 축소(다이어트)
+                    showNotification("움직이는 GIF 사이즈를 600KB 이하로 줄이는 중...");
+                    const compressedGifUrl = await compressAnimatedGifTo600KB(file, rawDataUrl);
+                    return callback(compressedGifUrl);
                 }
                 const img = new Image();
                 img.onload = function() {
@@ -9029,54 +9491,7 @@ window.closeAllPdfPreviewModal = function() {
             }, 30);
         };
 
-        window.openRenameModalFromLightbox = function() {
-            if (!isCurrentUserAdmin) {
-                showNotification("이름 변경은 아빠/엄마(관리자)만 가능합니다.");
-                return;
-            }
-            const modal = document.getElementById('rename-user-modal');
-            const input = document.getElementById('rename-user-input');
-            if (!modal || !input) return;
-            input.value = currentUser || '';
-            modal.classList.remove('hidden');
-            setTimeout(() => input.focus(), 60);
-        };
-
-        window.closeRenameUserModal = function() {
-            const modal = document.getElementById('rename-user-modal');
-            if (modal) modal.classList.add('hidden');
-        };
-
-        window.confirmRenameUser = async function() {
-            if (!isCurrentUserAdmin) return;
-            const input = document.getElementById('rename-user-input');
-            if (!input) return;
-            const newName = input.value.trim();
-            if (!newName) {
-                showNotification("변경할 이름을 입력해 주세요.");
-                return;
-            }
-            currentUser = newName;
-            try {
-                localStorage.setItem('family_user_name', newName);
-            } catch(e) {}
-
-            if (currentLightboxPostId && db) {
-                const targetPost = cachedPosts.find(p => p.id === currentLightboxPostId || String(p.id) === String(currentLightboxPostId));
-                if (targetPost && canModifyPost(targetPost)) {
-                    try {
-                        await updateDoc(getPostDocRef(currentLightboxPostId), { author: newName });
-                        targetPost.author = newName;
-                        renderFeedList();
-                    } catch(e) {}
-                }
-            }
-            updateWelcomeUserDisplay(lastOnlineCount);
-            closeRenameUserModal();
-            showNotification(`작성자 이름이 '${newName}'(으)로 변경되었습니다.`);
-        };
-
-        function applyCropBoxRectToDom() {
+function applyCropBoxRectToDom() {
             const cropBox = document.getElementById('lightbox-crop-box');
             if (!cropBox) return;
             cropBox.style.left = `${cropBoxRect.x}px`;

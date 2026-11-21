@@ -384,8 +384,21 @@
             overscroll-behavior: contain;
         }
 
+        #lightbox-modal {
+            width: 100vw;
+            max-width: 100vw;
+            height: 100dvh;
+            max-height: 100dvh;
+            box-sizing: border-box;
+            overflow: hidden;
+            padding-top: max(env(safe-area-inset-top, 0px), 8px);
+            padding-bottom: max(env(safe-area-inset-bottom, 0px), 8px);
+            padding-left: max(env(safe-area-inset-left, 0px), 8px);
+            padding-right: max(env(safe-area-inset-right, 0px), 8px);
+        }
         #lightbox-track {
             display: flex;
+            align-items: center;
             height: 100%;
             width: 100%;
             will-change: transform;
@@ -393,17 +406,26 @@
         .lightbox-slide {
             flex: 0 0 100%;
             width: 100%;
+            min-width: 100%;
+            max-width: 100%;
             height: 100%;
             display: flex;
             align-items: center;
             justify-content: center;
             user-select: none;
+            box-sizing: border-box;
+            overflow: hidden;
+            padding: 8px;
         }
         .lightbox-img-el {
-            max-width: 90vw;
-            max-height: 75vh;
+            max-width: calc(100% - 16px);
+            max-height: calc(100% - 16px);
+            width: auto;
+            height: auto;
+            margin: auto;
+            display: block;
             object-fit: contain;
-            border: 3.5px solid #E5E7EB;
+            border: 2px solid #E5E7EB;
             box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.15);
             border-radius: 8px;
             pointer-events: auto;
@@ -1348,9 +1370,9 @@
     </div>
 
     <!-- [라이트박스 모달] -->
-    <div id="lightbox-modal" class="fixed inset-0 z-50 bg-white flex flex-col items-center justify-between hidden p-2 select-none">
-        <div class="w-full flex items-center justify-center px-1 py-1.5 z-50 bg-white/95 border-b border-gray-200 shadow-xs rounded-xl overflow-x-auto scrollbar-none">
-            <div class="flex items-center justify-center space-x-1 sm:space-x-1.5 flex-nowrap whitespace-nowrap max-w-full">
+    <div id="lightbox-modal" class="fixed inset-0 z-50 bg-white flex flex-col items-center justify-between hidden p-2 select-none overflow-hidden">
+        <div class="w-full max-w-md mx-auto shrink-0 flex items-center justify-center px-1 py-1.5 z-50 bg-white/95 border-b border-gray-200 shadow-xs rounded-xl overflow-hidden">
+            <div class="w-full flex items-center justify-center gap-1 flex-wrap sm:flex-nowrap whitespace-nowrap max-w-full px-0.5">
                 <button type="button" id="lightbox-autofix-btn" onclick="toggleLightboxAdjustPanel()" class="h-7 sm:h-8 px-1.5 sm:px-2.5 bg-gray-100 hover:bg-gray-200 active:scale-95 text-gray-700 rounded-lg flex items-center justify-center space-x-0.5 sm:space-x-1 transition-all border border-gray-200 shadow-2xs text-[11px] sm:text-xs font-semibold shrink-0">
                     <i class="fa-solid fa-wand-magic-sparkles text-[10.5px] sm:text-xs text-emerald-700"></i>
                     <span>마법봉</span>
@@ -1374,7 +1396,7 @@
             </div>
         </div>
 
-        <div id="lightbox-adjust-panel" class="hidden w-full bg-white/95 border-b border-gray-200 px-3 py-2 flex flex-col space-y-1.5 shadow-xs text-xs z-40 rounded-b-xl">
+        <div id="lightbox-adjust-panel" class="hidden w-full max-w-md mx-auto shrink-0 bg-white/95 border-b border-gray-200 px-3 py-2 flex flex-col space-y-1.5 shadow-xs text-xs z-40 rounded-b-xl">
             <div class="flex items-center justify-center pb-0.5 space-x-1.5">
                 <button type="button" onclick="autoFixBrightnessContrast()" class="px-2.5 py-0.5 bg-emerald-50 hover:bg-emerald-100 active:scale-95 rounded text-[11px] text-emerald-800 font-semibold border border-emerald-200 shadow-2xs transition-all flex items-center space-x-1">
                     <i class="fa-solid fa-wand-magic-sparkles text-[10px]"></i>
@@ -1394,14 +1416,14 @@
             </div>
         </div>
 
-        <div id="lightbox-viewport" class="overflow-hidden w-full flex-1 flex items-center justify-center relative touch-none my-1 bg-white select-none">
+        <div id="lightbox-viewport" class="overflow-hidden w-full max-w-md mx-auto flex-1 min-h-0 flex items-center justify-center relative touch-none my-1 bg-white select-none rounded-xl">
             <button type="button" id="lightbox-prev-btn" onclick="slideLightboxPrev(event)" class="absolute left-2 z-40 w-9 h-9 rounded-full bg-white/80 hover:bg-white text-gray-700 shadow-md border border-gray-200 flex items-center justify-center transition-all opacity-80 hover:opacity-100 hidden">
                 <i class="fa-solid fa-chevron-left text-sm"></i>
             </button>
 
             <div id="lightbox-crop-box" 
                  class="absolute z-30 cursor-move"
-                 style="left: 50%; top: 50%; width: 280px; height: 280px; transform: translate(-50%, -50%); border: 3.5px dashed #FACC15; box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.52); touch-action: none;">
+                 style="left: 50%; top: 50%; width: 280px; height: 280px; transform: translate(-50%, -50%); border: 2px dashed #FACC15; box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.50); touch-action: none;">
                 <div class="absolute inset-0 grid grid-cols-3 grid-rows-3 pointer-events-none opacity-30">
                     <div class="border-r border-b border-yellow-200/70"></div>
                     <div class="border-r border-b border-yellow-200/70"></div>
@@ -1437,7 +1459,7 @@
             </button>
         </div>
 
-        <div class="w-full py-2.5 px-3 flex items-center justify-center z-50 bg-white/95 border-t border-gray-200 shadow-xs rounded-xl select-none flex-nowrap whitespace-nowrap">
+        <div class="w-full max-w-md mx-auto shrink-0 py-2 px-2.5 flex items-center justify-center z-50 bg-white/95 border-t border-gray-200 shadow-xs rounded-xl select-none flex-nowrap whitespace-nowrap">
             <div class="flex items-center justify-center space-x-3 shrink-0 flex-nowrap whitespace-nowrap">
                 <button type="button" onclick="closeLightbox(false)" class="h-9 px-4 bg-gray-100 hover:bg-gray-200 text-gray-700 border border-gray-200 rounded-xl text-xs font-semibold active:scale-95 transition-all whitespace-nowrap">
                     취소후 닫기
@@ -1551,8 +1573,6 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, initializeFirestore, persistentLocalCache, persistentSingleTabManager, memoryLocalCache, collection, addDoc, onSnapshot, updateDoc, deleteDoc, doc, arrayUnion, setDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-        import { getStorage, ref as storageRef, uploadString, getDownloadURL } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-storage.js";
-
         // [작업 4-가, 나, 다, 라: 로그인 세션 기반 사용자 이름 및 목자/부목자/일반목원 권한 체계 초기화]
         
         // =========================================================================
@@ -2720,7 +2740,7 @@
             appId: "1:371365661563:web:157650158d88c80c468bde"
         };
 
-        let app, auth, db, storage;
+        let app, auth, db;
         try {
             app = initializeApp(firebaseConfig);
             auth = getAuth(app);
@@ -2739,8 +2759,7 @@
                     db = getFirestore(app);
                 }
             }
-            storage = getStorage(app);
-        } catch (e) {
+} catch (e) {
             console.error("Firebase 초기화 에러:", e);
         }
 
@@ -3250,13 +3269,13 @@ let specialFontsLoaded = false;
             });
         };
 
-        window.handleCommentRowTap = function(postId, commentIdx, allowMod, event, isModal = false) {
+        window.handleCommentRowTap = function(postId, commentIdx, allowMod, event) {
             if (event) event.stopPropagation();
             if (!allowMod) {
                 hideAllCommentActionButtons();
                 return;
             }
-            const targetId = isModal ? `comment-actions-modal-${postId}-${commentIdx}` : `comment-actions-feed-${postId}-${commentIdx}`;
+            const targetId = `comment-actions-feed-${postId}-${commentIdx}`;
             const actionEl = document.getElementById(targetId);
             if (!actionEl) return;
             const isHidden = actionEl.classList.contains('hidden');
@@ -3537,7 +3556,7 @@ let specialFontsLoaded = false;
             const feed = document.getElementById('feed-container');
             if (!feed) return;
 
-            const targetEls = feed.querySelectorAll('.post-content-body, .photo-caption-text, article h4, #comments-modal-list p, [id^="post-comments-box-"] span');
+            const targetEls = feed.querySelectorAll('.post-content-body, .photo-caption-text, article h4, [id^="post-comments-box-"] span');
             targetEls.forEach(el => {
                 if (el.closest('.no-export') || el.closest('button') || el.closest('input') || el.closest('textarea')) return;
                 highlightTextNodesInElement(el, regex);
@@ -3934,11 +3953,7 @@ let specialFontsLoaded = false;
                     totalBytes += Math.round(f.fileSize * 1.34);
                 }
             });
-
-            // 기존 24시간 고정 캐시 찌꺼기 제거 (항상 실시간 재계산)
-            try { localStorage.removeItem("firebase_daily_quota_cache"); } catch (e) {}
-
-            // 3. 실제 % 산출 (데이터가 하나도 없으면 0%, 데이터가 존재하면 실제 비율 계산 후 정수 % 표시)
+// 3. 실제 % 산출 (데이터가 하나도 없으면 0%, 데이터가 존재하면 실제 비율 계산 후 정수 % 표시)
             let percentage = 0;
             if (targetPosts.length === 0 && targetFiles.length === 0) {
                 percentage = 0;
@@ -4553,10 +4568,27 @@ initAuth();
             });
         }
 
+        function isAnimatedGifFile(file) {
+            if (!file) return false;
+            const type = (file.type || '').toLowerCase();
+            const name = (file.name || '').toLowerCase();
+            return type === 'image/gif' || name.endsWith('.gif');
+        }
+
         function processImageFile(file, callback) {
             if (!file) return callback(null);
+            const isGif = isAnimatedGifFile(file);
             const reader = new FileReader();
             reader.onload = function(e) {
+                const rawDataUrl = e.target.result;
+                // [움직이는 GIF 지원]: Canvas에 그리면 첫 프레임 정지 JPEG로 변환되므로, 850KB 이하 GIF는 원본 애니메이션 DataURL 그대로 보존
+                if (isGif && typeof rawDataUrl === 'string' && rawDataUrl.startsWith('data:image/gif')) {
+                    if (file.size <= 850 * 1024) {
+                        return callback(rawDataUrl);
+                    } else {
+                        showNotification("850KB를 초과하는 대용량 GIF는 용량 보호를 위해 일반 사진으로 압축됩니다.");
+                    }
+                }
                 const img = new Image();
                 img.onload = function() {
                     try {
@@ -8835,6 +8867,13 @@ window.closeAllPdfPreviewModal = function() {
         let cropBoxRect = { x: 50, y: 50, w: 260, h: 260 };
         let isCropBoxInteractionsBound = false;
 
+                window.addEventListener('resize', () => {
+            if (lightboxModal && !lightboxModal.classList.contains('hidden')) {
+                moveToLightboxSlide(currentLightboxPhotoIdx, false);
+                resetCropBoxToImage(1.0, false);
+            }
+        });
+
         window.openLightbox = function(postId, photoIdx) {
             const post = cachedPosts.find(p => p.id === postId || String(p.id) === String(postId));
             if (post && !canModifyPost(post)) {
@@ -8855,7 +8894,7 @@ window.closeAllPdfPreviewModal = function() {
             currentLightboxImages.forEach((src, idx) => {
                 const slide = document.createElement('div');
                 slide.className = 'lightbox-slide';
-                slide.innerHTML = `<img id="lightbox-slide-img-${idx}" src="${src}" crossOrigin="anonymous" alt="사진 ${idx + 1}" class="lightbox-img-el" style="max-height: 65vh; max-width: 88vw; object-fit: contain; pointer-events: none;">`;
+                slide.innerHTML = `<img id="lightbox-slide-img-${idx}" src="${src}" crossOrigin="anonymous" alt="사진 ${idx + 1}" class="lightbox-img-el" style="max-height: calc(100% - 16px); max-width: calc(100% - 16px); margin: auto; object-fit: contain; pointer-events: none;">`;
                 lightboxTrack.appendChild(slide);
             });
 
@@ -8881,7 +8920,10 @@ window.closeAllPdfPreviewModal = function() {
             if (index >= currentLightboxImages.length) index = currentLightboxImages.length - 1;
             currentLightboxPhotoIdx = index;
 
-            const viewWidth = lightboxModal.clientWidth || window.innerWidth;
+            const vpEl = document.getElementById('lightbox-viewport');
+            const viewWidth = (vpEl && vpEl.getBoundingClientRect().width > 0)
+                ? vpEl.getBoundingClientRect().width
+                : (lightboxModal.clientWidth || window.innerWidth);
             trackOffset = -index * viewWidth;
 
             if (animate) {

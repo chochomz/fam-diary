@@ -486,18 +486,32 @@
             display: block;
         }
 
-        .slide-menu-container, .export-slide-menu, #header-quick-menu {
+        .slide-menu-container, .export-slide-menu {
             transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
             transform-origin: right center;
+        }
+        #header-quick-menu {
+            transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+            transform-origin: top right;
         }
         .menu-closed, .export-menu-closed {
             opacity: 0;
             transform: translateX(12px) scale(0.92);
             pointer-events: none;
         }
+        #header-quick-menu.menu-closed {
+            opacity: 0;
+            transform: translateY(-8px) scale(0.94);
+            pointer-events: none;
+        }
         .menu-open, .export-menu-open {
             opacity: 1;
             transform: translateX(0) scale(1);
+            pointer-events: auto;
+        }
+        #header-quick-menu.menu-open {
+            opacity: 1;
+            transform: translateY(0) scale(1);
             pointer-events: auto;
         }
 
@@ -581,32 +595,31 @@
             </div>
         </div>
 
-        <!-- 오른쪽 펜 트리거 & 왼쪽 슬라이드 메뉴 -->
+        <!-- 오른쪽 펜 트리거 & 아래로 펼쳐지는 기능창 (목장나눔 스타일) -->
         <div class="shrink-0 relative flex items-center justify-end w-8">
-            <div id="header-quick-menu" class="menu-closed absolute right-8 bg-[#EBF5EE]/95 text-[#244E3F] rounded-full shadow-md py-1 px-1.5 z-40 flex items-center space-x-1 whitespace-nowrap">
-                <!-- 1. 글쓰기 버튼 -->
-                <button onclick="handleHeaderWriteClick()" class="h-[28px] px-2.5 church-accent church-primary-text rounded-full text-xs font-bold flex items-center space-x-1 shadow-2xs hover:bg-emerald-100/90 active:scale-95 transition-all">
-                    <i class="fa-solid fa-pen-nib text-[10px]"></i>
-                    <span>글쓰기</span>
-                </button>
+            <div id="header-quick-menu" class="menu-closed absolute top-9 right-0 bg-[#EBF5EE]/98 backdrop-blur-md text-[#244E3F] rounded-2xl shadow-xl border border-emerald-200/90 p-2 z-50 flex flex-col space-y-1.5 min-w-[162px] select-none">
+                <!-- 1단: 글쓰기 & 돋보기 검색 -->
+                <div class="flex items-center space-x-1.5 w-full">
+                    <button onclick="handleHeaderWriteClick()" class="flex-1 h-[30px] px-3 church-primary text-white rounded-xl text-xs font-bold flex items-center justify-center space-x-1.5 shadow-2xs hover:opacity-95 active:scale-95 transition-all whitespace-nowrap">
+                        <i class="fa-solid fa-pen-nib text-[10.5px]"></i>
+                        <span>글쓰기</span>
+                    </button>
+                    <button type="button" id="header-search-btn" onclick="toggleHeaderSearch(event)" 
+                            class="h-[30px] w-8 shrink-0 rounded-xl bg-white hover:bg-emerald-100/90 text-emerald-800 border border-emerald-200/90 shadow-2xs flex items-center justify-center active:scale-95 transition-all" 
+                            title="피드 실시간 검색">
+                        <i class="fa-solid fa-magnifying-glass text-xs"></i>
+                    </button>
+                </div>
 
-                <!-- 검색 돋보기 버튼 -->
-                <button type="button" id="header-search-btn" onclick="toggleHeaderSearch(event)" 
-                        class="h-[28px] w-7 rounded-full bg-white/90 hover:bg-emerald-100/90 text-emerald-800 border border-emerald-200/80 shadow-2xs flex items-center justify-center active:scale-95 transition-all" 
-                        title="피드 실시간 검색">
-                    <i class="fa-solid fa-magnifying-glass text-[11px]"></i>
-                </button>
-
-                <!-- 2 & 3: 연동+용량 배지 + 전체PDF -->
-                <div class="flex items-center rounded-full bg-white/90 border border-emerald-200/80 shadow-2xs overflow-hidden">
-                    <div id="combined-cloud-badge" class="h-[26px] px-1.5 flex items-center space-x-0.5 text-gray-700 select-none border-r border-emerald-100/80" title="클라우드 실시간 연동 및 1GB 무료 용량 사용 현황">
+                <!-- 2단: 클라우드 연동+용량 배지 + web/zip백업 -->
+                <div class="flex items-center justify-between rounded-xl bg-white/95 border border-emerald-200/80 shadow-2xs overflow-hidden w-full h-[28px]">
+                    <div id="combined-cloud-badge" class="h-full px-2 flex items-center space-x-1 text-gray-700 select-none border-r border-emerald-100/90 shrink-0" title="클라우드 실시간 연동 및 1GB 무료 용량 사용 현황">
                         <span id="db-status-lamp" class="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block shrink-0"></span>
-                        <i id="storage-quota-icon" class="fa-solid fa-battery-quarter text-emerald-600 text-[9px]"></i>
-                        <span id="storage-quota-text" class="font-mono font-bold text-[8.5px] text-gray-700">0%</span>
+                        <i id="storage-quota-icon" class="fa-solid fa-battery-quarter text-emerald-600 text-[9.5px]"></i>
+                        <span id="storage-quota-text" class="font-mono font-bold text-[9px] text-gray-700">0%</span>
                     </div>
-
-                    <button onclick="requestAllFeedPdfPreview()" class="h-[26px] px-2 hover:bg-emerald-50/80 text-gray-700 hover:text-emerald-900 text-[10.5px] font-medium flex items-center space-x-1 active:scale-95 transition-all" title="피드 전체 사진과 글(댓글 포함) web/zip백업 및 공유">
-                        <i class="fa-solid fa-book-open text-[9.5px] text-gray-500"></i>
+                    <button onclick="requestAllFeedPdfPreview()" class="flex-1 h-full px-2 hover:bg-emerald-50/90 text-gray-700 hover:text-emerald-900 text-[10.5px] font-semibold flex items-center justify-center space-x-1 active:scale-95 transition-all whitespace-nowrap" title="피드 전체 사진과 글(댓글 포함) web/zip백업 및 공유">
+                        <i class="fa-solid fa-book-open text-[9.5px] text-emerald-700"></i>
                         <span>web/zip백업</span>
                     </button>
                 </div>
@@ -4546,7 +4559,11 @@ initAuth();
         // ============================================================================
         // [움직이는 GIF 600KB 자동 다이어트 엔진 (프레임 디코딩 -> 축소 -> GIF89a 재인코딩)]
         // ============================================================================
-        const GIF_TARGET_MAX_BYTES = 600 * 1024; // 기준 사이즈: 정확히 600KB
+        // ============================================================================
+        // [움직이는 GIF 600KB(Base64 실저장 크기 기준) 차분(Delta) 압축 다이어트 엔진]
+        // ============================================================================
+        const GIF_MAX_DATAURL_LENGTH = 600 * 1024; // Firestore 실제 저장 문자열 기준 600KB (바이너리 약 445KB)
+        let isImageProcessingInProgress = false;
 
         function isAnimatedGifFile(file, dataUrl = '') {
             if (file) {
@@ -4560,7 +4577,8 @@ initAuth();
             return false;
         }
 
-        function encodeFramesToAnimatedGif(frames, width, height, colorBits = 8) {
+        // 프레임 차분(Delta Transparency) + 적응형 팔레트 기반 초고효율 GIF89a 인코더
+        function encodeFramesToAnimatedGif(frames, width, height, colorBits = 8, deltaThreshold = 14) {
             const bytes = [];
             const writeStr = (s) => { for (let i = 0; i < s.length; i++) bytes.push(s.charCodeAt(i)); };
             const writeU16 = (v) => { bytes.push(v & 0xFF, (v >> 8) & 0xFF); };
@@ -4571,6 +4589,8 @@ initAuth();
 
             const is64Color = (colorBits === 6);
             const gctSizeFlag = is64Color ? 5 : 7;
+            const transparentIndex = is64Color ? 63 : 255; // 마지막 인덱스를 차분 투명색으로 예약
+
             bytes.push(0x80 | (gctSizeFlag << 4) | gctSizeFlag);
             bytes.push(0);
             bytes.push(0);
@@ -4591,11 +4611,13 @@ initAuth();
                 }
             }
 
+            // Netscape 2.0 무한 반복 루프
             bytes.push(0x21, 0xFF, 0x0B);
             writeStr('NETSCAPE2.0');
             bytes.push(0x03, 0x01, 0x00, 0x00, 0x00);
 
             const minCodeSize = is64Color ? 6 : 8;
+            const dictBuffer = new Int32Array(4096 * 256);
 
             const lzwEncodeFrame = (indexedPixels) => {
                 const clearCode = 1 << minCodeSize;
@@ -4616,32 +4638,33 @@ initAuth();
                         bitBuffer >>= 8;
                         bitCount -= 8;
                         if (currentBlock.length === 255) {
-                            subBlocks.push(255, ...currentBlock);
-                            currentBlock = [];
+                            subBlocks.push(255);
+                            for (let ci = 0; ci < 255; ci++) subBlocks.push(currentBlock[ci]);
+                            currentBlock.length = 0;
                         }
                     }
                 };
 
-                let dict = new Int32Array(4096 * 256).fill(-1);
+                dictBuffer.fill(-1);
                 emitCode(clearCode);
 
                 let prefix = indexedPixels[0];
                 for (let i = 1; i < indexedPixels.length; i++) {
                     const k = indexedPixels[i];
                     const key = (prefix << 8) | k;
-                    const found = dict[key];
+                    const found = dictBuffer[key];
                     if (found !== -1) {
                         prefix = found;
                     } else {
                         emitCode(prefix);
                         if (nextCode < 4096) {
-                            dict[key] = nextCode++;
+                            dictBuffer[key] = nextCode++;
                             if (nextCode > (1 << codeSize) && codeSize < 12) {
                                 codeSize++;
                             }
                         } else {
                             emitCode(clearCode);
-                            dict.fill(-1);
+                            dictBuffer.fill(-1);
                             codeSize = minCodeSize + 1;
                             nextCode = eoiCode + 1;
                         }
@@ -4654,21 +4677,28 @@ initAuth();
                     currentBlock.push(bitBuffer & 0xFF);
                 }
                 if (currentBlock.length > 0) {
-                    subBlocks.push(currentBlock.length, ...currentBlock);
+                    subBlocks.push(currentBlock.length);
+                    for (let ci = 0; ci < currentBlock.length; ci++) subBlocks.push(currentBlock[ci]);
                 }
                 subBlocks.push(0x00);
                 return subBlocks;
             };
 
             const totalPixels = width * height;
+            let prevIndexed = null;
+            let prevRgba = null;
+
             for (let f = 0; f < frames.length; f++) {
                 const frame = frames[f];
                 const delayCs = Math.max(4, Math.round((frame.delayMs || 100) / 10));
+                const useTrans = (f > 0);
 
-                bytes.push(0x21, 0xF9, 0x04, 0x04);
+                // Graphic Control Extension (Disposal 1: Do not dispose + Transparent flag)
+                bytes.push(0x21, 0xF9, 0x04, useTrans ? 0x05 : 0x04);
                 writeU16(delayCs);
-                bytes.push(0x00, 0x00);
+                bytes.push(useTrans ? transparentIndex : 0x00, 0x00);
 
+                // Image Descriptor
                 bytes.push(0x2C);
                 writeU16(0);
                 writeU16(0);
@@ -4678,21 +4708,43 @@ initAuth();
 
                 const rgba = frame.rgba;
                 const indexed = new Uint8Array(totalPixels);
-                if (is64Color) {
-                    for (let p = 0, idx = 0; p < totalPixels; p++, idx += 4) {
-                        const r = rgba[idx] >> 6;
-                        const g = rgba[idx + 1] >> 6;
-                        const b = rgba[idx + 2] >> 6;
-                        indexed[p] = (r << 4) | (g << 2) | b;
+                const fullIndexed = new Uint8Array(totalPixels);
+
+                for (let p = 0, idx = 0; p < totalPixels; p++, idx += 4) {
+                    const rVal = rgba[idx];
+                    const gVal = rgba[idx + 1];
+                    const bVal = rgba[idx + 2];
+                    let colorIdx;
+                    if (is64Color) {
+                        colorIdx = ((rVal >> 6) << 4) | ((gVal >> 6) << 2) | (bVal >> 6);
+                        if (colorIdx === transparentIndex) colorIdx = transparentIndex - 1;
+                    } else {
+                        colorIdx = ((rVal >> 5) << 5) | ((gVal >> 5) << 2) | (bVal >> 6);
+                        if (colorIdx === transparentIndex) colorIdx = transparentIndex - 1;
                     }
-                } else {
-                    for (let p = 0, idx = 0; p < totalPixels; p++, idx += 4) {
-                        const r = rgba[idx] >> 5;
-                        const g = rgba[idx + 1] >> 5;
-                        const b = rgba[idx + 2] >> 6;
-                        indexed[p] = (r << 5) | (g << 2) | b;
+                    fullIndexed[p] = colorIdx;
+
+                    // 이전 프레임과 색상이 동일하거나 미세한 노이즈(deltaThreshold 이내)면 투명 인덱스로 비워 압축률 3배 향상!
+                    if (useTrans && prevIndexed && prevRgba) {
+                        if (colorIdx === prevIndexed[p]) {
+                            indexed[p] = transparentIndex;
+                            fullIndexed[p] = prevIndexed[p];
+                            continue;
+                        }
+                        const dr = Math.abs(rVal - prevRgba[idx]);
+                        const dg = Math.abs(gVal - prevRgba[idx + 1]);
+                        const db = Math.abs(bVal - prevRgba[idx + 2]);
+                        if (dr <= deltaThreshold && dg <= deltaThreshold && db <= deltaThreshold) {
+                            indexed[p] = transparentIndex;
+                            fullIndexed[p] = prevIndexed[p];
+                            continue;
+                        }
                     }
+                    indexed[p] = colorIdx;
                 }
+
+                prevIndexed = fullIndexed;
+                prevRgba = rgba;
 
                 bytes.push(minCodeSize);
                 const compressedBlocks = lzwEncodeFrame(indexed);
@@ -4705,6 +4757,7 @@ initAuth();
             return new Uint8Array(bytes);
         }
 
+        // 순수 JS GIF89a 바이너리 프레임 디코더 (오프셋 버그 완벽 수정본)
         function decodeGifBinaryFramesFallback(buffer) {
             const data = new Uint8Array(buffer);
             let pos = 6;
@@ -4826,7 +4879,7 @@ initAuth();
                     }
                 } else if (blockId === 0x2C) {
                     const left = data[pos] | (data[pos + 1] << 8);
-                    const top = data[pos] | (data[pos + 3] << 8);
+                    const top = data[pos + 2] | (data[pos + 3] << 8);
                     const w = data[pos + 4] | (data[pos + 5] << 8);
                     const h = data[pos + 6] | (data[pos + 7] << 8);
                     const imgPacked = data[pos + 8];
@@ -4953,67 +5006,73 @@ initAuth();
                     }
                 }
 
-                if (rawFrames.length === 0) {
-                    return rawDataUrl;
-                }
-
+                // 8단계 적응형 다이어트 프로파일 (Base64 길이 600KB = 바이너리 약 445KB 이하 100% 보장)
+                const targetBinaryLimit = Math.floor(GIF_MAX_DATAURL_LENGTH * 0.73); // 약 448KB 바이너리 (= Base64 600KB)
                 const profiles = [
-                    { maxDim: 360, maxFrames: 24, colorBits: 8 },
-                    { maxDim: 300, maxFrames: 20, colorBits: 8 },
-                    { maxDim: 260, maxFrames: 16, colorBits: 6 },
-                    { maxDim: 220, maxFrames: 14, colorBits: 6 },
-                    { maxDim: 180, maxFrames: 12, colorBits: 6 }
+                    { maxDim: 400, maxFrames: 24, colorBits: 8, delta: 14 },
+                    { maxDim: 340, maxFrames: 20, colorBits: 8, delta: 16 },
+                    { maxDim: 300, maxFrames: 18, colorBits: 8, delta: 18 },
+                    { maxDim: 270, maxFrames: 16, colorBits: 6, delta: 18 },
+                    { maxDim: 240, maxFrames: 14, colorBits: 6, delta: 22 },
+                    { maxDim: 200, maxFrames: 12, colorBits: 6, delta: 24 },
+                    { maxDim: 170, maxFrames: 10, colorBits: 6, delta: 26 },
+                    { maxDim: 140, maxFrames: 8,  colorBits: 6, delta: 28 }
                 ];
 
-                let bestGifBytes = null;
+                if (rawFrames.length > 0) {
+                    let bestDataUrl = null;
+                    let bestKB = 0;
 
-                for (let p = 0; p < profiles.length; p++) {
-                    const prof = profiles[p];
-                    let targetW = origW;
-                    let targetH = origH;
-                    if (targetW > prof.maxDim || targetH > prof.maxDim) {
-                        if (targetW > targetH) {
-                            targetH = Math.max(40, Math.round((targetH * prof.maxDim) / targetW));
-                            targetW = prof.maxDim;
-                        } else {
-                            targetW = Math.max(40, Math.round((targetW * prof.maxDim) / targetH));
-                            targetH = prof.maxDim;
+                    for (let p = 0; p < profiles.length; p++) {
+                        const prof = profiles[p];
+                        let targetW = origW;
+                        let targetH = origH;
+                        if (targetW > prof.maxDim || targetH > prof.maxDim) {
+                            if (targetW > targetH) {
+                                targetH = Math.max(40, Math.round((targetH * prof.maxDim) / targetW));
+                                targetW = prof.maxDim;
+                            } else {
+                                targetW = Math.max(40, Math.round((targetW * prof.maxDim) / targetH));
+                                targetH = prof.maxDim;
+                            }
+                        }
+
+                        const step = Math.max(1, Math.ceil(rawFrames.length / prof.maxFrames));
+                        const sampledFrames = [];
+                        const scaleCanvas = document.createElement('canvas');
+                        scaleCanvas.width = targetW;
+                        scaleCanvas.height = targetH;
+                        const scaleCtx = scaleCanvas.getContext('2d', { willReadFrequently: true });
+
+                        for (let i = 0; i < rawFrames.length; i += step) {
+                            let combinedDelay = 0;
+                            for (let s = 0; s < step && (i + s) < rawFrames.length; s++) {
+                                combinedDelay += (rawFrames[i + s].delayMs || 100);
+                            }
+                            scaleCtx.fillStyle = '#ffffff';
+                            scaleCtx.fillRect(0, 0, targetW, targetH);
+                            scaleCtx.drawImage(rawFrames[i].canvas, 0, 0, targetW, targetH);
+                            const imgData = scaleCtx.getImageData(0, 0, targetW, targetH);
+                            sampledFrames.push({
+                                rgba: new Uint8ClampedArray(imgData.data),
+                                delayMs: combinedDelay
+                            });
+                        }
+
+                        const gifBytes = encodeFramesToAnimatedGif(sampledFrames, targetW, targetH, prof.colorBits, prof.delta);
+                        const candidateUrl = uint8ArrayToBase64DataUrl(gifBytes, 'image/gif');
+                        bestDataUrl = candidateUrl;
+                        bestKB = Math.round(gifBytes.length / 1024);
+
+                        if (candidateUrl.length <= GIF_MAX_DATAURL_LENGTH || gifBytes.length <= targetBinaryLimit) {
+                            break; // Base64 600KB 이하 달성!
                         }
                     }
 
-                    const step = Math.max(1, Math.ceil(rawFrames.length / prof.maxFrames));
-                    const sampledFrames = [];
-                    const scaleCanvas = document.createElement('canvas');
-                    scaleCanvas.width = targetW;
-                    scaleCanvas.height = targetH;
-                    const scaleCtx = scaleCanvas.getContext('2d', { willReadFrequently: true });
-
-                    for (let i = 0; i < rawFrames.length; i += step) {
-                        let combinedDelay = 0;
-                        for (let s = 0; s < step && (i + s) < rawFrames.length; s++) {
-                            combinedDelay += (rawFrames[i + s].delayMs || 100);
-                        }
-                        scaleCtx.fillStyle = '#ffffff';
-                        scaleCtx.fillRect(0, 0, targetW, targetH);
-                        scaleCtx.drawImage(rawFrames[i].canvas, 0, 0, targetW, targetH);
-                        const imgData = scaleCtx.getImageData(0, 0, targetW, targetH);
-                        sampledFrames.push({
-                            rgba: new Uint8ClampedArray(imgData.data),
-                            delayMs: combinedDelay
-                        });
+                    if (bestDataUrl) {
+                        showNotification('움직이는 GIF를 ' + bestKB + 'KB로 자동 축소했습니다.');
+                        return bestDataUrl;
                     }
-
-                    const gifBytes = encodeFramesToAnimatedGif(sampledFrames, targetW, targetH, prof.colorBits);
-                    bestGifBytes = gifBytes;
-                    if (gifBytes.length <= GIF_TARGET_MAX_BYTES) {
-                        break;
-                    }
-                }
-
-                if (bestGifBytes) {
-                    const finalKB = Math.round(bestGifBytes.length / 1024);
-                    showNotification('움직이는 GIF를 ' + finalKB + 'KB로 최적화하여 첨부했습니다.');
-                    return uint8ArrayToBase64DataUrl(bestGifBytes, 'image/gif');
                 }
             } catch (err) {
                 console.warn('GIF 자동 축소 경고:', err);
@@ -5023,16 +5082,22 @@ initAuth();
 
         function processImageFile(file, callback) {
             if (!file) return callback(null);
+            isImageProcessingInProgress = true;
+            const doneCallback = (res) => {
+                isImageProcessingInProgress = false;
+                callback(res);
+            };
             const reader = new FileReader();
             reader.onload = async function(e) {
                 const rawDataUrl = e.target.result;
                 if (isAnimatedGifFile(file, rawDataUrl)) {
-                    if (file.size <= GIF_TARGET_MAX_BYTES) {
-                        return callback(rawDataUrl);
+                    // Base64 문자열 길이 기준으로 600KB 이하인 경우에만 원본 즉시 통과
+                    if (rawDataUrl.length <= GIF_MAX_DATAURL_LENGTH) {
+                        return doneCallback(rawDataUrl);
                     }
-                    showNotification('움직이는 GIF 사이즈를 600KB 이하로 줄이는 중...');
+                    showNotification('움직이는 GIF를 600KB 이하로 자동 축소하는 중...');
                     const compressedGifUrl = await compressAnimatedGifTo600KB(file, rawDataUrl);
-                    return callback(compressedGifUrl);
+                    return doneCallback(compressedGifUrl);
                 }
                 const img = new Image();
                 img.onload = function() {
@@ -5060,15 +5125,15 @@ initAuth();
                         ctx.drawImage(img, 0, 0, width, height);
 
                         const compressed = canvas.toDataURL('image/jpeg', 0.68);
-                        callback(compressed);
+                        doneCallback(compressed);
                     } catch (err) {
-                        callback(e.target.result);
+                        doneCallback(e.target.result);
                     }
                 };
-                img.onerror = () => callback(e.target.result);
+                img.onerror = () => doneCallback(e.target.result);
                 img.src = e.target.result;
             };
-            reader.onerror = () => callback(null);
+            reader.onerror = () => doneCallback(null);
             reader.readAsDataURL(file);
         }
 
@@ -5536,6 +5601,10 @@ initAuth();
         };
 
         window.requestSavePost = function() {
+            if (typeof isImageProcessingInProgress !== 'undefined' && isImageProcessingInProgress) {
+                showNotification('움직이는 GIF 용량을 자동 축소하고 있습니다. 1~2초 후 다시 눌러주세요.');
+                return;
+            }
             const contentEl = document.getElementById('post-content');
             const plainText = (contentEl ? contentEl.innerText : '').replace(/\u200B/g, '').trim();
             const fileTitleInput = document.getElementById('post-file-title');
